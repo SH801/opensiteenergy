@@ -491,10 +491,10 @@ class OpenSiteGraph(Graph):
 
     def add_osmexporttool_nodes(self):
         """
-        Groups YML download nodes, inserts Concatenate and Run layers with 
-        specialized node types, and sets the runner's parent to 'import'.
+        Builds the OSM stack: Runner is the parent, with Downloader 
+        and Concatenator as siblings beneath it.
         """
-        self.log.info("Splicing OSM layers with specialized node types...")
+        self.log.info("Splicing OSM stack: Adding Downloader as sibling to Concatenator...")
 
         # 1. Query for the base YML download nodes
         yml_node_dicts = self.find_nodes_by_props({
@@ -505,69 +505,89 @@ class OpenSiteGraph(Graph):
         if not yml_node_dicts:
             return
 
-        # 2. Group by the 'osm' value baked into the branch lineage
+        # 2. Group by lineage-baked 'osm' URL
         groups = {}
         for d in yml_node_dicts:
             node = self.find_node_by_urn(d['urn'])
             osm_url = self.get_property_from_lineage(node.urn, 'osm')
-            
             if not osm_url:
                 continue
-                
             if osm_url not in groups:
                 groups[osm_url] = []
             groups[osm_url].append(node)
 
-        # 3. Process each group
+        # 3. Process each unique OSM source group
         for osm_url, group_nodes in groups.items():
             group_outputs = sorted(list(set(n.output for n in group_nodes if n.output)))
             osm_url_basename = os.path.basename(osm_url)
             
-            concat_global_urn = self.get_new_global_urn()
-            run_global_urn = self.get_new_global_urn()
+            concat_gurn = self.get_new_global_urn()
+            run_gurn = self.get_new_global_urn()
+            down_gurn = self.get_new_global_urn()
 
             for node in group_nodes:
-                # --- LAYER 1: The Concatenator ---
+                # --- LAYER 1: Concatenator ---
                 concat_node = Node(
                     name=f"osm-consolidator--{osm_url}",
                     title=f"Concatenate OSM Configs - {osm_url_basename}",
                     urn=self.get_new_urn()
                 )
-                concat_node.global_urn = concat_global_urn
+                concat_node.global_urn = concat_gurn
                 concat_node.action = 'concatenate'
-                concat_node.node_type = 'osm-concatenator' # Specialized Type
+                concat_node.node_type = 'osm-concatenator'
                 concat_node.input = group_outputs 
                 
-                # --- LAYER 2: The Runner ---
+                # --- LAYER 2: Downloader ---
+                down_node = Node(
+                    name=f"osm-downloader--{osm_url}",
+                    title=f"Download OSM Source - {osm_url_basename}",
+                    urn=self.get_new_urn()
+                )
+                down_node.global_urn = down_gurn
+                down_node.action = 'download'
+                down_node.node_type = 'osm-downloader'
+                down_node.input = osm_url
+
+                # --- LAYER 3: Runner ---
                 run_node = Node(
                     name=f"osm-runner--{osm_url}",
                     title=f"Run OSM Export Tool - {osm_url_basename}",
                     urn=self.get_new_urn()
                 )
-                run_node.global_urn = run_global_urn
+                run_node.global_urn = run_gurn
                 run_node.action = 'run'
-                run_node.node_type = 'osm-runner' # Specialized Type
+                run_node.node_type = 'osm-runner'
                 run_node.input = None
 
                 # Initialize properties
-                for n in [concat_node, run_node]:
+                for n in [concat_node, down_node, run_node]:
                     n.output = None
                     if not hasattr(n, 'custom_properties') or n.custom_properties is None:
                         n.custom_properties = {}
                     n.custom_properties['osm'] = osm_url
 
-                # 4. Splice the layers in
+                # 4. Splicing logic
+                # Insert concat above download
                 self.insert_parent(node, concat_node)
+                # Insert runner above concat
                 self.insert_parent(concat_node, run_node)
+                
+                # Manual Sibling Attachment: 
+                # Since Runner is now parent of Concat, we just add Downloader to Runner's children.
+                if not hasattr(run_node, 'children') or run_node.children is None:
+                    run_node.children = []
+                
+                # Avoid duplicates if multiple nodes in a group share a runner
+                if down_node not in run_node.children:
+                    run_node.children.append(down_node)
 
-                # 5. Update the existing parent to 'import'
+                # 5. Set original parent of the runner to 'import'
                 runner_parent = self.find_parent(run_node.urn)
                 if runner_parent:
                     runner_parent.action = 'import'
                     runner_parent.input = None 
-                    
                     if not hasattr(runner_parent, 'custom_properties') or runner_parent.custom_properties is None:
                         runner_parent.custom_properties = {}
                     runner_parent.custom_properties['osm'] = osm_url
 
-        self.log.debug("OSM Export Tool explosion complete with specialized node types.")
+        self.log.debug("OSM Tree complete: Runner is now parent to both Downloader and Concatenator.")
