@@ -14,9 +14,8 @@ from opensite.download.base import DownloadBase
 from opensite.logging.opensite import OpenSiteLogger
 
 class WFSDownloader(DownloadBase):
-    def __init__(self, log_level=logging.INFO):
-        super().__init__(log_level)
-        self.log = OpenSiteLogger("WFSDownloader", log_level)
+    def __init__(self, log_level=logging.INFO, shared_lock=None):
+        self.log = OpenSiteLogger("WFSDownloader", log_level, shared_lock)
         self.base_path = OpenSiteConstants.DOWNLOAD_FOLDER
         # Scottish Gov / AWS required User-Agent
         self.headers = {'User-Agent': 'openwindenergy/*'}
@@ -37,7 +36,7 @@ class WFSDownloader(DownloadBase):
             final_dir = final_dir / subfolder
         
         output_file = (final_dir / target_file).resolve()
-        temp_output_file = output_file.parent / f"{output_file.name}.tmp"
+        temp_output_file = output_file.parent / f"tmp-{output_file.name}"
 
         # Idempotency check
         if output_file.exists() and not force:
@@ -96,8 +95,6 @@ class WFSDownloader(DownloadBase):
 
             # 5. Paginated Download Loop
             dataframe, start_index, records_downloaded = None, 0, 0
-
-            
 
             while records_downloaded < total_records:
                 records_to_download = min(batch_size, total_records - records_downloaded)

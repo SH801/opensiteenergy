@@ -11,11 +11,14 @@ from opensite.model.node import Node
 from opensite.constants import OpenSiteConstants
 from opensite.download.opensite import OpenSiteDownloader
 from opensite.processing.unzip import OpenSiteUnzipper
+from opensite.processing.concatenate import OpenSiteConcatenator
+from opensite.processing.run import OpenSiteRunner
 
 class OpenSiteQueue:
     def __init__(self, graph, max_workers=None, log_level=logging.DEBUG):
         self.graph = graph
         self.action_groups = self.graph.get_action_groups()
+        self.terminal_status = self.graph.get_terminal_status()
         self.log_level = log_level
         self.logger = OpenSiteLogger("OpenSiteQueue", self.log_level)
 
@@ -69,7 +72,7 @@ class OpenSiteQueue:
             g_urn = node.global_urn
 
             # Skip if terminal or if we've already queued this global resource in this batch
-            if node.action in self.action_groups['terminal'] or g_urn in seen_global_urns:
+            if node.status in self.terminal_status or g_urn in seen_global_urns:
                 continue
 
             if len(actions) != 0:
@@ -77,7 +80,7 @@ class OpenSiteQueue:
 
             # Check dependencies (children)
             children = getattr(node, 'children', [])
-            if all(child.action == 'processed' for child in children):
+            if all(child.status == 'processed' for child in children):
                 runnable.append(node)
                 if g_urn:
                     seen_global_urns.add(g_urn)
@@ -115,7 +118,7 @@ class OpenSiteQueue:
         g_urn = node.global_urn
 
         # Update the specific node
-        node.action = status
+        node.status = status
 
         # Sync all clones sharing the same global_urn
         if g_urn:
@@ -125,7 +128,7 @@ class OpenSiteQueue:
                 if c_dict['urn'] == node_urn:
                     continue
                 c_node = self.graph.find_node_by_urn(c_dict['urn'])
-                c_node.action = status
+                c_node.status = status
 
     @staticmethod
     def process_cpu_task(args):
@@ -133,23 +136,27 @@ class OpenSiteQueue:
         Static wrapper for ProcessPoolExecutor. 
         Handles Amalgamate, Import, Buffer, and Run.
         """
-        urn, action, node_input, name, props, log_level, shared_lock = args
-
+        urn, name, title, node_type, format, input, action, output, custom_properties, log_level, shared_lock, shared_metadata = args
+         
         logger = OpenSiteLogger("process_cpu_task", log_level, shared_lock)
-
-        # In a real scenario, initialize PostGIS connections here
-        # print(f"Executing CPU task: {name} on PID {os.getpid()}")
 
         logger.info(f"[CPU:{action}] {name}")
 
+        node = Node(urn=urn, name=name, title=title, node_type=node_type, format=format, input=input, action=action, output=output, custom_properties=custom_properties)
+
         try:
-            # Placeholder for actual logic routing
-            time.sleep(1) 
-            return urn, 'processed'
+
+            if action == 'run':
+                runner = OpenSiteRunner(node, log_level, shared_lock, shared_metadata)
+                success = runner.run()
+
+            if success: return urn, 'processed'
+            else: return urn, 'failed'
+
         except Exception:
             return urn, 'failed'
         
-    def process_io_task(self, node: Node):
+    def process_io_task(self, node: Node, log_level, shared_lock, shared_metadata):
         """
         Standard method for ThreadPoolExecutor.
         Handles Download, Unzip, and Concatenate.
@@ -157,24 +164,26 @@ class OpenSiteQueue:
 
         self.graph.log.info(f"[I/O:{node.action}] {node.name}")
 
+        # Use shared_metadata for concatenator as needs access to cross-process variables
+
         try:
             success = False
             
             if node.action == 'download':
-                downloader = OpenSiteDownloader()
+                downloader = OpenSiteDownloader(log_level, shared_lock)
                 success = downloader.get(node)
 
             elif node.action == 'unzip':
-                unzipper = OpenSiteUnzipper(node, self.log_level)
+                unzipper = OpenSiteUnzipper(node, log_level, shared_lock)
                 success = unzipper.run()
 
             elif node.action == 'concatenate':
-                # Logic for concatenate will go here
-                self.logger.info(f"Concatenating {node.name}...")
-                success = True
+                concatenator = OpenSiteConcatenator(node, log_level, shared_lock, shared_metadata)
+                success = concatenator.run()
 
-            return 'processed'
-            
+            if success: return 'processed'
+            else: return 'failed'
+
         except Exception as e:
 
             return 'failed'
@@ -192,14 +201,17 @@ class OpenSiteQueue:
         # Use a Manager for shared locks across processes
         manager = multiprocessing.Manager()
         shared_lock = manager.Lock()
+        shared_metadata = manager.dict()
 
         # Keep executors open for the duration of the run to allow pipelining
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.io_workers) as io_exec, \
              concurrent.futures.ProcessPoolExecutor(max_workers=self.cpu_workers) as cpu_exec:
             
             while True:
+                # print(json.dumps(dict(shared_metadata), indent=4))
+
                 # 1. Get nodes that are ready to run (Dependencies met)
-                ready_nodes = self.get_runnable_nodes(actions=['download', 'unzip'], checkfilesizes=False)
+                ready_nodes = self.get_runnable_nodes(actions=['download', 'unzip', 'concatenate', 'run'], checkfilesizes=False)
                 
                 # Filter out nodes that are already currently in flight
                 new_nodes = [n for n in ready_nodes if n.urn not in active_tasks.values()]
@@ -207,7 +219,7 @@ class OpenSiteQueue:
                 # 2. Submit new tasks to the appropriate executor
                 for node in new_nodes:
                     if node.action in self.action_groups['io_bound']:
-                        future = io_exec.submit(self.process_io_task, node)
+                        future = io_exec.submit(self.process_io_task, node, self.log_level, shared_lock, shared_metadata)
                         active_tasks[future] = node.urn
                         self.graph.log.debug(f"Submitted I/O task: {node.name}")
                         
@@ -215,12 +227,17 @@ class OpenSiteQueue:
                         # Prepare the task args for the Process pool
                         task_args = (
                             node.urn, 
-                            node.action, 
-                            node.input, 
                             node.name, 
+                            node.title,
+                            node.node_type,
+                            node.format,
+                            node.input, 
+                            node.action,
+                            node.output,
                             node.custom_properties, 
                             self.log_level, 
-                            shared_lock
+                            shared_lock,
+                            shared_metadata,
                         )
                         future = cpu_exec.submit(self.process_cpu_task, task_args)
                         active_tasks[future] = node.urn
@@ -258,7 +275,7 @@ class OpenSiteQueue:
                         self.sync_global_status(urn, status)
                         
                         # Generate preview to show incremental progress
-                        # self.graph.generate_graph_preview()
+                        self.graph.generate_graph_preview()
                         
                     except Exception as e:
                         self.graph.log.error(f"Task for URN {urn} generated an exception: {e}")

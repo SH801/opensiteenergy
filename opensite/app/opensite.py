@@ -50,7 +50,7 @@ class OpenSiteApplication:
         queue = OpenSiteQueue(graph, log_level=self.log_level)
         queue.run()
 
-        # graph_list = graph.to_list()
+        graph_list = graph.to_list()
         # osm_downloaders = []
         # for item in graph_list:
         #     if item['node_type'] == 'osm-downloader':

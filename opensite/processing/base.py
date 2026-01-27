@@ -2,10 +2,28 @@ import logging
 from pathlib import Path
 from opensite.logging.base import LoggingBase
 class ProcessBase:
-    def __init__(self, node, log_level=logging.INFO):
+    def __init__(self, node, log_level=logging.INFO, shared_lock=None, shared_metadata=None):
         self.node = node
-        self.log = LoggingBase("ProcessBase", log_level)
+        self.log = LoggingBase("ProcessBase", log_level, shared_lock)
         self.base_path = ""
+        self.shared_metadata = shared_metadata if shared_metadata is not None else {}
+
+    def set_output_variable(self, value: str, global_urn: int = None):
+        """
+        Publishes a value to the shared metadata registry.
+        Defaults to the current node's global_urn if none is provided.
+        """
+        target_urn = global_urn if global_urn is not None else self.node.global_urn
+        var_key = f"VAR:global_output_{target_urn}"
+        
+        self.shared_metadata[var_key] = value
+
+    def get_output_variable(self, var_name: str) -> str:
+        """
+        Retrieves a value from the shared metadata registry.
+        var_name should be the full string: 'VAR:global_output_76'
+        """
+        return self.shared_metadata.get(var_name)
 
     def run(self):
         """Main entry point for the process."""

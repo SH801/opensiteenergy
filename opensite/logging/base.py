@@ -32,6 +32,7 @@ class LoggingBase:
         self.logger = logging.getLogger(name)
         self.logger.setLevel(level)
         self.lock = lock
+        self.logger.propagate = False
         
         if not self.logger.handlers:
             # 1. Terminal Handler (WITH COLORS)

@@ -45,7 +45,7 @@ class OpenSiteConstants:
                                 'GPKG' : 'gpkg', 
                                 'ArcGIS GeoServices REST API': 'geojson', 
                                 'GeoJSON': 'geojson', 
-                                'WFS': 'geojson', 
+                                'WFS': 'gpkg', 
                                 'KML': 'geojson',
                                 OSM_YML_FORMAT: 'yml', 
                                 SITES_YML_FORMAT: 'yml', 

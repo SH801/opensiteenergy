@@ -11,10 +11,11 @@ class OpenSiteDownloader(DownloadBase):
 
     DOWNLOAD_INTERVAL_TIME = OpenSiteConstants.DOWNLOAD_INTERVAL_TIME
 
-    def __init__(self, log_level=logging.INFO):
-        super().__init__(log_level)
-        self.log = OpenSiteLogger("OpenSiteDownloader", log_level)
+    def __init__(self, log_level=logging.INFO, shared_lock=None):
+        self.log = OpenSiteLogger("OpenSiteDownloader", log_level, shared_lock)
         self.base_path = OpenSiteConstants.DOWNLOAD_FOLDER
+        self.log_level = log_level
+        self.shared_lock = shared_lock
 
     def _handle_node_input(self, node: Node, filename: str = None, subfolder: str = "", force: bool = False):
         """
@@ -43,7 +44,7 @@ class OpenSiteDownloader(DownloadBase):
 
         if handler_class:
             self.log.info(f"Routing {node.name} to {current_format} handler.")
-            handler = handler_class()
+            handler = handler_class(self.log_level, self.shared_lock)
             return handler.get(node.input, target_file, subfolder, force)
         
         # Fallback for anything else

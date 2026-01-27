@@ -12,9 +12,8 @@ class ArcGISDownloader(DownloadBase):
 
     DOWNLOAD_INTERVAL_TIME = OpenSiteConstants.DOWNLOAD_INTERVAL_TIME
 
-    def __init__(self, log_level=logging.INFO):
-        super().__init__(log_level)
-        self.log = OpenSiteLogger("ArcGISDownloader", log_level)
+    def __init__(self, log_level=logging.INFO, shared_lock=None):
+        self.log = OpenSiteLogger("ArcGISDownloader", log_level, shared_lock)
         self.base_path = OpenSiteConstants.DOWNLOAD_FOLDER
     
     def get(self, url, target_file, subfolder=None, force=False) -> bool:

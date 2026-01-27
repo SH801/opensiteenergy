@@ -3,9 +3,11 @@ import os
 import json
 import yaml
 import logging
+import webbrowser
 from typing import Dict, Any, List, Optional
 from .base import Graph
 from ..node import Node
+from pyvis.network import Network
 from opensite.constants import OpenSiteConstants
 from opensite.postgis.opensite import OpenSitePostGIS
 from opensite.logging.opensite import OpenSiteLogger
@@ -77,12 +79,15 @@ class OpenSiteGraph(Graph):
                 'buffer', 
                 'import',
                 'amalgamate'
-            ],
-            "terminal": [
-                'processed', 
-                'failed'
             ]
         }
+
+    def get_terminal_status(self):
+        """
+        Get list of statuses that indicate they're terminal
+        """
+
+        return ['processed', 'failed']
 
     def get_distinct_actions(self):
         """
@@ -122,6 +127,160 @@ class OpenSiteGraph(Graph):
         for lowercase_word in lowercase_words: title = title.replace(lowercase_word, lowercase_word.lower())
 
         return title
+
+    def generate_graph_preview(self, filename="graph_preview.html", load=False):
+        """
+        Generates an interactive HTML preview.
+        - Skips root node to show branches as separate networks.
+        - Increases node distance for better spacing.
+        """
+        self.log.debug(f"Generating interactive graph preview: {filename}")
+        
+        net = Network(
+            height="100vh", 
+            width="100%", 
+            bgcolor="#ffffff", 
+            font_color="black", 
+            directed=True,
+            notebook=False 
+        )
+        
+        # We increase node_distance and spring_length to force them apart
+        net.force_atlas_2based(
+            gravity=-50,        # More negative = more repulsion between nodes
+            central_gravity=0.01, 
+            spring_length=150,   # Minimum distance for an edge
+            spring_strength=0.08,
+            damping=0.4,
+            overlap=0
+        )
+
+        options = {
+            "nodes": {
+                "font": {
+                "size": 18,
+                "face": "Tahoma",
+                "color": "#343434"
+                }
+            },
+            "layout": {
+                "hierarchical": {
+                    "enabled": True,
+                    "levelSeparation": 1000,    # Vertical distance between levels
+                    "nodeSpacing": 400,         # Horizontal distance between nodes
+                    "treeSpacing": 600,         # Distance between different 'islands'
+                    "blockShifting": True,
+                    "edgeMinimization": True,
+                    "parentCentralization": True,
+                    "direction": "UD",          # 'UD' (Up-Down), 'DU', 'LR', 'RL'
+                    "sortMethod": "directed"    # Uses the edge direction to determine levels
+                }
+            },
+            "physics": {
+                "hierarchicalRepulsion": {
+                    "centralGravity": 0.0,      # Prevents everything from collapsing to center
+                    "springLength": 250,
+                    "nodeDistance": 400,        # Forces nodes away from each other
+                    "damping": 0.09
+                },
+                "solver": "hierarchicalRepulsion"
+            }
+        }
+
+        net.set_options(json.dumps(options))
+
+        def add_to_vis(node):
+            if node.status == 'processed':
+                color = "#0f9447"
+            elif node.status == 'unprocessed':
+                color = "#c71f0d"
+            else:
+                color = "#848484"
+
+            # if hasattr(node, 'url') and node.url:
+            #     color = "#2ecc71" # Green
+            # elif hasattr(node, 'children') and len(node.children) > 0:
+            #     color = "#3498db" # Blue
+            # else:
+            #     color = "#e74c3c" # Red
+
+            node_json = node.to_json()
+            del node_json['children']
+            properties_json = json.dumps(node_json, indent=2)
+            label = node.title if node.title else node.name
+            label = self.truncate_label(label, max_length=45)
+            net.add_node(
+                node.urn, 
+                label=label, 
+                color=color,
+                title=f"[URN:{node.urn}] {node.title}",
+                properties=properties_json
+            )
+
+            if hasattr(node, 'children'):
+                for child in node.children:
+                    add_to_vis(child)
+                    net.add_edge(node.urn, child.urn)
+
+        # SKIP ROOT: Iterate through the root's children directly
+        # This makes each top-level branch its own independent network
+        if hasattr(self.root, 'children'):
+            for top_level_branch in self.root.children:
+                add_to_vis(top_level_branch)
+
+        white_panel_html = """
+            <div id="graph-title" style="
+                position: fixed; top: 10px; left: 50%; 
+                transform: translateX(-50%);
+                background: rgba(255, 255, 255, 0.8);
+                padding: 10px 20px; border-radius: 5px;
+                border: 1px solid #ccc; font-family: sans-serif;
+                z-index: 1000; font-size: 20px; font-weight: bold;">
+                Open Site Energy: Processing graph
+            </div>
+
+            <div id="property-panel" style="
+                position: fixed; top: 10px; right: 10px; 
+                width: 500px; height: 90%; 
+                background: rgba(255, 255, 255, 0.9); 
+                border: 1px solid #ccc; padding: 15px; 
+                overflow-y: auto; z-index: 1000;
+                box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+                display: none; font-family: sans-serif;">
+                <h3>Node Properties</h3>
+                <pre id="property-content"></pre>
+            </div>
+
+            <script type="text/javascript">
+                network.on("click", function (params) {
+                    if (params.nodes.length > 0) {
+                        var nodeId = params.nodes[0];
+                        var nodeData = nodes.get(nodeId);
+                        
+                        document.getElementById('property-panel').style.display = 'block';
+                        document.getElementById('property-content').innerHTML = 
+                            "<b>Name:</b> " + nodeData.label + "\\n" +
+                            "<b>Properties:</b>\\n" + nodeData.properties;
+                    } else {
+                        document.getElementById('property-panel').style.display = 'none';
+                    }
+                });
+            </script>
+            """
+
+        try:
+            net.write_html(filename)
+            with open(filename, "a") as f:
+                f.write(white_panel_html)
+            self.log.debug(f"Successfully generated {filename}")
+
+            if load:
+                # Trigger loading of file
+                file_path = os.path.abspath(filename)
+                webbrowser.open(f"file://{file_path}")
+
+        except Exception as e:
+            self.log.error(f"Failed to generate graph preview: {e}")
 
     def get_math_context(self, branch: Node) -> Dict[str, float]:
         """
@@ -600,11 +759,13 @@ class OpenSiteGraph(Graph):
             concat_gurn = self.get_new_global_urn()
             run_gurn = self.get_new_global_urn()
             down_gurn = self.get_new_global_urn()
+            concat_output = f"VAR:global_output_{concat_gurn}"
+            run_output = f"VAR:global_output_{run_gurn}"
 
             for node in group_nodes:
                 # --- LAYER 1: Concatenator ---
                 concat_node = Node(
-                    name=f"osm-consolidator--{osm_url}",
+                    name=f"osm-concatenator--{osm_url}",
                     title=f"Concatenate OSM Configs - {osm_url_basename}",
                     urn=self.get_new_urn()
                 )
@@ -612,7 +773,7 @@ class OpenSiteGraph(Graph):
                 concat_node.action = 'concatenate'
                 concat_node.node_type = 'osm-concatenator'
                 concat_node.input = group_outputs 
-                
+
                 # --- LAYER 2: Downloader ---
                 down_node = Node(
                     name=f"osm-downloader--{osm_url}",
@@ -634,7 +795,7 @@ class OpenSiteGraph(Graph):
                 run_node.global_urn = run_gurn
                 run_node.action = 'run'
                 run_node.node_type = 'osm-runner'
-                run_node.input = None
+                run_node.input = concat_output
 
                 # Initialize properties
                 for n in [concat_node, down_node, run_node]:
@@ -646,6 +807,12 @@ class OpenSiteGraph(Graph):
                 # Ensure we set path to osm datafile download
                 down_node.output = self.get_osm_path(osm_url_basename)
 
+                # Ensure we set concat_node output to variable
+                concat_node.output = concat_output
+
+                # Ensure we set run node output to variable
+                run_node.output = run_output
+                
                 # 4. Splicing logic
                 # Insert concat above download
                 self.insert_parent(node, concat_node)

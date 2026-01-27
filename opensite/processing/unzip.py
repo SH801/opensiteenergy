@@ -9,10 +9,10 @@ from opensite.constants import OpenSiteConstants
 from opensite.logging.opensite import OpenSiteLogger
 
 class OpenSiteUnzipper(ProcessBase):
-    def __init__(self, node, log_level=logging.INFO):
-        super().__init__(node, log_level)
+    def __init__(self, node, log_level=logging.INFO, shared_lock=None):
+        super().__init__(node, log_level, shared_lock)
         self.base_path = OpenSiteConstants.DOWNLOAD_FOLDER
-        self.log = OpenSiteLogger("OpenSiteUnzipper", log_level)
+        self.log = OpenSiteLogger("OpenSiteUnzipper", log_level, shared_lock)
 
     def run(self) -> bool:
         # Resolve absolute paths
