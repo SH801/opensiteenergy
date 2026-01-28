@@ -270,6 +270,7 @@ class OpenSiteQueue:
                         children_info = self.graph.get_children_info(node)
                         node.custom_properties['children'] = children_info['children']
                         node.output = children_info['output']
+                        self.graph.register_to_database()
 
                     if node.action in self.action_groups['io_bound']:
                         future = io_exec.submit(self.process_io_task, node, self.log_level, shared_lock, shared_metadata)

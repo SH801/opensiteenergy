@@ -298,7 +298,7 @@ class OpenSiteSpatial(ProcessBase):
             self.log.error(f"[{self.node.name}] Unexpected error: {e}")
             return False
 
-    def amalgamate(self, graph: OpenSiteGraph):
+    def amalgamate(self):
         """
         Amalgamates datasets into one
         Note: amalgamate is universally applied to all geographical subcomponents even if one subcomponent
@@ -316,13 +316,11 @@ class OpenSiteSpatial(ProcessBase):
                 self.node.status = 'failed'
                 return False
 
-        print("Step 1")
         grid_table = OpenSiteConstants.OPENSITE_PROCESSINGGRID
         gridsquare_ids = self.get_processing_grid_square_ids()
         scratch_table_1 = '_s1_' + self.node.output
-        children = self.node['custom_properties']['children']
-        print(children)
-        
+        children = self.node.custom_properties['children']
+
         dbparams = {
             "crs": sql.Literal(self.get_crs_number()),
             "grid": sql.Identifier(grid_table),
@@ -331,7 +329,6 @@ class OpenSiteSpatial(ProcessBase):
             "scratch1_index": sql.Identifier(f"{scratch_table_1}_idx"),
             "output_index": sql.Identifier(f"{self.node.output}_idx"),
         }
-        print("Step 2")
 
         # Drop scratch tables
         self.postgis.drop_table(scratch_table_1)
