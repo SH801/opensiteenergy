@@ -42,9 +42,9 @@ class OpenSiteOutputMbtiles(OutputBase):
 
         if tmp_output_path.exists(): tmp_output_path.unlink()
 
-        if final_output_path.exists():
-            self.log.info(f"{self.node.output} already exists, skipping export")
-            return True
+        # if final_output_path.exists():
+        #     self.log.info(f"{self.node.output} already exists, skipping export")
+        #     return True
 
         query_s1_gridify = sql.SQL("""
         CREATE TABLE {scratch1} AS 
@@ -53,7 +53,7 @@ class OpenSiteOutputMbtiles(OutputBase):
         query_s1_index      = sql.SQL("CREATE INDEX {scratch1_index} ON {scratch1} USING GIST (geom)").format(**dbparams)
         
         try:
-            self.log.info(f"[OpenSiteOutputMbtiles] [{self.node.name}] Cutting up output into grid square")
+            self.log.info(f"[OpenSiteOutputMbtiles] [{self.node.name}] Cutting up output into grid squares")
 
             dataset_name = self.node.output.replace('.mbtiles', '')
             self.postgis.execute_query(query_s1_gridify)
@@ -112,21 +112,5 @@ class OpenSiteOutputMbtiles(OutputBase):
         except Exception as e:
             self.log.error(f"[OpenSiteOutputMbtiles] [{self.node.name}] Unexpected error: {e}")
             return False
-
-
-    # postgisExec("CREATE TABLE %s AS SELECT (ST_Dump(ST_Intersection(layer.geom, grid.geom))).geom geom FROM %s layer, %s grid;", \
-    #             (AsIs(scratch_table_1), AsIs(parameters['table_name']), AsIs(output_grid), ))
-
-    # inputs = runSubprocess(["ogr2ogr", \
-    #                 parameters['tippecanoe_input'], \
-    #                 'PG:host=' + POSTGRES_HOST + ' user=' + POSTGRES_USER + ' password=' + POSTGRES_PASSWORD + ' dbname=' + POSTGRES_DB, \
-    #                 "-overwrite", \
-    #                 "-nln", parameters['dataset_name'], \
-    #                 scratch_table_1, \
-    #                 "-s_srs", WORKING_CRS, \
-    #                 "-t_srs", 'EPSG:4326'])
-
-    # if postgisCheckTableExists(scratch_table_1): postgisDropTable(scratch_table_1)
-
 
         return False

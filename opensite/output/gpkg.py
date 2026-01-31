@@ -27,11 +27,11 @@ class OpenSiteOutputGPKG(OutputBase):
         if temp_output_path.exists():
             temp_output_path.unlink()
 
-        if final_output_path.exists():
-            self.log.info(f"{final_output} already exists, skipping export")
-            return True
+        # if final_output_path.exists():
+        #     self.log.info(f"{final_output} already exists, skipping export")
+        #     return True
 
-        self.log.info("Exporting final layer {self.node.name} to {final_output}")
+        self.log.info(f"Exporting final layer {self.node.name} to {final_output}")
 
         postgis = OpenSitePostGIS(self.log_level)
 

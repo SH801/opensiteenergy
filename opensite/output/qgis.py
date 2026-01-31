@@ -29,9 +29,9 @@ class OpenSiteOutputQGIS(OutputBase):
         python_path = Path(self.QGIS_PYTHON_PATH)
         qgis_output_path = Path(self.base_path) / self.node.output.replace('.qgis', 'qgs')
 
-        if qgis_output_path.exists():
-            self.log.info(f"{os.path.basename(qgis_output_path)} already exists, skipping creation")
-            return True
+        # if qgis_output_path.exists():
+        #     self.log.info(f"{os.path.basename(qgis_output_path)} already exists, skipping creation")
+        #     return True
         
         if not python_path.exists():
             self.log.error(f"Unable to locate QGIS Python at {self.QGIS_PYTHON_PATH}")

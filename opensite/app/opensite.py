@@ -1,7 +1,13 @@
 import os
 import json
 import shutil
+import time
 import os
+import threading
+import uvicorn
+import time
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from pathlib import Path
 from opensite.constants import OpenSiteConstants
 from opensite.logging.opensite import OpenSiteLogger
@@ -17,6 +23,48 @@ class OpenSiteApplication:
         self.log = OpenSiteLogger("OpenSiteApplication")
         self.log.info("Application initialized")
         self.log_level = os.getenv("OPENSITE_LOG_LEVEL", log_level)
+        self.processing_start = time.time()
+        self.server_thread = None
+        # self.stop_event = threading.Event()
+        # self.app = self._setup_fastapi()
+        # self.start_web_server()
+
+    def _setup_fastapi(self):
+        """Initializes the FastAPI app with routes."""
+        app = FastAPI(title="OpenSite Graph API")
+
+        @app.get("/nodes")
+        async def get_nodes():
+            return {"nodes": [n.to_dict() for n in self.graph.all_nodes]}
+
+        @app.get("/health")
+        async def health():
+            return {"status": "running"}
+
+        return app
+
+    def start_web_server(self, host="127.0.0.1", port=8000):
+        """Starts FastAPI in a background thread."""
+        config = uvicorn.Config(self.app, host=host, port=port, log_level="info")
+        server = uvicorn.Server(config)
+
+        def run_server():
+            # The server runs until the loop is stopped
+            server.run()
+
+        self.server_thread = threading.Thread(target=run_server, daemon=True)
+        self.server_thread.start()
+        self.log.info(f"[*] FastAPI started on http://{host}:{port}")
+        self.log.info(f"[*] API Docs available at http://{host}:{port}/docs")
+
+    def show_elapsed_time(self):
+        """Shows elapsed time since object was created, ie. when process started"""
+
+        processing_time = time.time() - self.processing_start
+        processing_time_minutes = round(processing_time / 60, 1)
+        processing_time_hours = round(processing_time / (60 * 60), 1)
+        time_text = f"{processing_time_minutes} minutes ({processing_time_hours} hours) to complete"
+        self.log.info(f"**** Completed processing - {time_text} ****")
 
     def init_environment(self):
         """Creates required system folders defined in constants."""
@@ -143,13 +191,17 @@ class OpenSiteApplication:
         # Run processing queue
         queue = OpenSiteQueue(graph, log_level=self.log_level)
         queue.run()
+        self.show_elapsed_time()
 
         graph_list = graph.to_list()
-        # for item in graph_list:
-        #     print(item['urn'])
-        # graph_list = graph.to_json()
         # print(json.dumps(graph_list, indent=4))
 
     def shutdown(self, message="Process Complete"):
         """Clean exit point for the application."""
+
+        self.stop_event.set()
+        
+        if self.graph:
+            self.graph.cleanup_connections()
+
         self.log.info(message)

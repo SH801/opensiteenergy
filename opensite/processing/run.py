@@ -17,14 +17,14 @@ class OpenSiteRunner(ProcessBase):
 
         # Resolve variables from shared_metadata
         # Assuming node.input is the URN of the concatenate/unzip task
-        mapping_path = self.get_variable(self.node.input)
-        if not mapping_path:
+        mapping_file = self.get_variable(self.node.input)
+        if not mapping_file:
             self.log.error(f"Could not resolve input mapping for node {self.node.urn}")
             return False
 
         # Derive paths
         # Strip .yml to get base name for osm-export-tool
-        output_base_file = mapping_path.rsplit('.yml', 1)[0]
+        output_base_file = mapping_file.rsplit('.yml', 1)[0]
         output_base_file_tmp = output_base_file + '-tmp'
         output_base_file_final = output_base_file + '.gpkg'
         output_base_file_temp_final = output_base_file_tmp + '.gpkg'
@@ -34,14 +34,11 @@ class OpenSiteRunner(ProcessBase):
             self.log.info(f"{os.path.basename(output_base_file_final)} already exists, skipping osm-export-tool")
             return True
         
-        mapping_file = self.shared_metadata.get(self.node.input)
         osm_file = str(Path(OpenSiteConstants.OSM_FOLDER) / os.path.basename(self.node.custom_properties['osm']))
 
         if not mapping_file or not os.path.exists(mapping_file):
             self.log.error(f"Mapping file not resolved or missing: {mapping_file}")
             return False
-
-        script_path = os.path.join(os.getcwd(), "osm-export-tool-run.sh")
 
         # Build the command list
         cmd = [

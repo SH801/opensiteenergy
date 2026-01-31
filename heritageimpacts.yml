@@ -1,0 +1,84 @@
+title:
+  "Heritage impacts layers for height-to-tip of 124.2m"
+
+type:
+  heritage
+
+code:
+  heritage
+  
+osm:
+  https://download.geofabrik.de/europe/united-kingdom-latest.osm.pbf
+
+areas:
+  - england
+  - wales
+  - scotland
+  - northern-ireland
+  - uk
+
+structure:
+  heritage-impacts:
+    - listed-buildings--england
+    - listed-buildings--northern-ireland
+    - listed-buildings--scotland
+    - listed-buildings--wales
+    - registered-parks-and-gardens--scotland
+    - registered-parks-and-gardens--wales
+    - scheduled-ancient-monuments--england
+    - scheduled-ancient-monuments--northern-ireland
+    - scheduled-ancient-monuments--scotland
+    - scheduled-ancient-monuments--wales
+    - world-heritage-sites--england
+    - world-heritage-sites--northern-ireland
+    - world-heritage-sites--scotland
+    - world-heritage-sites--wales
+    - conservation-areas--england
+    - conservation-areas--scotland
+    - conservation-areas--wales
+    - registered-historic-battlefields--england
+    - registered-historic-battlefields--scotland
+    - registered-parks-and-gardens--northern-ireland
+    - registered-parks-and-gardens--england
+
+buffers: 
+  listed-buildings--england: 
+    50
+  listed-buildings--northern-ireland: 
+    50
+  listed-buildings--scotland: 
+    50
+  listed-buildings--wales: 
+    50
+
+style:
+  aviation-and-exclusion-areas:
+    color:
+      purple
+  ecology-and-wildlife:
+    color:
+      darkgreen
+  environmental-data:
+    color:
+      blue
+  heritage-impacts:
+    color:
+      darkgoldenrod
+  landscape-and-visual-impacts:
+    color:
+      chartreuse
+  other-technical-constraints: 
+    color:
+      red
+  separation-distance-from-residential:
+    color:
+      darkorange
+
+
+
+
+
+
+
+
+

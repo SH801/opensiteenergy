@@ -124,7 +124,7 @@ class WFSDownloader(DownloadBase):
                     self.log.info(f"Progress [{target_file}]: {percent:3.1f}% ({records_downloaded}/{total_records})")
 
                 except Exception as e:
-                    self.log.warning(f"Batch failed ({start_index}). Retrying with reduced count. Error: {e}")
+                    self.log.warning(f"Batch failed {url} ({start_index}). Retrying with reduced count. Error: {e}")
                     records_to_download -= 1
                     total_records -= 1
                     if records_to_download <= 0: break

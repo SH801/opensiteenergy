@@ -114,7 +114,6 @@ class OpenSiteImporter(ProcessBase):
             "-lco", "GEOMETRY_NAME=geom",
             "-nln", self.node.output,
             "-nlt", "PROMOTE_TO_MULTI",
-            "-skipfailures", 
             "-s_srs", self.get_projection(input_file, self.node.name), 
             "-t_srs", OpenSiteConstants.CRS_DEFAULT, 
             "--config", "PG_USE_COPY", "YES"
@@ -148,6 +147,9 @@ class OpenSiteImporter(ProcessBase):
 
             postgis = OpenSitePostGIS()
             postgis.add_table_comment(self.node.output, self.node.name)
+
+            # We don't track internal tables in registry so if it's one, return True
+            if self.node.output.startswith(OpenSiteConstants.DATABASE_BASE): return True
 
             # Success Gate: Only update registry now
             if self.postgis.set_table_completed(self.node.output):

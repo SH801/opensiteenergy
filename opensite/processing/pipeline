@@ -236,74 +236,7 @@ def runProcessingOnDownloads(output_folder):
 
     outputBoundsAndCenterJavascript()
 
-    # Create output grid
 
-    output_grid = reformatTableName(OUTPUT_GRID_TABLE)
-
-    if not postgisCheckTableExists(output_grid):
-
-        LogMessage("Creating grid overlay to improve mbtiles rendering performance and quality")
-
-        postgisExec("CREATE TABLE %s AS SELECT ST_Transform((ST_SquareGrid(%s, ST_Transform(geom, 3857))).geom, 4326) geom FROM %s;",
-                    (AsIs(output_grid), AsIs(OUTPUT_GRID_SPACING), AsIs(clipping_union_table), ))
-
-    # Create processing grid
-
-    # Amalgamating layers with common 'parents'
-
-    LogMessage("Amalgamating and dissolving layers with common parents...")
-
-    queue_index, finallayers, queue_dict = 0, [], {}
-    parents = parents_lookup.keys()
-    for parent in parents:
-        parent_table = buildFinalLayerTableName(parent)
-        finallayers.append(reformatDatasetName(parent_table))
-        parent_table_exists = postgisCheckTableExists(parent_table)
-        if REGENERATE_OUTPUT or (not parent_table_exists):
-            queue_index += 1
-            amalgamate_output = "Amalgamating and dissolving children of parent: " + parent
-            if parent_table_exists: postgisDropTable(parent_table)
-            # Delete any tables and files that are derived from this table
-            deleteDatasetAndAncestors(parent_table)
-            priority = 0
-            for child in parents_lookup[parent]: priority += postgisGetTableSize(child)
-            queue_dict_index = getQueueKey(priority, queue_index)
-            queue_dict[queue_dict_index] = [queue_index, amalgamate_output, parent_table, parents_lookup[parent], PROCESSING_GRID_TABLE, CUSTOM_CONFIGURATION]
-
-    if len(queue_dict) != 0:
-
-        num_datasets_to_process = Value('i', len(queue_dict))
-        queue_dict = dict(sorted(queue_dict.items(), reverse=True))
-        queue_datasets = [queue_dict[item] for item in queue_dict]
-        chunksize = 1
-
-        multiprocessBefore()
-
-        with Pool(processes=getNumberProcesses(), initializer=init_globals_count, initargs=(num_datasets_to_process, )) as p:
-            p.map(postgisAmalgamateAndDissolve, queue_datasets, chunksize=chunksize)
-
-        multiprocessAfter()
-
-    LogMessage("============================================================")
-    LogMessage("**** All common parent layers amalgamated and dissolved ****")
-    LogMessage("============================================================")
-
-    # Exporting final layers to GeoJSON and GPKG
-
-    LogMessage("Converting final layers to GPKG, SHP and GeoJSON...")
-
-    shp_extensions = ['shp', 'dbf', 'shx', 'prj']
-
-    is_custom_configuration = (CUSTOM_CONFIGURATION is not None)
-
-
-    # Then use ogr2ogr without PostGIS to convert exported GPKG to other formats - GeoJSON and SHP
-
-
-
-    multiprocessFileCopy(filecopy_queue)
-
-    LogMessage("All final layers converted to GPKG, SHP and GeoJSON")
 
     # Build tile server files
 
@@ -313,11 +246,6 @@ def runProcessingOnDownloads(output_folder):
 
     buildQGISFile()
 
-    processing_time = time.time() - PROCESSING_START
-    processing_time_minutes = round(processing_time / 60, 1)
-    processing_time_hours = round(processing_time / (60 * 60), 1)
-    time_text = str(processing_time_minutes) + " minutes (" + str(processing_time_hours) + " hours) to complete"
-    LogMessage("**** Completed processing - " + time_text + " ****")
 
     run_script = './run-cli.sh'
     if BUILD_FOLDER == 'build-docker/': run_script = './run-docker.sh'

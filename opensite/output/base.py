@@ -121,9 +121,9 @@ class OutputBase:
                 shp_secondary_file = Path(self.base_path) / output.replace('.shp', f".{shp_extension}")
                 if not shp_secondary_file.exists(): file_exists = False
 
-        if file_exists:
-            self.log.info(f"{output} already exists, skipping export")
-            return True
+        # if file_exists:
+        #     self.log.info(f"{output} already exists, skipping export")
+        #     return True
 
         if not self.node.input:
             self.log.error(f"{node.name} has no input field")

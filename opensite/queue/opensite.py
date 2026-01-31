@@ -279,7 +279,11 @@ class OpenSiteQueue:
                 # Submit new tasks to the appropriate executor
                 for node in new_nodes:
                     # If runnable node has no action, automatically process it
-                    if not node.action: node.status = 'processed'
+                    if not node.action: 
+                        node.status = 'processed'
+                    else:
+                        node.status = 'processing'
+                        if node.global_urn: self.sync_global_status(node.urn, node.status)
 
                     self.graph.generate_graph_preview()
 

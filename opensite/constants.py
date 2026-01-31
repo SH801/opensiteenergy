@@ -8,6 +8,9 @@ class OpenSiteConstants:
     # Default logging level for entire application
     LOGGING_LEVEL           = logging.DEBUG
 
+    # How many seconds to update console
+    DOWNLOAD_INTERVAL_TIME  = 10
+
     # Default CRS for spatial operations
     # Use EPSG:25830 for maximum precision across United Kingdom
     CRS_DEFAULT             = 'EPSG:25830'
@@ -23,9 +26,6 @@ class OpenSiteConstants:
 
     # Format text used by CKAN to indicate Open Site Energy YML file
     SITES_YML_FORMAT        = "Open Site Energy YML"
-    
-    # How many seconds to update console
-    DOWNLOAD_INTERVAL_TIME  = 10
 
     # CKAN formats we can accept
     CKAN_FORMATS            = \
@@ -82,6 +82,9 @@ class OpenSiteConstants:
                                 OSM_YML_FORMAT,
                             ]
 
+    # Location of clipping master file
+    CLIPPING_MASTER         = 'clipping-master-' + CRS_DEFAULT.replace(':', '-') + '.gpkg'
+
     # Root build directory
     BUILD_ROOT              = Path(os.getenv("BUILD_FOLDER", "build"))
     
@@ -120,9 +123,6 @@ class OpenSiteConstants:
                                                 ]
                             }
 
-    # Location of clipping master file
-    CLIPPING_MASTER         = 'clipping-master-' + CRS_DEFAULT.replace(':', '-') + '.gpkg'
-
     # Processing grid is used to cut up core datasets into grid squares
     # to reduce memory load on ST_Union. All final layers will have ST_Union
     # so it's okay to cut up early datasets before this
@@ -131,6 +131,13 @@ class OpenSiteConstants:
     # Output grid is used to cut up final output into grid squares 
     # in order to improve quality and performance of rendering 
     GRID_OUTPUT_SPACING     = 100 * 1000 # Size of grid squares in metres, ie. 100km
+
+    # Basename of OSM boundaries files
+    # If [basename].gpkg file doesn't exist, processing nodes will be added to create it
+    OSM_BOUNDARIES          = 'osm-boundaries'
+
+    # Location of OSM boundaries osm-export-tool YML file
+    OSM_BOUNDARIES_YML      = OSM_BOUNDARIES + '.yml'
 
     # Database tables
     DATABASE_GENERAL_PREFIX = 'opensite_'
@@ -141,4 +148,20 @@ class OpenSiteConstants:
     OPENSITE_CLIPPINGTEMP   = DATABASE_BASE + 'clipping_temp'
     OPENSITE_GRIDPROCESSING = DATABASE_BASE + 'grid_processing'
     OPENSITE_GRIDOUTPUT     = DATABASE_BASE + 'grid_output'
+    OPENSITE_OSMBOUNDARIES  = DATABASE_BASE + OSM_BOUNDARIES.replace('-', '_')
+
+    # Lookup to convert internal areas to OSM names
+
+    OSM_NAME_CONVERT        = \
+                            {
+                                'england': 'England',
+                                'wales': 'Cymru / Wales',
+                                'Wales': 'Cymru / Wales',
+                                'scotland': 'Alba / Scotland',
+                                'Scotland': 'Alba / Scotland',
+                                'northern-ireland': 'Northern Ireland / Tuaisceart Éireann',
+                                'Northern Ireland': 'Northern Ireland / Tuaisceart Éireann'
+                            }
+
+
 

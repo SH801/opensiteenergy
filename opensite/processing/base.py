@@ -26,7 +26,11 @@ class ProcessBase:
         Retrieves a value from the shared metadata registry.
         var_name should be the full string: 'VAR:global_output_76'
         """
-        return self.shared_metadata.get(var_name)
+
+        if var_name.startswith('VAR:'):
+            return self.shared_metadata.get(var_name)
+        else:
+            return var_name
 
     def get_top_variable(self, file_path):
         """Get topmost variable from yaml file - needed to determine osm-export-tool layer name"""

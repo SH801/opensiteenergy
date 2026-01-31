@@ -14,4 +14,6 @@ rasterio
 setuptools
 gdal
 python-dotenv
+uvicorn
+fastapi
 #pip install --no-deps git+https://github.com/hotosm/osm-export-tool-python.git

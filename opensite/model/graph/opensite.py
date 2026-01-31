@@ -1,9 +1,11 @@
 import copy
 import os
 import json
+import shutil
 import yaml
 import logging
 import webbrowser
+from pathlib import Path
 from typing import Dict, Any, List, Optional
 from .base import Graph
 from ..node import Node
@@ -16,6 +18,7 @@ from opensite.ckan.opensite import OpenSiteCKAN
 class OpenSiteGraph(Graph):
 
     TABLENAME_PREFIX        = OpenSiteConstants.DATABASE_GENERAL_PREFIX
+    TABLENAME_BASE          = OpenSiteConstants.DATABASE_BASE
     TREE_BRANCH_PROPERTIES  = OpenSiteConstants.TREE_BRANCH_PROPERTIES
 
     def __init__(self, overrides=None, outputformats=None, clip=None, log_level=logging.INFO):
@@ -36,6 +39,7 @@ class OpenSiteGraph(Graph):
 
         if output:
             if output.startswith(self.TABLENAME_PREFIX): return True
+            if output.startswith(self.TABLENAME_BASE): return True
         return False
     
     def register_to_database(self):
@@ -201,9 +205,11 @@ class OpenSiteGraph(Graph):
             if node.status == 'processed':
                 color = "#0b7a39"
             elif node.status == 'unprocessed':
-                color = "#ea5848"
-            else:
                 color = "#FEE245"
+            elif node.status == 'processing':
+                color = "#CBF974"
+            elif node.status == 'failed':
+                color = "#ec0a0a"
 
             node_json = node.to_json()
             del node_json['children']
@@ -543,6 +549,9 @@ class OpenSiteGraph(Graph):
 
         # Generate output nodes
         self.add_outputs()
+
+        # Generate OSM boundaries file if necessary
+        self.add_osmboundaries()
 
         # Update database registry with new nodes
         self.register_to_database()
@@ -965,11 +974,92 @@ class OpenSiteGraph(Graph):
 
         self.log.info("Preprocess nodes injected with status 'unprocessed'.")
 
+    def add_osmboundaries(self):
+        """
+        Add nodes to create osm_boundaries file if necessary
+        """
+
+        self.log.info("Adding OSM boundaries nodes")
+
+        osm_boundaries_file = Path(OpenSiteConstants.OSM_FOLDER) / f"{OpenSiteConstants.OSM_BOUNDARIES}.gpkg"
+
+        build_osm_boundaries_yml_path = str(Path(OpenSiteConstants.OSM_FOLDER) / OpenSiteConstants.OSM_BOUNDARIES_YML)
+        shutil.copy(OpenSiteConstants.OSM_BOUNDARIES_YML, build_osm_boundaries_yml_path)
+
+        osm_downloaders = self.find_nodes_by_props({'node_type': 'osm-downloader'})
+        osm_default = self._defaults['osm']
+        osm_downloader_default_global_urn = set([f['global_urn'] for f in osm_downloaders if f['custom_properties']['osm'] == osm_default])
+
+        if not osm_downloader_default_global_urn:
+            osm_downloader_default_global_urn = self.get_new_global_urn()
+        else:
+            osm_downloader_default_global_urn = next(iter(osm_downloader_default_global_urn))
+        osm_runner_boundaries_global_urn = self.get_new_global_urn()
+        osm_importer_boundaries_global_urn = self.get_new_global_urn()
+
+        # If no clipping required on current graph, add to general output branch on all branches
+        # If clipping required on current graph, add before actual clipping
+        node_urns_to_amend = []
+        if self.clip is None:
+
+            current_branches = list(self.root.children)
+
+            for branch_node in current_branches:
+                if  ('branch_type' not in branch_node.custom_properties) or \
+                    (branch_node.custom_properties['branch_type'] != 'outputs'): 
+                    continue
+                node_urns_to_amend.append(branch_node.urn)
+
+        else:
+
+            node_urns_to_amend = [node['urn'] for node in self.find_nodes_by_props({'action': 'clip'})]
+
+        for node_urn_to_amend in node_urns_to_amend:
+            node = self.find_node_by_urn(node_urn_to_amend)
+            
+            osm_downloader = self.create_node(
+                name=f"osm-downloader--{osm_default}",
+                title="Download OSM for clipping boundaries",
+                global_urn=osm_downloader_default_global_urn,
+                format="OSM",
+                input=osm_default,
+                action="download",
+                output=f"osm/{os.path.basename(osm_default)}",
+                custom_properties={"osm": osm_default}
+            )
+
+            osm_runner = self.create_node(
+                name=f"osm-runner--{osm_default}",
+                title="Run osm-export-tool to create clipping boundaries",
+                global_urn=osm_runner_boundaries_global_urn,
+                node_type="osm-runner",
+                input=build_osm_boundaries_yml_path,
+                action="run",
+                output=build_osm_boundaries_yml_path.replace('.yml', ''),
+                custom_properties={"osm": osm_default},
+                children=[osm_downloader]
+            )
+
+            osm_importer = self.create_node(
+                name=OpenSiteConstants.OSM_BOUNDARIES,
+                title="Import OSM clipping boundaries",
+                global_urn=osm_importer_boundaries_global_urn,
+                node_type="source",
+                input=f"osm/{OpenSiteConstants.OSM_BOUNDARIES}.gpkg",
+                action="import",
+                output=OpenSiteConstants.OPENSITE_OSMBOUNDARIES,
+                custom_properties={"osm": osm_default},
+                children=[osm_runner]
+            )
+
+            node.children.append(osm_importer)
+
     def add_outputs(self):
         """
         Synthesizes output branches as independent siblings to data branches.
         Structure is strictly parallel; connection exists only via shared global_urns.
         """
+
         # 1. Prepare format lists
         formats = self.outputformats.copy()
         if 'gpkg' in formats:
@@ -994,13 +1084,14 @@ class OpenSiteGraph(Graph):
 
             original_branch_name = branch_node.custom_properties.get('branch', branch_node.name)
             output_branch_name = f"{branch_code}--outputs"
-            
+            branch_node_custom_properties = {'branch': output_branch_name, 'branch_code': branch_code, 'branch_type': 'outputs'}
+
             # Create a completely separate branch root node
             output_branch_root = self.create_node(
                 name=output_branch_name,
                 title=branch_node.title + ' - Outputs',
                 node_type="branch",
-                custom_properties={'branch': output_branch_name, 'branch_code': branch_code}
+                custom_properties=branch_node_custom_properties
             )
             # Attach directly to Graph Root - making it a 'next' sibling
             self.root.children.append(output_branch_root)
@@ -1011,7 +1102,7 @@ class OpenSiteGraph(Graph):
                 name=f"{branch_node.name}--all-layers",
                 title=branch_node.title + ' - All layers',
                 action=None,
-                custom_properties={'branch': output_branch_name, 'branch_code': branch_code}
+                custom_properties=branch_node_custom_properties
             )
 
             # 2. Find amalgamate nodes in the ORIGINAL branch
@@ -1035,7 +1126,7 @@ class OpenSiteGraph(Graph):
                     action=am_node.action,
                     global_urn=shared_global_urn,
                     output=f"VAR:global_output_{shared_global_urn}",
-                    custom_properties={'branch': output_branch_name, 'branch_code': branch_code}
+                    custom_properties=branch_node_custom_properties
                 )
 
                 # 3. Postprocess
@@ -1048,7 +1139,7 @@ class OpenSiteGraph(Graph):
                     global_urn = pp_shared_global_urn,
                     input=f"VAR:global_output_{shared_global_urn}",
                     output=f"VAR:global_output_{pp_shared_global_urn}",
-                    custom_properties={'branch': output_branch_name, 'branch_code': branch_code}
+                    custom_properties=branch_node_custom_properties
                 )
                 pp_node.children.append(cloned_am)
                 cloned_am.parent = pp_node
@@ -1068,7 +1159,7 @@ class OpenSiteGraph(Graph):
                         global_urn=clip_shared_global_urn,
                         input=f"VAR:global_output_{pp_shared_global_urn}",
                         output=f"VAR:global_output_{clip_shared_global_urn}",
-                        custom_properties={'branch': output_branch_name, 'branch_code': branch_code, 'clip': self.clip}
+                        custom_properties={'branch': output_branch_name, 'branch_code': branch_code, 'branch_type': 'outputs', 'clip': self.clip}
                     )
                     clip_node.children.append(pp_node)
                     pp_node.parent = clip_node
@@ -1085,7 +1176,7 @@ class OpenSiteGraph(Graph):
                         format=fmt,
                         action='output',
                         input=outputs_input,
-                        custom_properties={'branch': output_branch_name, 'branch_code': branch_code}
+                        custom_properties=branch_node_custom_properties
                     )
                     fmt_node.children.append(current_chain_head)
                     current_chain_head.parent = fmt_node
@@ -1111,7 +1202,7 @@ class OpenSiteGraph(Graph):
                     title=f"{branch_node.title} - All layers - {gfmt.capitalize()}",
                     format=gfmt,
                     action='output',
-                    custom_properties={'branch': output_branch_name, 'branch_code': branch_code}
+                    custom_properties=branch_node_custom_properties
                 )
                 gnode.children.append(branch_top)
                 branch_top.parent = gnode

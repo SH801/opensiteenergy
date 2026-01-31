@@ -14,7 +14,8 @@ class OpenSitePostGIS(PostGISBase):
     OPENSITE_CLIPPINGMASTER = OpenSiteConstants.OPENSITE_CLIPPINGMASTER
     OPENSITE_GRIDPROCESSING = OpenSiteConstants.OPENSITE_GRIDPROCESSING
     OPENSITE_GRIDOUTPUT     = OpenSiteConstants.OPENSITE_GRIDOUTPUT
-
+    OPENSITE_OSMBOUNDARIES  = OpenSiteConstants.OPENSITE_OSMBOUNDARIES
+    
     def __init__(self, log_level=logging.INFO):
         super().__init__(log_level)
         self.log = OpenSiteLogger("OpenSitePostGIS", log_level)
@@ -96,6 +97,7 @@ class OpenSitePostGIS(PostGISBase):
             self.OPENSITE_CLIPPINGMASTER,
             self.OPENSITE_GRIDPROCESSING,
             self.OPENSITE_GRIDOUTPUT,
+            self.OPENSITE_OSMBOUNDARIES,
             'spatial_ref_sys', 
             'geography_columns', 
             'geometry_columns', 

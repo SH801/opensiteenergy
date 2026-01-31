@@ -181,7 +181,6 @@ class OpenSiteSpatial(ProcessBase):
             self.log.error(f"[create_output_grid] Unexpected error: {e}")
             return False
 
-
     def get_processing_grid_square_ids(self):
         """
         Gets ids of all squares in processing grid
@@ -267,7 +266,7 @@ class OpenSiteSpatial(ProcessBase):
 
     def preprocess(self):
         """
-        Preprocess node - dump to produce single geometry type then crop then finally split into grid squares
+        Preprocess node - dump to produce single geometry type then crop and split into grid squares
         """
 
         if self.postgis.table_exists(self.node.output):
@@ -343,7 +342,7 @@ class OpenSiteSpatial(ProcessBase):
         query_s2_index      = sql.SQL("CREATE INDEX {scratch2_index} ON {scratch2} USING GIST (geom)").format(**dbparams)
         query_s3_index      = sql.SQL("CREATE INDEX {scratch3_index} ON {scratch3} USING GIST (geom)").format(**dbparams)
         query_output_index  = sql.SQL("CREATE INDEX {output_index} ON {output} USING GIST (geom)").format(**dbparams)
-        
+
         try:
             self.log.info(f"[preprocess] [{self.node.name}] Select only polygons, dump and make valid")
 
@@ -367,6 +366,7 @@ class OpenSiteSpatial(ProcessBase):
             self.log.info(f"[preprocess] [{self.node.name}] Creating preprocess table {self.node.output} by dissolving dataset")
 
             self.postgis.execute_query(query_output_create)
+
             self.postgis.add_table_comment(self.node.output, self.node.name)
 
             gridsquares_index, gridsquares_count = 0, len(gridsquare_ids)
@@ -493,6 +493,8 @@ class OpenSiteSpatial(ProcessBase):
                     self.postgis.execute_query(query_union_by_gridsquare)
 
             self.postgis.execute_query(sql.SQL("CREATE INDEX ON {output} USING GIST (geom)").format(**dbparams))
+            self.postgis.execute_query(sql.SQL("DELETE FROM {output} WHERE ST_GeometryType(geom) NOT IN ('ST_Polygon')").format(**dbparams))
+
             self.postgis.drop_table(scratch_table_1)
             self.postgis.add_table_comment(self.node.output, self.node.name)
 
@@ -546,28 +548,45 @@ class OpenSiteSpatial(ProcessBase):
         self.node.output = output
         self.set_output_variable(output, self.node.global_urn)
 
-        # Convert output-focused name to normal name for registry listing
+        # Temporarily convert output-focused name to normal name for registry listing
         name_elements = self.parse_output_node_name(self.node.name)
         self.node.name = name_elements['name']
 
-        self.log.info(f"[postprocess] Running postprocess on {self.node.name} table {input}")
+        dbparams = {
+            "input": sql.Identifier(input),
+            "output": sql.Identifier(output),
+            "output_index": sql.Identifier(f"{output}_idx"),
+        }
+
+        query_output_st_union = sql.SQL("CREATE TABLE {output} AS SELECT (ST_Dump(ST_Union(geom))).geom geom FROM {input}").format(**dbparams)
+        query_output_create_index = sql.SQL("CREATE INDEX {output_index} ON {output} USING GIST (geom)").format(**dbparams)
 
         if self.postgis.table_exists(output):
             self.log.info(f"[postprocess] [{output}] already exists, skipping postprocess")
             return True
 
-        self.postgis.copy_table(input, output)
+        self.log.info(f"[postprocess] Starting ST_Union on {self.node.name} {input} -> {output}")
 
-        self.postgis.add_table_comment(self.node.output, self.node.name)
+        try:
+            self.postgis.execute_query(query_output_st_union)
+            self.postgis.execute_query(query_output_create_index)
+            self.postgis.add_table_comment(self.node.output, self.node.name)
 
-        # Register new table manually as output uses variable ()
-        self.postgis.register_node(self.node, None, name_elements['branch'])
-        if self.postgis.set_table_completed(output):
-            self.log.info(f"[postprocess] [{self.node.name}] COMPLETED")
-            return True
-        else:
-            # This catches the bug where the node was never registered initially
-            self.log.error(f"[postprocess] Postprocess completed but registry record for {self.node.output} was not found.")
+            # Register new table manually as output uses variable ()
+            self.postgis.register_node(self.node, None, name_elements['branch'])
+            if self.postgis.set_table_completed(output):
+                self.log.info(f"[postprocess] [{self.node.name}] COMPLETED")
+                return True
+            else:
+                # This catches the bug where the node was never registered initially
+                self.log.error(f"[postprocess] Postprocess completed but registry record for {self.node.output} was not found.")
+                return False
+
+        except Error as e:
+            self.log.error(f"[postprocess] PostGIS Error during ST_Union: {e}")
+            return False
+        except Exception as e:
+            self.log.error(f"[postprocess] Unexpected error: {e}")
             return False
 
     def clip(self):
@@ -587,23 +606,70 @@ class OpenSiteSpatial(ProcessBase):
 
         self.log.info(f"[clip] Running clip mask '{self.node.custom_properties['clip']}' on {self.node.name} table {input}")
 
+        # if self.postgis.table_exists(output):
+        #     self.log.info(f"[clip] [{output}] already exists, skipping clip mask")
+        #     return True
+
         if self.postgis.table_exists(output):
-            self.log.info(f"[clip] [{output}] already exists, skipping clip mask")
-            return True
+            self.postgis.drop_table(output)
 
-        self.postgis.copy_table(input, output)
+        cliptemp = '_s1_' + self.node.output
 
-        self.postgis.add_table_comment(self.node.output, self.node.name)
+        area = self.node.custom_properties['clip']
+        if area in OpenSiteConstants.OSM_NAME_CONVERT: area = OpenSiteConstants.OSM_NAME_CONVERT[area]
 
-        # Register new table manually as output uses variable ()
-        self.node.output = output
-        self.postgis.register_node(self.node, None, name_elements['branch'])
-        if self.postgis.set_table_completed(output):
-            self.log.info(f"[clip] [{self.node.name}] COMPLETED")
-            return True
-        else:
-            # This catches the bug where the node was never registered initially
-            self.log.error(f"[clip] Clip completed but registry record for {self.node.output} was not found.")
+        dbparams = {
+            "crs": sql.Literal(int(self.get_crs_default())),
+            "area": sql.Literal(area),
+            "input": sql.Identifier(input),
+            "clip": sql.Identifier(OpenSiteConstants.OPENSITE_OSMBOUNDARIES),
+            "cliptemp": sql.Identifier(cliptemp),
+            "output": sql.Identifier(self.node.output),
+            "cliptemp_index": sql.Identifier(f"{cliptemp}_idx"),
+            "output_index": sql.Identifier(f"{self.node.output}_idx"),
+        }
+
+        query_cliptemp_st_union = sql.SQL("""
+        CREATE TABLE {cliptemp} AS 
+            SELECT (ST_Dump(ST_Union(ST_MakeValid(geom)))).geom::geometry(Polygon, {crs}) as geom 
+            FROM {clip} WHERE name = {area} OR council_name = {area}"""
+        ).format(**dbparams)
+        query_cliptemp_create_index = sql.SQL("CREATE INDEX {cliptemp_index} ON {cliptemp} USING GIST (geom)").format(**dbparams)
+
+
+        query_fast_clip = sql.SQL("""
+        CREATE TABLE {output} AS 
+        SELECT 
+            CASE 
+                WHEN ST_Within(d.geom, c.geom) THEN d.geom 
+                ELSE ST_Multi(ST_CollectionExtract(ST_Intersection(d.geom, c.geom), 3)) 
+            END::geometry(MultiPolygon, {crs}) as geom
+        FROM {input} d
+        JOIN {cliptemp} c ON ST_Intersects(d.geom, c.geom)
+        WHERE NOT ST_IsEmpty(ST_Intersection(d.geom, c.geom))""").format(**dbparams)
+
+        try:
+            self.postgis.execute_query(query_cliptemp_st_union)
+            self.postgis.execute_query(query_cliptemp_create_index)
+            self.postgis.execute_query(query_fast_clip)
+            self.postgis.drop_table(cliptemp)
+
+            self.postgis.add_table_comment(self.node.output, self.node.name)
+
+            # Register new table manually as output uses variable ()
+            self.postgis.register_node(self.node, None, name_elements['branch'])
+            if self.postgis.set_table_completed(output):
+                self.log.info(f"[clip] [{self.node.name}] COMPLETED")
+                return True
+            else:
+                # This catches the bug where the node was never registered initially
+                self.log.error(f"[clip] Postprocess completed but registry record for {self.node.output} was not found.")
+                return False
+
+        except Error as e:
+            self.log.error(f"[clip] PostGIS Error: {e}")
             return False
-
-        return True
+        except Exception as e:
+            self.log.error(f"[clip] Unexpected error: {e}")
+            return False
+            
