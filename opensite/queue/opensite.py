@@ -16,6 +16,7 @@ from opensite.processing.concatenate import OpenSiteConcatenator
 from opensite.processing.run import OpenSiteRunner
 from opensite.processing.importer import OpenSiteImporter
 from opensite.processing.spatial import OpenSiteSpatial
+from opensite.output.opensite import OpenSiteOutput
 
 class OpenSiteQueue:
 
@@ -112,8 +113,7 @@ class OpenSiteQueue:
         
     def sync_global_status(self, node_urn: str, status: str):
         """
-        Updates the target node and all its global 'clones' 
-        to the specified status.
+        Updates target node and all its global 'clones' to specified status
         """
         node = self.graph.find_node_by_urn(node_urn)
         g_urn = node.global_urn
@@ -188,6 +188,18 @@ class OpenSiteQueue:
                 spatializer = OpenSiteSpatial(node, log_level, shared_lock, shared_metadata)
                 success = spatializer.amalgamate()
 
+            if action == 'postprocess':
+                spatializer = OpenSiteSpatial(node, log_level, shared_lock, shared_metadata)
+                success = spatializer.postprocess()
+
+            if action == 'clip':
+                spatializer = OpenSiteSpatial(node, log_level, shared_lock, shared_metadata)
+                success = spatializer.clip()
+
+            if action == 'output':
+                spatializer = OpenSiteOutput(node, log_level, shared_lock, shared_metadata)
+                success = spatializer.run()
+
             if success: return urn, 'processed'
             else: return urn, 'failed'
 
@@ -254,24 +266,32 @@ class OpenSiteQueue:
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.io_workers) as io_exec, \
              concurrent.futures.ProcessPoolExecutor(max_workers=self.cpu_workers) as cpu_exec:
             
+            unfinishednodes = None
+
             while True:
-                # print(json.dumps(dict(shared_metadata), indent=4))
 
                 # 1. Get nodes that are ready to run (Dependencies met)
-                ready_nodes = self.get_runnable_nodes(actions=['download', 'unzip', 'concatenate', 'run', 'import', 'preprocess', 'buffer', 'amalgamate'], checksizes=True)
+                ready_nodes = self.get_runnable_nodes(actions=None, checksizes=False)
                 
                 # Filter out nodes that are already currently in flight
                 new_nodes = [n for n in ready_nodes if n.urn not in active_tasks.values()]
 
                 # Submit new tasks to the appropriate executor
                 for node in new_nodes:
-                    # Update any 'amalgamate' nodes that are now possible with appropriate 'output' value
+                    # If runnable node has no action, automatically process it
+                    if not node.action: node.status = 'processed'
+
+                    self.graph.generate_graph_preview()
+
+                    # Update any 'amalgamate' nodes + clones that are now possible with appropriate 'output' value
                     if node.action == 'amalgamate':
                         children_info = self.graph.get_children_info(node)
                         node.custom_properties['children'] = children_info['children']
-                        node.output = children_info['output']
-                        self.graph.register_to_database()
-
+                        # Use variable so value can be dynamically used in downstream nodes
+                        var_key = f"VAR:global_output_{node.global_urn}"
+                        shared_metadata[var_key] = children_info['output']
+                        self.graph.sync_global_field(node.global_urn, 'output', children_info['output'])
+        
                     if node.action in self.action_groups['io_bound']:
                         future = io_exec.submit(self.process_io_task, node, self.log_level, shared_lock, shared_metadata)
                         active_tasks[future] = node.urn
@@ -301,14 +321,19 @@ class OpenSiteQueue:
                 # If no tasks are running and nothing is ready, check for completion or stalls
                 if not active_tasks:
                     unfinished = [n for n in self.graph.find_nodes_by_props() 
-                                 if n.get('status') not in ['completed', 'failed', 'skipped']]
+                                 if n.get('status') not in ['processed', 'failed']]
                     
                     if not unfinished:
-                        self.graph.log.info("{'='*60}\nPROCESSING COMPLETE\n{'='*60}\n")
+                        self.graph.log.info(f"{'='*60}")
+                        self.graph.log.info(f"{'*'*19} PROCESSING COMPLETE {'*'*20}")
+                        self.graph.log.info(f"{'='*60}")
                         break
                     else:
-                        self.graph.log.warning(f"Queue stalled. {len(unfinished)} nodes unfinished")
-                        break
+                        if unfinishednodes == len(unfinished):
+                            self.graph.log.warning(f"Queue stalled. {len(unfinished)} nodes unfinished")
+                            break
+
+                        unfinishednodes = len(unfinished)
 
                 # Wait for at least one task to complete
                 # This is the "Pipelining Engine" - it yields as soon as any task finishes
@@ -339,7 +364,7 @@ class OpenSiteQueue:
                 # Tiny sleep to prevent high CPU usage on the main thread
                 time.sleep(0.05)
 
-    def get_runnable_nodes(self, actions=[], checksizes=True) -> List[Node]:
+    def get_runnable_nodes(self, actions=None, checksizes=True) -> List[Node]:
         """
         Finds nodes ready for execution. 
         Ensures only one node per global_urn is added to the batch.

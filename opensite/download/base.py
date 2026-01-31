@@ -116,7 +116,7 @@ class DownloadBase:
         
         if destination.exists() and not force:
             if self.check_download_valid(str(destination)):
-                self.log.warning(f"{filename}: File exists, skipping")
+                self.log.info(f"{filename}: File exists, skipping")
                 return destination
             else:
                 return None
@@ -176,6 +176,51 @@ class DownloadBase:
                 tmp_path.unlink()
             return None
 
+    def check_gpkg_valid(self, file_path):
+        """
+        Checks whether GPKG file is valid
+        """
+
+        try:
+            with sqlite3.connect(file_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='gpkg_contents';")
+                if not cursor.fetchone():
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='geometry_columns';")
+                    if cursor.fetchone():
+                        self.log.warning(f"{os.path.basename(file_path)} is SpatiaLite, not GeoPackage. Skipping.")
+                        return file_path
+                    
+                    self.log.error(f"{os.path.basename(file_path)} is not a valid GeoPackage, deleting.")
+                    os.remove(file_path)
+                    return None
+
+                # Robust query: only use tables that are guaranteed to exist
+                cursor.execute("""
+                    SELECT table_name, data_type 
+                    FROM gpkg_contents;
+                """)
+                result = cursor.fetchall()
+
+                if len(result) == 0:
+                    self.log.error(f"{os.path.basename(file_path)} has no registered layers, deleting.")
+                    os.remove(file_path)
+                    return None
+                
+                return result
+
+        except sqlite3.DatabaseError as e:
+            # Check specifically for corruption vs. just a lock
+            if "malformed" in str(e):
+                self.log.error(f"CORRUPTION: {os.path.basename(file_path)} is malformed. Deleting.")
+                os.remove(file_path)
+            else:
+                self.log.error(f"LOCK/ACCESS ISSUE: {os.path.basename(file_path)} - {e}")
+            return None
+
+
     def check_download_valid(self, file_path):
         """
         Checks whether file is valid
@@ -185,43 +230,6 @@ class DownloadBase:
         if not Path(file_path).exists(): return None
 
         if file_path.endswith('.gpkg'):
-            try:
-                with sqlite3.connect(file_path) as conn:
-                    conn.row_factory = sqlite3.Row
-                    cursor = conn.cursor()
-                    
-                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='gpkg_contents';")
-                    if not cursor.fetchone():
-                        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='geometry_columns';")
-                        if cursor.fetchone():
-                            self.log.warning(f"{os.path.basename(file_path)} is SpatiaLite, not GeoPackage. Skipping.")
-                            return file_path
-                        
-                        self.log.error(f"{os.path.basename(file_path)} is not a valid GeoPackage, deleting.")
-                        os.remove(file_path)
-                        return None
+            return self.check_gpkg_valid(file_path)
 
-                    # Robust query: only use tables that are guaranteed to exist
-                    cursor.execute("""
-                        SELECT table_name, data_type 
-                        FROM gpkg_contents;
-                    """)
-                    result = cursor.fetchall()
-
-                    if len(result) == 0:
-                        self.log.error(f"{os.path.basename(file_path)} has no registered layers, deleting.")
-                        os.remove(file_path)
-                        return None
-                    
-                    return result
-
-            except sqlite3.DatabaseError as e:
-                # Check specifically for corruption vs. just a lock
-                if "malformed" in str(e):
-                    self.log.error(f"CORRUPTION: {os.path.basename(file_path)} is malformed. Deleting.")
-                    os.remove(file_path)
-                else:
-                    self.log.error(f"LOCK/ACCESS ISSUE: {os.path.basename(file_path)} - {e}")
-                return None
-                        
         return file_path

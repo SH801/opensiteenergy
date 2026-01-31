@@ -13,4 +13,5 @@ numpy
 rasterio
 setuptools
 gdal
+python-dotenv
 #pip install --no-deps git+https://github.com/hotosm/osm-export-tool-python.git

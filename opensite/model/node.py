@@ -23,6 +23,7 @@ class Node:
     urn: int
     name: str
     global_urn: Optional[int] = None
+
     title: Optional[str] = None
     node_type: Optional[str] = 'source'  # 'source', 'destination', or None (Group)
     format: Optional[str] = None
@@ -30,7 +31,7 @@ class Node:
     action: Optional[str] = None  # download, import, buffer, process, osmexport, simplify, grid, amalgamate, invert
     output: Optional[str] = None
     style: Optional[Dict[str, Any]] = None
-    custom_properties: Dict[str, Any] = field(default_factory=dict)
+    custom_properties: Dict[str, Any] = field(default_factory=lambda: {'branch': None})
     status: str = "unprocessed"
 
     @property

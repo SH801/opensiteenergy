@@ -86,7 +86,7 @@ class OpenSiteImporter(ProcessBase):
         input_file = self.node.input
         if input_file and input_file.startswith('VAR:'):
             # Lookup the value from our shared tracking (metadata/output variables)
-            # This follows your pattern for resolving dynamic node dependencies
+            # This follows pattern for resolving dynamic node dependencies
             input_file_variable_name = input_file
             input_file = self.get_variable(input_file_variable_name)
             yaml_path = str(Path(self.base_path) / self.node.custom_properties['yml'])

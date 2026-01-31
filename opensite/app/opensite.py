@@ -27,6 +27,7 @@ class OpenSiteApplication:
 
         spatial = OpenSiteSpatial(None)
         spatial.create_processing_grid()
+        spatial.create_output_grid()
 
     def delete_folder(self, folder_path):
         """Deletes the specified directory and all its contents."""
@@ -48,6 +49,7 @@ class OpenSiteApplication:
         """Purge all download files and opensite database tables"""
 
         self.purgedownloads()
+        self.purgeoutputs()
         self.purgedb()
 
         self.log.info("[purgeall] completed")
@@ -62,7 +64,17 @@ class OpenSiteApplication:
         self.log.info("[purgedownloads] completed")
 
         return True
-    
+
+    def purgeoutputs(self):
+        """Purge all output files"""
+
+        output_folder = Path(OpenSiteConstants.OUTPUT_FOLDER).resolve()
+
+        self.delete_folder(output_folder)
+        self.log.info("[purgeoutput] completed")
+
+        return True
+
     def purgedb(self):
         """Purge all opensite database tables"""
 
@@ -115,7 +127,10 @@ class OpenSiteApplication:
         site_ymls = ckan.download_sites(cli.get_sites())
 
         # Initialize data model for session
-        graph = OpenSiteGraph(cli.get_overrides(), log_level=self.log_level)
+        graph = OpenSiteGraph(  cli.get_overrides(), \
+                                cli.get_outputformats(), \
+                                cli.get_clip(), \
+                                log_level=self.log_level)
         graph.add_yamls(site_ymls)
         graph.update_metadata(ckan)
 
@@ -130,6 +145,9 @@ class OpenSiteApplication:
         queue.run()
 
         graph_list = graph.to_list()
+        # for item in graph_list:
+        #     print(item['urn'])
+        # graph_list = graph.to_json()
         # print(json.dumps(graph_list, indent=4))
 
     def shutdown(self, message="Process Complete"):

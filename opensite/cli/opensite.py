@@ -12,6 +12,8 @@ class OpenSiteCLI(BaseCLI):
         self.defaults = {}
         self.overrides = {}
         self.sites = []
+        self.outputformats = []
+        self.clip = None
         self.purgedb = False
         self.purgeall = False
         # Load and filter immediately
@@ -27,6 +29,7 @@ class OpenSiteCLI(BaseCLI):
         self.parser.add_argument('--preview', action='store_true', help='Generate an interactive graph preview and skip database modifications')
         self.parser.add_argument('--purgedb', action='store_true', help="Drop all opensite tables and exit")
         self.parser.add_argument('--purgeall', action='store_true', help="Delete all download files, drop all opensite tables and exit")
+        self.parser.add_argument('--clip', type=str, help="Name of the area to clip data to (e.g., 'Sussex')")
 
     def _load_and_filter_defaults(self):
         """Loads the file and keeps only int, float, and str variables."""
@@ -44,14 +47,23 @@ class OpenSiteCLI(BaseCLI):
                 self.log.debug(f"Adding default value from {self.config_path}: {key}={value}")
                 self.defaults[key] = value
 
+        # outputformats is special case
+        self.defaults['outputformats'] = full_data['outputformats']
+
     def inject_dynamic_args(self):
         """Adds flags for the filtered simple variables."""
         for key, value in self.defaults.items():
+            help = f"Override {key} (Default: {value})"
+            if key == 'outputformats': 
+                help =  f"Set output format(s) from "\
+                        f"'gpkg', 'shp', 'geojson', "\
+                        f"'mbtiles', 'web', 'qgis'. "\
+                        f"For multiple formats, separate values with commas (Default: {','.join(value)})"
             self.parser.add_argument(
                 f"--{key}",
                 type=type(value),
                 default=None,
-                help=f"Override {key} (Default: {value})"
+                help=help
             )
 
     def get_current_value(self, value):
@@ -80,6 +92,14 @@ class OpenSiteCLI(BaseCLI):
         """Gets list of sites from CLI"""
         return self.sites
 
+    def get_outputformats(self):
+        """Gets list of outputformats from CLI"""
+        return self.outputformats
+
+    def get_clip(self):
+        """Gets clip value from CLI"""
+        return self.clip
+
     def get_preview(self):
         """Gets status of --preview CLI switch"""
         return self.preview
@@ -101,6 +121,26 @@ class OpenSiteCLI(BaseCLI):
         
         # Set sites to the list of sites provided in CLI
         self.sites = self.args.sites
+        if not self.args.sites:
+            # If no sites provided, use default list
+            self.sites = ['wind', 'solar']
+
+        # Set list of required output formats
+        if self.args.outputformats is None:
+            self.outputformats = self.defaults['outputformats']
+        else:
+            self.outputformats = (''.join(self.args.outputformats)).split(',')
+            # If 'qgis' or 'shp' or 'geojson', ensure 'gpkg' in output formats as required for all of them
+            if  ('qgis' in self.outputformats) or \
+                ('shp' in self.outputformats) or \
+                ('geojson' in self.outputformats):
+                if 'gpkg' not in self.outputformats: self.outputformats.append('gpkg')
+            # If 'web', ensure 'mbtiles' in output formats as required for it
+            if 'web' in self.outputformats:
+                if 'mbtiles' not in self.outputformats: self.outputformats.append('mbtiles')
+
+        # Set clip to clip value provided in CLI
+        self.clip = self.args.clip
 
         # Capture the final state of the simple variables
         overrides = {}

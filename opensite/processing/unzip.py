@@ -28,10 +28,10 @@ class OpenSiteUnzipper(ProcessBase):
             out_mtime = output_file.stat().st_mtime
             
             if out_mtime > zip_mtime:
-                self.log.warning(f"{output_file.name}: Skipping, already exists and is up to date")
+                self.log.info(f"{output_file.name}: Skipping, already exists and is up to date")
                 return True
             else:
-                self.log.warning(f"{output_file.name}: Overwriting - source zip is newer")
+                self.log.info(f"{output_file.name}: Overwriting - source zip is newer")
 
         self.log.info(f"Unzipping {input_zip_basename}")
 

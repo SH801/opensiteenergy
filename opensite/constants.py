@@ -15,6 +15,9 @@ class OpenSiteConstants:
     # GeoJSON default CRS
     CRS_GEOJSON             = 'EPSG:4326'
 
+    # CRS of all exported GIS files
+    CRS_OUTPUT             = 'EPSG:4326'
+
     # Format text used by CKAN to indicate osm-export-tool YML file
     OSM_YML_FORMAT          = "osm-export-tool YML"
 
@@ -88,14 +91,17 @@ class OpenSiteConstants:
     LOG_FOLDER              = BUILD_ROOT / "logs"
     OSM_FOLDER              = DOWNLOAD_FOLDER / "osm"
     OUTPUT_FOLDER           = BUILD_ROOT / "output"
+    OUTPUT_LAYERS_FOLDER    = OUTPUT_FOLDER / "layers"
 
     ALL_FOLDERS             = \
                             [
-                                BUILD_ROOT,
-                                DOWNLOAD_FOLDER,
-                                CACHE_FOLDER,
                                 LOG_FOLDER,
                                 OSM_FOLDER,
+                                CACHE_FOLDER,
+                                BUILD_ROOT,
+                                DOWNLOAD_FOLDER,
+                                OUTPUT_FOLDER,
+                                OUTPUT_LAYERS_FOLDER,
                             ]
     
     # Acceptable CLI properties
@@ -110,7 +116,7 @@ class OpenSiteConstants:
                                                     'type', 
                                                     'clipping-path', 
                                                     'osm',
-                                                    'ckan'
+                                                    'ckan',
                                                 ]
                             }
 
@@ -120,7 +126,11 @@ class OpenSiteConstants:
     # Processing grid is used to cut up core datasets into grid squares
     # to reduce memory load on ST_Union. All final layers will have ST_Union
     # so it's okay to cut up early datasets before this
-    PROCESSINGGRID_SPACING  = 100 * 1000 # Size of grid squares in metres, ie. 500km
+    GRID_PROCESSING_SPACING  = 100 * 1000 # Size of grid squares in metres, ie. 500km
+
+    # Output grid is used to cut up final output into grid squares 
+    # in order to improve quality and performance of rendering 
+    GRID_OUTPUT_SPACING     = 100 * 1000 # Size of grid squares in metres, ie. 100km
 
     # Database tables
     DATABASE_GENERAL_PREFIX = 'opensite_'
@@ -128,5 +138,7 @@ class OpenSiteConstants:
     OPENSITE_REGISTRY       = DATABASE_BASE + 'registry'
     OPENSITE_BRANCH         = DATABASE_BASE + 'branch'
     OPENSITE_CLIPPINGMASTER = DATABASE_BASE + 'clipping_master'
-    OPENSITE_PROCESSINGGRID = DATABASE_BASE + 'processing_grid'
+    OPENSITE_CLIPPINGTEMP   = DATABASE_BASE + 'clipping_temp'
+    OPENSITE_GRIDPROCESSING = DATABASE_BASE + 'grid_processing'
+    OPENSITE_GRIDOUTPUT     = DATABASE_BASE + 'grid_output'
 

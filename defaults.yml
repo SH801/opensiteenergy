@@ -43,7 +43,14 @@ style:
     color:
       darkorange
 
-
+# Possible output formats
+outputformats:
+  - gpkg
+  - shp
+  - geojson
+  - mbtiles
+  - web
+  - qgis
 
 
 

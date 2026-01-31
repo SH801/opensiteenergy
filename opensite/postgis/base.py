@@ -5,6 +5,9 @@ from psycopg2 import pool, sql, Error
 from psycopg2.extensions import quote_ident
 from psycopg2.extras import RealDictCursor
 from opensite.logging.base import LoggingBase
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class PostGISBase:
     def __init__(self, log_level=logging.INFO):
@@ -57,7 +60,7 @@ class PostGISBase:
                 cursor.execute(query)
                 conn.commit()
                 if hasattr(self, 'log'):
-                    self.log.info(f"Successfully dropped table: {schema}.{table_name}")
+                    self.log.debug(f"Successfully dropped table: {schema}.{table_name}")
                 return True
         except Error as e:
             conn.rollback()
@@ -66,6 +69,32 @@ class PostGISBase:
             return False
         finally:
             self.pool.putconn(conn)
+
+    def copy_table(self, source_table, dest_table):
+        """
+        Copies source_table to dest_table including all indexes using 
+        composable SQL identifiers for safety.
+        """
+        # Define parameters using identifiers for table names
+        dbparams = {
+            "source": sql.Identifier(source_table),
+            "dest": sql.Identifier(dest_table)
+        }
+
+        # Use INCLUDING ALL to ensure GIST indexes and constraints are copied
+        query = sql.SQL("""
+            DROP TABLE IF EXISTS {dest};
+            CREATE TABLE {dest} (LIKE {source} INCLUDING ALL);
+            INSERT INTO {dest} SELECT * FROM {source};
+            ANALYZE {dest};
+        """).format(**dbparams)
+
+        try:
+            self.execute_query(query)
+            self.log.info(f"Successfully deep-copied {source_table} to {dest_table}")
+        except Exception as e:
+            self.log.error(f"Failed to copy table via PostGIS: {e}")
+            raise
 
     def execute_query(self, query, params=None):
         """Standard wrapper to execute a command and commit it."""

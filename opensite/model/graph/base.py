@@ -274,35 +274,6 @@ class Graph:
                     return detached
         return None
 
-    def get_max_urn(self, current_node=None):
-        """
-        Traverses the graph to find the highest integer URN.
-        """
-        if current_node is None:
-            current_node = self.root
-        
-        # Start with current node's URN if it's an int
-        max_val = current_node.urn if isinstance(current_node.urn, int) else 0
-        
-        if hasattr(current_node, 'children') and current_node.children:
-            for child in current_node.children:
-                child_max = self.get_max_urn(child)
-                if child_max > max_val:
-                    max_val = child_max
-        return max_val
-
-    def get_new_urn(self):
-        """
-        Increments and returns a unique integer URN.
-        Initializes from the current max URN in the graph if not already set.
-        """
-        if not hasattr(self, '_current_max_urn'):
-            # First time use: find the highest URN currently in the tree
-            self._current_max_urn = self.get_max_urn()
-            
-        self._current_max_urn += 1
-        return self._current_max_urn
-
     def get_new_global_urn(self) -> int:
         """
         Increments and returns a unique global URN for the tree instance.
@@ -313,6 +284,17 @@ class Graph:
             
         self._global_urn_counter += 1
         return self._global_urn_counter
+
+    def sync_global_field(self, g_urn, field: str, value: str):
+        """
+        Sets field=value for all cloned nodes with same global_urn
+        """
+        # Sync all clones sharing the same global_urn
+        if g_urn:
+            clones = self.find_nodes_by_props({'global_urn': g_urn})
+            for c_dict in clones:
+                c_node = self.find_node_by_urn(c_dict['urn'])
+                setattr(c_node, field, value)
 
     def get_terminal_nodes(self, current_node=None, terminal_list=None):
         """
@@ -346,16 +328,12 @@ class Graph:
             self.log.error(f"Cannot create group: Parent URN {parent_urn} not found.")
             return None
 
-        # 2. Create the new node
-        new_urn = self.get_new_urn()
-
-        # We import the Node class here to avoid circular imports if necessary
-        new_group = Node(name=group_name, title=group_title, urn=new_urn)
+        new_group = self.create_node(name=group_name, title=group_title)
 
         # 3. Handle global_urn
         if global_urn:
             new_group.global_urn = global_urn
-            self.log.debug(f"Assigned global_urn {global_urn} to {new_urn}")
+            self.log.debug(f"Assigned global_urn {global_urn} to {new_group.urn}")
 
         # 4. Attach new group to parent
         if not hasattr(parent_node, 'children'):
@@ -371,7 +349,7 @@ class Graph:
                 if not hasattr(new_group, 'children'):
                     new_group.children = []
                 new_group.children.append(child_node)
-                self.log.debug(f"Moved node {c_urn} to new group {new_urn}")
+                self.log.debug(f"Moved node {c_urn} to new group {new_group.urn}")
             else:
                 self.log.warning(f"Could not find child {c_urn} to move into group {group_name}")
 
@@ -451,6 +429,15 @@ class Graph:
         for child in node.children:
             self.set_terminal_nodes_output(child, branch)
 
+    def get_branch_name(self, yml_data, filepath):
+        """Calculates branch name from yml data"""
+
+        branch_name = os.path.basename(filepath)
+        if 'type' in yml_data: branch_name = yml_data['type']
+        if 'code' in yml_data: branch_name = yml_data['code']
+
+        return branch_name
+
     def add_yaml(self, filepath: str):
         """Adds a YAML file as a new sibling branch under the root."""
         if not os.path.exists(filepath):
@@ -479,9 +466,10 @@ class Graph:
         state_hash = hashlib.md5(state_string).hexdigest()
 
         # Create a branch container for this file
-        branch_name = os.path.basename(filepath)
+        branch_name = self.get_branch_name(processed_data, filepath)
         branch_node = self.create_node(branch_name, node_type="branch")
         branch_node.parent = self.root
+        branch_node.custom_properties['branch'] = branch_name
         branch_node.custom_properties['yml'] = processed_data
         branch_node.custom_properties['hash'] = state_hash
         self.root.children.append(branch_node)
@@ -515,6 +503,7 @@ class Graph:
         if isinstance(data, dict):
             for key, value in data.items():
                 new_node = self.create_node(name=str(key))
+                new_node.custom_properties['branch'] = parent_node.custom_properties['branch']
                 new_node.parent = parent_node
                 parent_node.children.append(new_node)
                 if isinstance(value, (dict, list)):
@@ -527,6 +516,7 @@ class Graph:
                     self.build_from_dict(item, parent_node)
                 else:
                     child = self.create_node(name=str(item))
+                    child.custom_properties['branch'] = parent_node.custom_properties['branch']
                     child.parent = parent_node
                     parent_node.children.append(child)
 

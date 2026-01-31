@@ -29,7 +29,7 @@ class ColorFormatter(logging.Formatter):
 
 class LoggingBase:
     def __init__(self, name: str, level=logging.DEBUG, lock: multiprocessing.Lock = None):
-        self.logger = logging.getLogger(name.ljust(17))
+        self.logger = logging.getLogger(name.ljust(21))
         self.logger.setLevel(level)
         self.lock = lock
         self.logger.propagate = False

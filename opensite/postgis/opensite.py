@@ -12,7 +12,8 @@ class OpenSitePostGIS(PostGISBase):
     OPENSITE_REGISTRY       = OpenSiteConstants.OPENSITE_REGISTRY
     OPENSITE_BRANCH         = OpenSiteConstants.OPENSITE_BRANCH
     OPENSITE_CLIPPINGMASTER = OpenSiteConstants.OPENSITE_CLIPPINGMASTER
-    OPENSITE_PROCESSINGGRID = OpenSiteConstants.OPENSITE_PROCESSINGGRID
+    OPENSITE_GRIDPROCESSING = OpenSiteConstants.OPENSITE_GRIDPROCESSING
+    OPENSITE_GRIDOUTPUT     = OpenSiteConstants.OPENSITE_GRIDOUTPUT
 
     def __init__(self, log_level=logging.INFO):
         super().__init__(log_level)
@@ -93,7 +94,8 @@ class OpenSitePostGIS(PostGISBase):
             self.OPENSITE_REGISTRY, 
             self.OPENSITE_BRANCH, 
             self.OPENSITE_CLIPPINGMASTER,
-            self.OPENSITE_PROCESSINGGRID,
+            self.OPENSITE_GRIDPROCESSING,
+            self.OPENSITE_GRIDOUTPUT,
             'spatial_ref_sys', 
             'geography_columns', 
             'geometry_columns', 
@@ -157,15 +159,19 @@ class OpenSitePostGIS(PostGISBase):
         """
         self.execute_query(query, (yml_hash, branch_name, json.dumps(config_dict)))
 
-    def register_node(self, node, branch):
+    def register_node(self, node, branch=None, override_branch_name=None):
         """
         Inserts a node's table mapping into the registry.
         Expects node.output and branch.custom_properties['hash'] to exist.
         """
         output = getattr(node, 'output', None)
         human_name = node.name
-        branch_name = branch.name
-        yml_hash = branch.custom_properties.get('hash')
+        branch_name, yml_hash = '', ''
+        if branch: 
+            branch_name = branch.name
+            yml_hash = branch.custom_properties.get('hash')
+        if override_branch_name:
+            branch_name = override_branch_name
 
         if output:
             self.log.debug(f"Registering node in opensite_registery {output} {human_name} {branch_name}")
@@ -243,4 +249,39 @@ class OpenSitePostGIS(PostGISBase):
         
         except subprocess.CalledProcessError as e:
             self.log.error(f"PostGIS Import Error: {os.path.basename(spatial_data_file)} {e.stderr}")
+            return False
+
+    def export_spatial_data(self, spatial_data_table, spatial_data_layer_name, spatial_data_file):
+        """
+        Generic export function for standardised export of spatial data files
+        """
+
+        crs_output = OpenSiteConstants.CRS_OUTPUT
+
+        # Base ogr2ogr Command
+        cmd = [
+            "ogr2ogr",
+            spatial_data_file,
+            self.get_ogr_connection_string(),
+            "-overwrite",
+            "-nln", spatial_data_layer_name,
+            "-nlt", "POLYGON",
+            "-dialect", "sqlite", 
+            "-sql", 
+            f"SELECT geom geometry FROM '{spatial_data_table}'",
+            "-s_srs", OpenSiteConstants.CRS_DEFAULT,
+            "-t_srs", OpenSiteConstants.CRS_OUTPUT
+        ]
+
+        self.log.info(f"Exporting table '{spatial_data_table}' to file {os.path.basename(spatial_data_file)}")
+
+        try:
+            # Execute shell command
+            subprocess.run(cmd, capture_output=True, text=True, check=True)
+
+            self.log.info(f"Table {spatial_data_table} exported to {os.path.basename(spatial_data_file)}")
+            return True
+        
+        except subprocess.CalledProcessError as e:
+            self.log.error(f"PostGIS Export Error: {spatial_data_table} {e.stderr}")
             return False

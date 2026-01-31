@@ -1,0 +1,69 @@
+title:
+  "Test constraint layers for height-to-tip of 124.2m"
+
+type:
+  test
+
+code:
+  test-01
+  
+height-to-tip:
+  124.2
+
+osm:
+  https://download.geofabrik.de/europe/united-kingdom-latest.osm.pbf
+
+areas:
+  - england
+  - wales
+  - scotland
+  - northern-ireland
+  - uk
+
+structure:
+  ecology-and-wildlife:
+    - ancient-woodlands--england
+    - ancient-woodlands--northern-ireland
+    - ancient-woodlands--scotland
+    - ancient-woodlands--wales
+    - local-nature-reserves--england
+    - local-nature-reserves--scotland
+    - local-nature-reserves--wales
+  environmental-data:
+    - inadequate-wind-speeds--uk
+  heritage-impacts:
+    - conservation-areas--england
+    - conservation-areas--scotland
+    - conservation-areas--wales
+
+style:
+  aviation-and-exclusion-areas:
+    color:
+      purple
+  ecology-and-wildlife:
+    color:
+      darkgreen
+  environmental-data:
+    color:
+      blue
+  heritage-impacts:
+    color:
+      darkgoldenrod
+  landscape-and-visual-impacts:
+    color:
+      chartreuse
+  other-technical-constraints: 
+    color:
+      red
+  separation-distance-from-residential:
+    color:
+      darkorange
+
+
+
+
+
+
+
+
+
