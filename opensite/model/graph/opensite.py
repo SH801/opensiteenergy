@@ -1074,6 +1074,11 @@ class OpenSiteGraph(Graph):
         # We take a snapshot of children to avoid modifying the list while iterating
         current_branches = list(self.root.children)
         
+        global_output_urns = {}
+        for gfmt in global_formats:
+            global_output_urns[gfmt] = self.get_new_global_urn()
+        global_branch_custom_properties = self.get_structure(current_branches)
+
         for branch_node in current_branches:
 
             branch_code = branch_node.name
@@ -1193,23 +1198,26 @@ class OpenSiteGraph(Graph):
                 collector_node.children.append(current_chain_head)
                 current_chain_head.parent = collector_node
 
-            # 6. Global Formats (web/qgis)
+            # Global Formats (web/qgis)
             # These wrap around the collector, effectively becoming the top of the branch
             branch_top = collector_node
             for gfmt in global_formats:
                 gnode = self.create_node(
-                    name=f"{branch_node.name}--all-layers--{gfmt}",
-                    title=f"{branch_node.title} - All layers - {gfmt.capitalize()}",
+                    name=f"all-branches--{gfmt}",
+                    global_urn=global_output_urns[gfmt],
+                    title=f"All branches - {gfmt.capitalize()}",
                     format=gfmt,
                     action='output',
-                    custom_properties=branch_node_custom_properties
+                    custom_properties=global_branch_custom_properties
                 )
                 gnode.children.append(branch_top)
                 branch_top.parent = gnode
                 
                 # Global filename logic
                 clean_branch_name = branch_node.name.replace(' ', '-').lower()
-                gnode.output = f"{clean_branch_name}.{gfmt}"
+                gnode.output = f"opensite-layers.{gfmt}"
+                if gfmt == 'qgis': gnode.output = 'opensite-layers.json'
+                if gfmt == 'web': gnode.output = 'opensite-layers.js'
                 branch_top = gnode
 
             # Final Step: Attach the highest node of the chain to the Branch Root
@@ -1217,3 +1225,83 @@ class OpenSiteGraph(Graph):
             branch_top.parent = output_branch_root
 
         self.log.info("Output branches successfully isolated as parallel sibling structures.")
+
+    def get_structure(self, branches):
+        """
+        Gets core structure of branch - for use in web or QGIS output
+        """
+
+        structure = []
+        defaultcolor = 'darkgrey'
+
+        for branch in branches:
+
+            branch_code = branch.name
+
+            title = f"{branch_code} - All constraint layers"
+            if 'title' in branch.custom_properties['yml']:
+                title = branch.custom_properties['yml']['title']
+            properties = {
+                'height-to-tip': branch.custom_properties['height-to-tip'],
+                'blade-radius': branch.custom_properties['blade-radius'],
+            }
+            suffix = ''
+            if self.clip:
+                title += f" clipped to '{self.clip}'"
+                suffix = f"--clip-{self.clip.replace(' ', '-')}"
+
+            main_child = branch.children[0]
+            
+            branchstructure = {
+                'code': branch_code,
+                'title': title,
+                'properties': properties
+            }
+
+            datasets = [{
+                'title': title,
+                'color': defaultcolor,
+                'dataset': f"{branch_code}--all-layers{suffix}",
+                'level': 1,
+                'children': [],
+                'defaultactive': False,
+            }]
+            for child in main_child.children:
+
+                if child.action != 'amalgamate': continue
+
+                if 'color' not in child.style:
+                    self.log.error(f"Colour missing for dataset {child.name}")
+                    color = defaultcolor
+                else:
+                    color = child.style['color']
+
+                dataset = {
+                    'title': child.title,
+                    'color': color,
+                    'dataset': f"{branch_code}--{child.name}{suffix}",
+                    'level': 1,
+                    'defaultactive': True,
+                }
+
+                children = []
+                for subchild in child.children:
+
+                    if subchild.action != 'amalgamate': continue
+
+                    children.append({
+                        'title': subchild.title,
+                        'color': color,
+                        'dataset': f"{branch_code}--{subchild.name}{suffix}",
+                        'level': 2,
+                        'defaultactive': False,
+                    })
+
+                dataset['children'] = children
+                datasets.append(dataset)
+
+            branchstructure['datasets'] = datasets
+            structure.append(branchstructure)
+
+        return structure
+

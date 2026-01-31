@@ -8,8 +8,8 @@ from opensite.postgis.opensite import OpenSitePostGIS
 from opensite.download.base import DownloadBase
 
 class OpenSiteOutputGPKG(OutputBase):
-    def __init__(self, node, log_level=logging.INFO, shared_lock=None, shared_metadata=None):
-        super().__init__(node, log_level=log_level, shared_lock=shared_lock, shared_metadata=shared_metadata)
+    def __init__(self, node, log_level=logging.INFO, overwrite=False, shared_lock=None, shared_metadata=None):
+        super().__init__(node, log_level=log_level, overwrite=overwrite, shared_lock=shared_lock, shared_metadata=shared_metadata)
         self.log = OpenSiteLogger("OpenSiteOutputGPKG", log_level, shared_lock)
         self.base_path = OpenSiteConstants.OUTPUT_LAYERS_FOLDER
     
@@ -27,9 +27,9 @@ class OpenSiteOutputGPKG(OutputBase):
         if temp_output_path.exists():
             temp_output_path.unlink()
 
-        # if final_output_path.exists():
-        #     self.log.info(f"{final_output} already exists, skipping export")
-        #     return True
+        if (not self.overwrite) and final_output_path.exists():
+            self.log.info(f"{final_output} already exists, skipping export")
+            return True
 
         self.log.info(f"Exporting final layer {self.node.name} to {final_output}")
 

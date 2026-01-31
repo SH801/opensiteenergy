@@ -55,98 +55,17 @@ def main_old():
 
     LogMessage("Processing command line arguments...")
 
-    if len(sys.argv) > 1:
-        arg_index, height_to_tip_set, blade_radius_set = 0, False, False
-        for arg in sys.argv:
-            arg = arg.strip()
-            if isfloat(arg):
-                if not height_to_tip_set:
-                    HEIGHT_TO_TIP = float(arg)
-                    height_to_tip_set = True
-                    LogMessage("************ Using HEIGHT_TO_TIP value: " + formatValue(HEIGHT_TO_TIP) + ' metres ************')
-                else:
-                    BLADE_RADIUS = float(arg)
-                    blade_radius_set = True
-                    LogMessage("************ Using BLADE_RADIUS value: " + formatValue(BLADE_RADIUS) + ' metres ************')
-
-            if arg == '--custom':
-                if len(sys.argv) > arg_index:
-                    customconfig = sys.argv[arg_index + 1]
-                    LogMessage("--custom argument passed: Using custom configuration '" + customconfig + "'")
-                    CUSTOM_CONFIGURATION = processCustomConfiguration(customconfig)
-
-            if arg == '--clip':
-                if len(sys.argv) > arg_index:
-                    # *** This will override any 'clipping' setting in '--custom', above
-                    clippingarea = sys.argv[arg_index + 1]
-                    LogMessage("--clip argument passed: Using custom clipping area '" + clippingarea + "'")
-                    CUSTOM_CONFIGURATION = processClippingArea(clippingarea)
-
-            if arg == '--purgeall':
-                LogMessage("--purgeall argument passed: Clearing database and all build files")
-                REGENERATE_INPUT = True
-                REGENERATE_OUTPUT = True
-                purgeAll()
-
-            if arg == '--purgedb':
-                LogMessage("--purgedb argument passed: Clearing database")
-                REGENERATE_INPUT = True
-                REGENERATE_OUTPUT = True
-                postgisDropAllTables()
-
-            if arg == '--purgederived':
-                LogMessage("--purgederived argument passed: Clearing derived database tables")
-                REGENERATE_OUTPUT = True
-                postgisDropDerivedTables()
-
-            if arg == '--purgeamalgamated':
-                LogMessage("--purgeamalgamated argument passed: Clearing amalgamated database tables")
-                REGENERATE_OUTPUT = True
-                postgisDropAmalgamatedTables()
-
-            if arg == '--skipdownload':
-                LogMessage("--skipdownload argument passed: Skipping download stage")
-                PERFORM_DOWNLOAD = False
-
-            if arg == '--skipfonts':
-                LogMessage("--skipfonts argument passed: Skipping font installation and using hosted CDN fonts")
-                SKIP_FONTS_INSTALLATION = True
 
             if arg == '--buildtileserver':
                 LogMessage("--buildtileserver argument passed: Building files required for tileserver")
                 buildTileserverFiles()
                 exit()
 
-            if arg == '--regenerate':
-                if len(sys.argv) > arg_index:
-                    regeneratedataset = sys.argv[arg_index + 1]
-                    LogMessage("--regenerate argument passed: Redownloading and rebuilding all tables related to " + regeneratedataset)
-                    deleteDatasetAndAncestors(regeneratedataset)
-
-            if arg == '--help':
-                print("""
-Command syntax:
-
-Possible additional arguments:
-
---clip                 Supply custom area for clipping. Uses OSM name from osm-boundaries.gpkg. Overrides any 'clipping' setting in custom YML.
---purgederived         Clear all derived (ie. non-core data) PostGIS tables and reexport final layer files.
---purgeamalgamated     Clear all amalgamated PostGIS tables and reexport final layer files.
---skipfonts            Skip font installation stage and use hosted version of openmaptiles fonts.
---regenerate dataset   Regenerate specific dataset by redownloading and recreating all tables relating to dataset.
---buildtileserver      Rebuild files for tileserver.
-
-""")
-                exit()
 
             arg_index += 1
 
     initPipeline(rebuildCommandLine(sys.argv))
 
-    if PERFORM_DOWNLOAD:
-        downloadDatasets(CKAN_URL, DATASETS_DOWNLOADS_FOLDER)
-
-    runProcessingOnDownloads(DATASETS_DOWNLOADS_FOLDER)
     
     # Set up status flag files
 

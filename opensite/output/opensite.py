@@ -12,8 +12,8 @@ from opensite.output.qgis import OpenSiteOutputQGIS
 from opensite.output.web import OpenSiteOutputWeb
 
 class OpenSiteOutput(OutputBase):
-    def __init__(self, node, log_level=logging.INFO, shared_lock=None, shared_metadata=None):
-        super().__init__(node, log_level=log_level, shared_lock=shared_lock, shared_metadata=shared_metadata)
+    def __init__(self, node, log_level=logging.INFO, overwrite=False, shared_lock=None, shared_metadata=None):
+        super().__init__(node, log_level=log_level, overwrite=overwrite, shared_lock=shared_lock, shared_metadata=shared_metadata)
         self.log = OpenSiteLogger("OpenSiteOutput", log_level, shared_lock)
         self.base_path = OpenSiteConstants.OUTPUT_FOLDER
     
@@ -25,22 +25,22 @@ class OpenSiteOutput(OutputBase):
         outputObject = None
 
         if self.node.format == 'geojson':
-            outputObject = OpenSiteOutputGeoJSON(self.node, self.log_level, self.shared_lock, self.shared_metadata)
+            outputObject = OpenSiteOutputGeoJSON(self.node, self.log_level, self.overwrite, self.shared_lock, self.shared_metadata)
 
         if self.node.format == "gpkg":
-            outputObject = OpenSiteOutputGPKG(self.node, self.log_level, self.shared_lock, self.shared_metadata)
+            outputObject = OpenSiteOutputGPKG(self.node, self.log_level, self.overwrite, self.shared_lock, self.shared_metadata)
 
         if self.node.format == 'mbtiles':
-            outputObject = OpenSiteOutputMbtiles(self.node, self.log_level, self.shared_lock, self.shared_metadata)
+            outputObject = OpenSiteOutputMbtiles(self.node, self.log_level, self.overwrite, self.shared_lock, self.shared_metadata)
 
         if self.node.format == 'shp':
-            outputObject = OpenSiteOutputSHP(self.node, self.log_level, self.shared_lock, self.shared_metadata)
+            outputObject = OpenSiteOutputSHP(self.node, self.log_level, self.overwrite, self.shared_lock, self.shared_metadata)
 
         if self.node.format == 'qgis':
-            outputObject = OpenSiteOutputQGIS(self.node, self.log_level, self.shared_lock, self.shared_metadata)
+            outputObject = OpenSiteOutputQGIS(self.node, self.log_level, self.overwrite, self.shared_lock, self.shared_metadata)
 
         if self.node.format == 'web':
-            outputObject = OpenSiteOutputWeb(self.node, self.log_level, self.shared_lock, self.shared_metadata)
+            outputObject = OpenSiteOutputWeb(self.node, self.log_level, self.overwrite, self.shared_lock, self.shared_metadata)
 
         if outputObject: return outputObject.run()
 

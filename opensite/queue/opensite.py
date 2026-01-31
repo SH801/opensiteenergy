@@ -23,11 +23,12 @@ class OpenSiteQueue:
     DOWNLOAD_RETRY_INTERVAL         = 30
     DOWNLOAD_RETRY_TOTALATTEMPTS    = 10
 
-    def __init__(self, graph, max_workers=None, log_level=logging.DEBUG):
+    def __init__(self, graph, max_workers=None, log_level=logging.DEBUG, overwrite=False):
         self.graph = graph
         self.action_groups = self.graph.get_action_groups()
         self.terminal_status = self.graph.get_terminal_status()
         self.log_level = log_level
+        self.overwrite = overwrite
         self.logger = OpenSiteLogger("OpenSiteQueue", self.log_level)
 
         # Resource Scaling
@@ -148,6 +149,7 @@ class OpenSiteQueue:
         output, \
         custom_properties, \
         log_level, \
+        overwrite, \
         shared_lock, \
         shared_metadata = args
          
@@ -197,7 +199,7 @@ class OpenSiteQueue:
                 success = spatializer.clip()
 
             if action == 'output':
-                spatializer = OpenSiteOutput(node, log_level, shared_lock, shared_metadata)
+                spatializer = OpenSiteOutput(node, log_level, overwrite, shared_lock, shared_metadata)
                 success = spatializer.run()
 
             if success: return urn, 'processed'
@@ -304,17 +306,18 @@ class OpenSiteQueue:
                     elif node.action in self.action_groups['cpu_bound']:
                         # Prepare the task args for the Process pool
                         task_args = (
-                            node.urn, 
+                            node.urn,
                             node.global_urn,
-                            node.name, 
+                            node.name,
                             node.title,
                             node.node_type,
                             node.format,
-                            node.input, 
+                            node.input,
                             node.action,
                             node.output,
-                            node.custom_properties, 
-                            self.log_level, 
+                            node.custom_properties,
+                            self.log_level,
+                            self.overwrite,
                             shared_lock,
                             shared_metadata,
                         )
@@ -328,9 +331,9 @@ class OpenSiteQueue:
                                  if n.get('status') not in ['processed', 'failed']]
                     
                     if not unfinished:
-                        self.graph.log.info(f"{'='*60}")
-                        self.graph.log.info(f"{'*'*19} PROCESSING COMPLETE {'*'*20}")
-                        self.graph.log.info(f"{'='*60}")
+                        self.graph.log.info(f"{OpenSiteConstants.LOGGER_GREEN}{'='*60}{OpenSiteConstants.LOGGER_RESET}")
+                        self.graph.log.info(f"{OpenSiteConstants.LOGGER_GREEN}{'*'*19} PROCESSING COMPLETE {'*'*20}{OpenSiteConstants.LOGGER_RESET}")
+                        self.graph.log.info(f"{OpenSiteConstants.LOGGER_GREEN}{'='*60}{OpenSiteConstants.LOGGER_RESET}")
                         break
                     else:
                         if unfinishednodes == len(unfinished):

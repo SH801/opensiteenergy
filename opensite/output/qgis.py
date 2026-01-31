@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import subprocess
@@ -13,8 +14,8 @@ class OpenSiteOutputQGIS(OutputBase):
 
     QGIS_PYTHON_PATH = '/usr/bin/python3'
 
-    def __init__(self, node, log_level=logging.INFO, shared_lock=None, shared_metadata=None):
-        super().__init__(node, log_level=log_level, shared_lock=shared_lock, shared_metadata=shared_metadata)
+    def __init__(self, node, log_level=logging.INFO, overwrite=False, shared_lock=None, shared_metadata=None):
+        super().__init__(node, log_level=log_level, overwrite=overwrite, shared_lock=shared_lock, shared_metadata=shared_metadata)
         self.log = OpenSiteLogger("OpenSiteOutputQGIS", log_level, shared_lock)
         self.base_path = OpenSiteConstants.OUTPUT_FOLDER
     
@@ -29,9 +30,9 @@ class OpenSiteOutputQGIS(OutputBase):
         python_path = Path(self.QGIS_PYTHON_PATH)
         qgis_output_path = Path(self.base_path) / self.node.output.replace('.qgis', 'qgs')
 
-        # if qgis_output_path.exists():
-        #     self.log.info(f"{os.path.basename(qgis_output_path)} already exists, skipping creation")
-        #     return True
+        if (not self.overwrite) and qgis_output_path.exists():
+            self.log.info(f"{os.path.basename(qgis_output_path)} already exists, skipping creation")
+            return True
         
         if not python_path.exists():
             self.log.error(f"Unable to locate QGIS Python at {self.QGIS_PYTHON_PATH}")
@@ -39,8 +40,15 @@ class OpenSiteOutputQGIS(OutputBase):
             self.log.error(" --> *** SKIPPING QGIS FILE CREATION ***")
             return False
 
+
         try:
 
+            json_filepath = Path(self.base_path) / self.node.output
+        
+            with open(json_filepath, 'w', encoding='utf-8') as f:
+                f.write(json.dumps(self.node.custom_properties, indent=4))
+            self.log.info(f"[OpenSiteOutputWeb] Data exported to {self.node.output}")
+        
             cmd = [self.QGIS_PYTHON_PATH, 'build-qgis.py', str(qgis_output_path)]
             subprocess.run(cmd, capture_output=True, text=True, check=True)
 

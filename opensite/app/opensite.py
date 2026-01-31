@@ -21,10 +21,13 @@ from opensite.processing.spatial import OpenSiteSpatial
 class OpenSiteApplication:
     def __init__(self, log_level=OpenSiteConstants.LOGGING_LEVEL):
         self.log = OpenSiteLogger("OpenSiteApplication")
-        self.log.info("Application initialized")
         self.log_level = os.getenv("OPENSITE_LOG_LEVEL", log_level)
         self.processing_start = time.time()
         self.server_thread = None
+        self.log.info(f"{OpenSiteConstants.LOGGER_GREEN}{'='*60}{OpenSiteConstants.LOGGER_RESET}")
+        self.log.info(f"{OpenSiteConstants.LOGGER_GREEN}{'*'*17} APPLICATION INITIALIZED {'*'*18}{OpenSiteConstants.LOGGER_RESET}")
+        self.log.info(f"{OpenSiteConstants.LOGGER_GREEN}{'='*60}{OpenSiteConstants.LOGGER_RESET}")
+
         # self.stop_event = threading.Event()
         # self.app = self._setup_fastapi()
         # self.start_web_server()
@@ -64,7 +67,8 @@ class OpenSiteApplication:
         processing_time_minutes = round(processing_time / 60, 1)
         processing_time_hours = round(processing_time / (60 * 60), 1)
         time_text = f"{processing_time_minutes} minutes ({processing_time_hours} hours) to complete"
-        self.log.info(f"**** Completed processing - {time_text} ****")
+        self.log.info(f"{OpenSiteConstants.LOGGER_YELLOW}Completed processing - {time_text}{OpenSiteConstants.LOGGER_RESET}")
+        print("")
 
     def init_environment(self):
         """Creates required system folders defined in constants."""
@@ -189,7 +193,7 @@ class OpenSiteApplication:
         graph.generate_graph_preview(load=cli.get_preview())
 
         # Run processing queue
-        queue = OpenSiteQueue(graph, log_level=self.log_level)
+        queue = OpenSiteQueue(graph, log_level=self.log_level, overwrite=cli.get_overwrite())
         queue.run()
         self.show_elapsed_time()
 

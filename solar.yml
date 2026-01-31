@@ -142,7 +142,7 @@ style:
   other-technical-constraints: 
     color:
       red
-  separation-distance-from-residential:
+  separation-distance-from-residential-properties:
     color:
       darkorange
 

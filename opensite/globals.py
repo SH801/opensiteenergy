@@ -85,31 +85,3 @@ CKAN_USER_AGENT                     = 'ckanapi/1.0 (+https://openwind.energy)'
 DOWNLOAD_USER_AGENT                 = 'openwindenergy/' + OPENWINDENERGY_VERSION
 LOG_SINGLE_PASS                     = WORKING_FOLDER + 'log.txt'
 PROCESSING_START                    = None
-PROCESSING_STATE_FILE               = 'PROCESSING'
-PROCESSING_COMPLETE_FILE            = 'PROCESSINGCOMPLETE'
-
-# Lookup to convert internal areas to OSM names
-
-OSM_NAME_CONVERT                    = \
-                                    {
-                                        'england': 'England',
-                                        'wales': 'Cymru / Wales',
-                                        'scotland': 'Alba / Scotland',
-                                        'northern-ireland': 'Northern Ireland / Tuaisceart Éireann'
-                                    }
-
-# Processing grid is used to cut up core datasets into grid squares
-# to reduce memory load on ST_Union. All final layers will have ST_Union
-# so it's okay to cut up early datasets before this
-
-PROCESSING_GRID_SPACING             = 500 * 1000 # Size of grid squares in metres, ie. 500km
-PROCESSING_GRID_TABLE               = 'uk__processing_grid_' + str(int(PROCESSING_GRID_SPACING)) + '_m'
-
-# Output grid is used to cut up final output into grid squares 
-# in order to improve quality and performance of rendering 
-
-OUTPUT_GRID_SPACING                 = 100 * 1000 # Size of grid squares in metres, ie. 100km
-OUTPUT_GRID_TABLE                   = 'uk__output_grid__100000_m'
-
-# Redirect ogr2ogr warnings to log file
-os.environ['CPL_LOG'] = WORKING_FOLDER + 'log-ogr2ogr.txt'

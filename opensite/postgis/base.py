@@ -1,11 +1,17 @@
 import os
 import logging
 import psycopg2
+import shutil
+from pathlib import Path
 from psycopg2 import pool, sql, Error
 from psycopg2.extensions import quote_ident
 from psycopg2.extras import RealDictCursor
 from opensite.logging.base import LoggingBase
 from dotenv import load_dotenv
+
+if not Path('.env').exists(): 
+    print("Default .env file not found, creating it from template")
+    shutil.copy('.env-template', '.env')
 
 load_dotenv()
 

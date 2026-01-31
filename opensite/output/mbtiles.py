@@ -10,8 +10,8 @@ from opensite.logging.opensite import OpenSiteLogger
 from opensite.postgis.opensite import OpenSitePostGIS
 
 class OpenSiteOutputMbtiles(OutputBase):
-    def __init__(self, node, log_level=logging.INFO, shared_lock=None, shared_metadata=None):
-        super().__init__(node, log_level=log_level, shared_lock=shared_lock, shared_metadata=shared_metadata)
+    def __init__(self, node, log_level=logging.INFO, overwrite=False, shared_lock=None, shared_metadata=None):
+        super().__init__(node, log_level=log_level, overwrite=overwrite, shared_lock=shared_lock, shared_metadata=shared_metadata)
         self.log = OpenSiteLogger("OpenSiteOutputMbtiles", log_level, shared_lock)
         self.base_path = OpenSiteConstants.OUTPUT_LAYERS_FOLDER
         self.postgis = OpenSitePostGIS(log_level)
@@ -42,9 +42,9 @@ class OpenSiteOutputMbtiles(OutputBase):
 
         if tmp_output_path.exists(): tmp_output_path.unlink()
 
-        # if final_output_path.exists():
-        #     self.log.info(f"{self.node.output} already exists, skipping export")
-        #     return True
+        if (not self.overwrite) and final_output_path.exists():
+            self.log.info(f"{self.node.output} already exists, skipping export")
+            return True
 
         query_s1_gridify = sql.SQL("""
         CREATE TABLE {scratch1} AS 

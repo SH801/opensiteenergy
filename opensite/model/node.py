@@ -63,6 +63,7 @@ class Node:
         """Converts the node and its subgraph into a JSON-serializable dictionary."""
         return {
             "urn": self.urn,
+            "title": self.title,
             "global_urn": self.global_urn,
             "name": self.name,
             "node_type": self.node_type,

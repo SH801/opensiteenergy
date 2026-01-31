@@ -16,6 +16,7 @@ class OpenSiteCLI(BaseCLI):
         self.clip = None
         self.purgedb = False
         self.purgeall = False
+        self.overwrite = False
         # Load and filter immediately
         self._load_and_filter_defaults()
         self._incoporate_cli_switched()
@@ -30,6 +31,7 @@ class OpenSiteCLI(BaseCLI):
         self.parser.add_argument('--purgedb', action='store_true', help="Drop all opensite tables and exit")
         self.parser.add_argument('--purgeall', action='store_true', help="Delete all download files, drop all opensite tables and exit")
         self.parser.add_argument('--clip', type=str, help="Name of the area to clip data to (e.g., 'Sussex')")
+        self.parser.add_argument('--overwrite', action='store_true', help="Reexports all output files, overwriting files already created")
 
     def _load_and_filter_defaults(self):
         """Loads the file and keeps only int, float, and str variables."""
@@ -104,6 +106,10 @@ class OpenSiteCLI(BaseCLI):
         """Gets status of --preview CLI switch"""
         return self.preview
     
+    def get_overwrite(self):
+        """Gets status of --overwrite CLI switch"""
+        return self.overwrite
+
     def _incoporate_cli_switched(self):
         """Standard execution flow."""
         self.add_standard_args()
@@ -119,6 +125,9 @@ class OpenSiteCLI(BaseCLI):
         # Boolean for preview
         self.preview = self.args.preview
         
+        # Boolean for overwrite
+        self.overwrite = self.args.overwrite
+
         # Set sites to the list of sites provided in CLI
         self.sites = self.args.sites
         if not self.args.sites:
