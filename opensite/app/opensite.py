@@ -102,17 +102,39 @@ class OpenSiteApplication:
 
         self.purgedownloads()
         self.purgeoutputs()
+        self.purgeinstalls()
+        self.purgetileserver()
         self.purgedb()
 
         self.log.info("[purgeall] completed")
         return True
     
+    def purgetileserver(self):
+        """Purge all tileserver files"""
+
+        tileserver_folder = Path(OpenSiteConstants.TILESERVER_OUTPUT_FOLDER).resolve()
+
+        self.delete_folder(tileserver_folder)
+        self.log.info("[purgetileserver] completed")
+
+        return True
+
+    def purgeinstalls(self):
+        """Purge all install files"""
+
+        installs_folder = Path(OpenSiteConstants.INSTALL_FOLDER).resolve()
+
+        self.delete_folder(installs_folder)
+        self.log.info("[purgeinstalls] completed")
+
+        return True
+
     def purgedownloads(self):
         """Purge all download files"""
 
-        download_folder = Path(OpenSiteConstants.DOWNLOAD_FOLDER).resolve()
+        downloads_folder = Path(OpenSiteConstants.DOWNLOAD_FOLDER).resolve()
 
-        self.delete_folder(download_folder)
+        self.delete_folder(downloads_folder)
         self.log.info("[purgedownloads] completed")
 
         return True
@@ -120,9 +142,9 @@ class OpenSiteApplication:
     def purgeoutputs(self):
         """Purge all output files"""
 
-        output_folder = Path(OpenSiteConstants.OUTPUT_FOLDER).resolve()
+        outputs_folder = Path(OpenSiteConstants.OUTPUT_FOLDER).resolve()
 
-        self.delete_folder(output_folder)
+        self.delete_folder(outputs_folder)
         self.log.info("[purgeoutput] completed")
 
         return True

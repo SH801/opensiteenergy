@@ -1,1 +1,4 @@
-ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: Point outside of projection domain
+ERROR 1: Failed to reproject feature 12242 (geometry probably out of source or destination SRS).
+ERROR 1: Terminating translation prematurely after failed
+translation of layer Historic_Buildings_Record_13Mar2025 (use -skipfailures to skip errors)
