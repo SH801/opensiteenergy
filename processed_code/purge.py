@@ -103,7 +103,7 @@ def purgeAll():
     Deletes all database tables and build folder
     """
 
-    global WORKING_FOLDER, BUILD_FOLDER, TILESERVER_FOLDER, OSM_DOWNLOADS_FOLDER, OSM_EXPORT_DATA, OSM_CONFIG_FOLDER, DATASETS_DOWNLOADS_FOLDER
+    global WORKING_FOLDER, BUILD_FOLDER, TILESERVER_FOLDER, OSM_RELATED_FORMATS_FOLDER, OSM_EXPORT_DATA, OSM_CONFIG_FOLDER, DATASETS_DOWNLOADS_FOLDER
 
     postgisDropAllTables()
 
@@ -112,8 +112,8 @@ def purgeAll():
     for build_file in build_files: 
         # Don't delete log files from BUILD_FOLDER
         if not build_file.endswith('.log'): os.remove(BUILD_FOLDER + build_file)
-    osm_files = getFilesInFolder(OSM_DOWNLOADS_FOLDER)
-    for osm_file in osm_files: os.remove(OSM_DOWNLOADS_FOLDER + osm_file)
+    osm_files = getFilesInFolder(OSM_RELATED_FORMATS_FOLDER)
+    for osm_file in osm_files: os.remove(OSM_RELATED_FORMATS_FOLDER + osm_file)
     tileserver_files = getFilesInFolder(TILESERVER_FOLDER)
     for tileserver_file in tileserver_files: os.remove(TILESERVER_FOLDER + tileserver_file)
 

@@ -5,7 +5,7 @@ def initPipeline(command_line):
     Carry out tasks essential to subsequent tasks
     """
 
-    global OSM_DOWNLOADS_FOLDER, OSM_MAIN_DOWNLOAD, BUILD_FOLDER, OSM_BOUNDARIES, OSM_BOUNDARIES_YML, OVERALL_CLIPPING_FILE, WORKING_FOLDER
+    global OSM_RELATED_FORMATS_FOLDER, OSM_MAIN_DOWNLOAD, BUILD_FOLDER, OSM_BOUNDARIES, OSM_BOUNDARIES_YML, OVERALL_CLIPPING_FILE, WORKING_FOLDER
     global POSTGRES_HOST, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, WORKING_CRS
     global PROCESSING_STATE_FILE
 
@@ -13,7 +13,7 @@ def initPipeline(command_line):
 
     postgisDropLegacyTables()
 
-    osm_main_download_path = OSM_DOWNLOADS_FOLDER + basename(OSM_MAIN_DOWNLOAD)
+    osm_main_download_path = OSM_RELATED_FORMATS_FOLDER + basename(OSM_MAIN_DOWNLOAD)
     osm_boundaries_table = reformatTableNameAbsolute(OSM_BOUNDARIES)
     osm_boundaries_osm_export_path = BUILD_FOLDER + OSM_BOUNDARIES
     osm_boundaries_gpkg = osm_boundaries_osm_export_path + '.gpkg'

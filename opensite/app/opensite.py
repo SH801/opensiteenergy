@@ -192,13 +192,12 @@ class OpenSiteApplication:
         # Generate graph visualisation
         graph.generate_graph_preview(load=cli.get_preview())
 
-        # Run processing queue
+        # If not '--graphonly', run processing queue
         queue = OpenSiteQueue(graph, log_level=self.log_level, overwrite=cli.get_overwrite())
-        queue.run()
-        self.show_elapsed_time()
+        if not cli.get_graphonly(): queue.run()
 
-        graph_list = graph.to_list()
-        # print(json.dumps(graph_list, indent=4))
+        # Show elapsed time at end
+        self.show_elapsed_time()
 
     def shutdown(self, message="Process Complete"):
         """Clean exit point for the application."""

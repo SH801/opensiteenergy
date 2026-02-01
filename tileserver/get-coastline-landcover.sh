@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
+#!/bin/bash
 
-set -o errexit
-set -o pipefail
-set -o nounset
+set -e -o pipefail -u
 
+cd "$(dirname "$0")"
 
-mkdir -p coastline
-pushd coastline
+rm -rf tmp-coastline tmp-landcover
+
+mkdir -p tmp-coastline
+pushd tmp-coastline
 
 if ! [ -f "water-polygons-split-4326.zip" ]; then
   curl --proto '=https' --tlsv1.3 -sSfO https://osmdata.openstreetmap.de/download/water-polygons-split-4326.zip
@@ -16,8 +18,8 @@ unzip -o -j water-polygons-split-4326.zip
 
 popd
 
-mkdir -p landcover
-pushd landcover
+mkdir -p tmp-landcover
+pushd tmp-landcover
 
 if ! [ -f "ne_10m_antarctic_ice_shelves_polys.zip" ]; then
   curl --proto '=https' --tlsv1.3 -sSfO https://naciscdn.org/naturalearth/10m/physical/ne_10m_antarctic_ice_shelves_polys.zip
@@ -41,3 +43,6 @@ mkdir -p ne_10m_glaciated_areas
 unzip -o ne_10m_glaciated_areas.zip -d ne_10m_glaciated_areas
 
 popd
+
+mv tmp-coastline coastline
+mv tmp-landcover landcover

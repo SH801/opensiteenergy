@@ -200,3 +200,37 @@ class PostGISBase:
             return False
         finally:
             self.pool.putconn(conn)
+
+    def extract_crs_as_number(self, crs):
+        """
+        Extracts CRS as integer
+        """
+
+        return int(str(crs).replace('EPSG:', ''))
+    
+    def get_table_bounds(self, table_name, crs_input, crs_output):
+        """
+        Get bounds of all geometries in table
+        """
+
+        dbparams = {
+            "crs_input": sql.Literal(self.extract_crs_as_number(crs_input)),
+            "crs_output": sql.Literal(self.extract_crs_as_number(crs_output)),
+            'table': sql.Identifier(table_name),
+        }
+
+        query_maxbounds = sql.SQL("""
+        SELECT 
+            ST_XMin(extent_output_crs) AS left,
+            ST_YMin(extent_output_crs) AS bottom,
+            ST_XMax(extent_output_crs) AS right,
+            ST_YMax(extent_output_crs) AS top
+        FROM (SELECT ST_Transform(ST_SetSRID(ST_Extent(geom), {crs_input}), {crs_output}) AS extent_output_crs FROM {table}) AS subquery
+        """).format(**dbparams)
+
+        try:
+            results = self.fetch_all(query_maxbounds)
+            return results[0]
+        except Exception as e:
+            self.log.error(f"PostGIS error: {e}")
+            return None

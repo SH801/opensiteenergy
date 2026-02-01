@@ -29,6 +29,7 @@ class ColorFormatter(logging.Formatter):
 
 class LoggingBase:
     def __init__(self, name: str, level=logging.DEBUG, lock: multiprocessing.Lock = None):
+        self.mark_counter = 1
         self.logger = logging.getLogger(name.ljust(21))
         self.logger.setLevel(level)
         self.lock = lock
@@ -50,6 +51,11 @@ class LoggingBase:
             file_handler.setFormatter(clean_formatter)
             self.logger.addHandler(file_handler)
 
+    def mark(self):
+        """General mark function to indicate place in code reached"""
+        self.error(f"{self.mark_counter} reached")
+        self.mark_counter += 1
+        
     def debug(self, msg: str):
         if self.lock:
             with self.lock:

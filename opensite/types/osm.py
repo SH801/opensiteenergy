@@ -3,23 +3,23 @@ def osmDownloadData():
     Downloads core OSM data
     """
 
-    global  BUILD_FOLDER, OSM_MAIN_DOWNLOAD, OSM_DOWNLOADS_FOLDER, TILEMAKER_DOWNLOAD_SCRIPT, TILEMAKER_COASTLINE, TILEMAKER_LANDCOVER, TILEMAKER_COASTLINE_CONFIG
+    global  BUILD_FOLDER, OSM_MAIN_DOWNLOAD, OSM_RELATED_FORMATS_FOLDER, TILEMAKER_DOWNLOAD_SCRIPT, TILEMAKER_COASTLINE, TILEMAKER_LANDCOVER, TILEMAKER_COASTLINE_CONFIG
 
     makeFolder(BUILD_FOLDER)
-    makeFolder(OSM_DOWNLOADS_FOLDER)
+    makeFolder(OSM_RELATED_FORMATS_FOLDER)
 
-    if not isfile(OSM_DOWNLOADS_FOLDER + basename(OSM_MAIN_DOWNLOAD)):
+    if not isfile(OSM_RELATED_FORMATS_FOLDER + basename(OSM_MAIN_DOWNLOAD)):
 
         LogMessage("Downloading latest OSM data")
 
         # Download to temp file in case download interrupted for any reason, eg. user clicks 'Stop processing'
 
-        download_temp = OSM_DOWNLOADS_FOLDER + 'temp.pbf'
+        download_temp = OSM_RELATED_FORMATS_FOLDER + 'temp.pbf'
         if isfile(download_temp): os.remove(download_temp)
 
         runSubprocess(["wget", OSM_MAIN_DOWNLOAD, "-O", download_temp])
 
-        shutil.copy(download_temp, OSM_DOWNLOADS_FOLDER + basename(OSM_MAIN_DOWNLOAD))
+        shutil.copy(download_temp, OSM_RELATED_FORMATS_FOLDER + basename(OSM_MAIN_DOWNLOAD))
         if isfile(download_temp): os.remove(download_temp)
 
     LogMessage("Checking all files required for OSM tilemaker...")

@@ -10,6 +10,7 @@ from pathlib import Path
 from opensite.logging.opensite import OpenSiteLogger
 from opensite.model.node import Node
 from opensite.constants import OpenSiteConstants
+from opensite.install.opensite import OpenSiteInstaller
 from opensite.download.opensite import OpenSiteDownloader
 from opensite.processing.unzip import OpenSiteUnzipper
 from opensite.processing.concatenate import OpenSiteConcatenator
@@ -221,8 +222,12 @@ class OpenSiteQueue:
         try:
             success = False
             
-            if node.action == 'download':
-                downloader = OpenSiteDownloader(log_level, shared_lock)
+            if node.action == 'install':
+                installer = OpenSiteInstaller(node, log_level, shared_lock, shared_metadata)
+                success = installer.run()
+
+            elif node.action == 'download':
+                downloader = OpenSiteDownloader(log_level, shared_lock, shared_metadata)
                 # As lowest-level downloads are important to efficient parallelism
                 # we retry failed downloads
                 for attempts in range(self.DOWNLOAD_RETRY_TOTALATTEMPTS):
@@ -232,7 +237,7 @@ class OpenSiteQueue:
                     time.sleep(self.DOWNLOAD_RETRY_INTERVAL)
 
             elif node.action == 'unzip':
-                unzipper = OpenSiteUnzipper(node, log_level, shared_lock)
+                unzipper = OpenSiteUnzipper(node, log_level, shared_lock, shared_metadata)
                 success = unzipper.run()
 
             elif node.action == 'concatenate':
@@ -273,7 +278,7 @@ class OpenSiteQueue:
             while True:
 
                 # 1. Get nodes that are ready to run (Dependencies met)
-                ready_nodes = self.get_runnable_nodes(actions=None, checksizes=True)
+                ready_nodes = self.get_runnable_nodes(actions=None, checksizes=False)
                 
                 # Filter out nodes that are already currently in flight
                 new_nodes = [n for n in ready_nodes if n.urn not in active_tasks.values()]
@@ -444,7 +449,7 @@ class OpenSiteQueue:
                 if node.format == OpenSiteConstants.OSM_YML_FORMAT:
                     # If OSM import, difficult to know exact size of 
                     # dataset until imported - so use size of parent OSM file
-                    file_path = Path(OpenSiteConstants.OSM_FOLDER) / os.path.basename(node.custom_properties['osm'])
+                    file_path = Path(OpenSiteConstants.OSM_DOWNLOAD_FOLDER) / os.path.basename(node.custom_properties['osm'])
                 else:
                     file_path = Path(OpenSiteConstants.DOWNLOAD_FOLDER) / node.input
                 if file_path.exists():

@@ -5,13 +5,19 @@ from pathlib import Path
 class OpenSiteConstants:
     """Arbitrary application constants that don't change per environment."""
 
+    # Version of opensite application
+    OPENSITEENERGY_VERSION      = "1.0"
+
     # Directory script is run from
     WORKING_FOLDER              = str(Path(__file__).absolute().parent) + '/'
 
     # Redirect ogr2ogr warnings to log file
     os.environ['CPL_LOG']       = WORKING_FOLDER + 'log-ogr2ogr.txt'
 
+    # State file to indicate processing is happening
     PROCESSING_STATE_FILE       = 'PROCESSING'
+
+    # State file to indicate processing has completed
     PROCESSING_COMPLETE_FILE    = 'PROCESSINGCOMPLETE'
 
     # Default logging level for entire application
@@ -35,6 +41,9 @@ class OpenSiteConstants:
 
     # Format text used by CKAN to indicate Open Site Energy YML file
     SITES_YML_FORMAT            = "Open Site Energy YML"
+
+    # 'User-Agent' to use when downloading datasets via WFS
+    WFS_USER_AGENT              = "openwindenergy/*"
 
     # CKAN formats we can accept
     CKAN_FORMATS                = \
@@ -86,7 +95,7 @@ class OpenSiteConstants:
                                 ]
 
     # OSM-related formats - so they all go in same folder
-    OSM_DOWNLOADS               = \
+    OSM_RELATED_FORMATS         = \
                                 [
                                     'OSM',
                                     OSM_YML_FORMAT,
@@ -100,23 +109,44 @@ class OpenSiteConstants:
     
     # Sub-directories
     DOWNLOAD_FOLDER             = BUILD_ROOT / "downloads"
+    OSM_DOWNLOAD_FOLDER         = DOWNLOAD_FOLDER / "osm"
     CACHE_FOLDER                = BUILD_ROOT / "cache"
     LOG_FOLDER                  = BUILD_ROOT / "logs"
-    OSM_FOLDER                  = DOWNLOAD_FOLDER / "osm"
     OUTPUT_FOLDER               = BUILD_ROOT / "output"
     OUTPUT_LAYERS_FOLDER        = OUTPUT_FOLDER / "layers"
+    INSTALL_FOLDER              = BUILD_ROOT / "install"
 
-    ALL_FOLDERS                 = \
-                                [
-                                    LOG_FOLDER,
-                                    OSM_FOLDER,
-                                    CACHE_FOLDER,
-                                    BUILD_ROOT,
-                                    DOWNLOAD_FOLDER,
-                                    OUTPUT_FOLDER,
-                                    OUTPUT_LAYERS_FOLDER,
-                                ]
-    
+    # ------------------------------------------------------------
+    # Tilemaker-related properties
+    # ------------------------------------------------------------
+    TILESERVER_INSTALL_FOLDER   = INSTALL_FOLDER / "tileserver"
+    TILESERVER_INSTALL_SPRITES  = TILESERVER_INSTALL_FOLDER / "sprites"
+    TILESERVER_OUTPUT_FOLDER    = OUTPUT_FOLDER / "tileserver"
+    TILESERVER_CONFIG_FILE      = TILESERVER_OUTPUT_FOLDER / 'config.json'
+    TILESERVER_DATA_FOLDER      = TILESERVER_OUTPUT_FOLDER / "data"
+    TILESERVER_STYLES_FOLDER    = TILESERVER_OUTPUT_FOLDER / "styles"
+    TILESERVER_MAIN_STYLE_FILE  = TILESERVER_STYLES_FOLDER / 'openwindenergy.json'
+    TILESERVER_SPRITES_FOLDER   = TILESERVER_OUTPUT_FOLDER / "sprites"
+    TILESERVER_FONTS_FOLDER     = TILESERVER_OUTPUT_FOLDER / "fonts"
+    TILESERVER_FONTS_GITHUB     = "https://github.com/open-wind/openmaptiles-fonts.git"
+    TILESERVER_FONTS_SRC_GITHUB = 'https://github.com/openmaptiles/fonts'
+    TILESERVER_URL              = os.getenv("TILESERVER_URL", "http://localhost:8080")
+
+    # Location of shell script that downloads coastline and landcover data for whole earth
+    SHELL_COASTLINE_LANDCOVER   = 'get-coastline-landcover.sh'
+
+    # United Kingdom padded bounding box
+    TILEMAKER_BBOX_UK           = "-49.262695,38.548165,39.990234,64.848937"
+
+    # Entire world bounding box
+    TILEMAKER_BBOX_WORLD        = "-180,-85,180,85"
+
+    # Tilemaker build configuration files
+    TILEMAKER_COASTLINE_CONFIG  = TILESERVER_INSTALL_FOLDER / 'config-coastline.json'
+    TILEMAKER_COASTLINE_PROCESS = TILESERVER_INSTALL_FOLDER / 'process-coastline.lua'
+    TILEMAKER_OMT_CONFIG        = TILESERVER_INSTALL_FOLDER / 'config-openmaptiles.json'
+    TILEMAKER_OMT_PROCESS       = TILESERVER_INSTALL_FOLDER / 'process-openmaptiles.lua'
+
     # Acceptable CLI properties
     TREE_BRANCH_PROPERTIES      = \
                                 {
@@ -179,4 +209,18 @@ class OpenSiteConstants:
     LOGGER_BLUE                 = "\033[34m"
     LOGGER_RESET                = "\033[0m"
 
-
+    # All folders that need to be created at run time
+    ALL_FOLDERS                 = \
+                                [
+                                    BUILD_ROOT,
+                                    DOWNLOAD_FOLDER,
+                                    OSM_DOWNLOAD_FOLDER,
+                                    CACHE_FOLDER,
+                                    LOG_FOLDER,
+                                    OUTPUT_FOLDER,
+                                    OUTPUT_LAYERS_FOLDER,
+                                    INSTALL_FOLDER,
+                                    TILESERVER_OUTPUT_FOLDER,
+                                    TILESERVER_DATA_FOLDER,
+                                    TILESERVER_STYLES_FOLDER,
+                                ]

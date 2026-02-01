@@ -12,8 +12,11 @@ class DownloadBase:
     
     DOWNLOAD_INTERVAL_TIME = 5
 
-    def __init__(self, log_level=logging.INFO, shared_lock=None):
+    def __init__(self, log_level=logging.INFO, shared_lock=None, shared_metadata=None):
         self.log = LoggingBase("Download-Base", log_level, shared_lock)
+        self.log_level = log_level
+        self.shared_lock = shared_lock
+        self.shared_metadata = shared_metadata if shared_metadata is not None else {}
         self.base_path = ""
 
     def ensure_output_dir(self, file_path):

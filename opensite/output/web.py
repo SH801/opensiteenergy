@@ -1,36 +1,256 @@
 import json
 import logging
+import os
 import shutil
 from pathlib import Path
 from opensite.output.base import OutputBase
 from opensite.constants import OpenSiteConstants
 from opensite.logging.opensite import OpenSiteLogger
+from opensite.postgis.opensite import OpenSitePostGIS
 
 class OpenSiteOutputWeb(OutputBase):
     def __init__(self, node, log_level=logging.INFO, overwrite=False, shared_lock=None, shared_metadata=None):
         super().__init__(node, log_level=log_level, overwrite=overwrite, shared_lock=shared_lock, shared_metadata=shared_metadata)
         self.log = OpenSiteLogger("OpenSiteOutputWeb", log_level, shared_lock)
         self.base_path = OpenSiteConstants.OUTPUT_FOLDER
+        self.postgis = OpenSitePostGIS(self.log_level)
     
+    def flatten(self, items):
+        """Produces flat list from hierarchy of objects with property 'children'"""
+
+        return [item for i in items for item in [i] + self.flatten(i.get('children', []))]
+
+    def output_mbtiles_styles(self, basemap_mbtiles=None):
+        """
+        Outputs mtbiles styles files
+        """
+
+        # ===============================================
+        # Setup variables needed to create mbtiles styles
+        # ===============================================
+
+        # Dicts hold all data and styles indexed by dataset's unique code - dataset['dataset']
+        data, styles = {}, {}
+
+        # Get clipping bounds for clipping master
+        clipping_bounds_dict = self.postgis.get_table_bounds(OpenSiteConstants.OPENSITE_CLIPPINGMASTER, OpenSiteConstants.CRS_DEFAULT, OpenSiteConstants.CRS_OUTPUT)
+        clipping_bounds = [clipping_bounds_dict['left'], clipping_bounds_dict['bottom'], clipping_bounds_dict['right'], clipping_bounds_dict['top']]
+
+        # Add default styles separate from individual dataset styles
+        styles["opensiteenergy"] = \
+        {
+            "style":    "opensiteenergy.json",
+            "tilejson": \
+            {
+                "type":     "overlay",
+                "bounds":   clipping_bounds
+            }
+        }
+        styles["openmaptiles"] = \
+        {
+            "style":    "openmaptiles.json",
+            "tilejson": \
+            {
+                "type":     "overlay",
+                "bounds":   clipping_bounds
+            }
+        }
+        data["openmaptiles"] = \
+        {
+            "mbtiles": basemap_mbtiles
+        }
+
+        try:
+
+            # Modify 'openmaptiles.json' and generate mbtiles stylesheets for each dataset
+
+            fonts_url = OpenSiteConstants.TILESERVER_URL + '/fonts/{fontstack}/{range}.pbf'
+
+            openmaptiles_style_file_src = str(OpenSiteConstants.TILESERVER_INSTALL_FOLDER / 'openmaptiles.json')
+            openmaptiles_style_file_dst = str(OpenSiteConstants.TILESERVER_STYLES_FOLDER / 'openmaptiles.json')
+            openmaptiles_style_json = json.load(open(openmaptiles_style_file_src, 'r', encoding='utf-8'))
+            openmaptiles_style_json['sources']['openmaptiles']['url'] = str(OpenSiteConstants.TILESERVER_DATA_FOLDER / 'openmaptiles.json')
+            openmaptiles_style_json['glyphs'] = fonts_url
+            json.dump(openmaptiles_style_json, open(openmaptiles_style_file_dst, 'w', encoding='utf-8'), indent=4)
+
+            first_branch_ckan = self.node.custom_properties[0]['ckan']
+            attribution = f"Source data copyright of multiple organisations. For all data sources, see <a href=\"{first_branch_ckan}\" target=\"_blank\">{first_branch_ckan.replace('https://', '')}</a>"
+            opensite_style_json = openmaptiles_style_json
+            opensite_style_json['name'] = 'Open Site Energy'
+            opensite_style_json['id'] = 'opensiteenergy'
+            opensite_style_json['sources']['attribution']['attribution'] += " " + attribution
+
+            for branch in self.node.custom_properties:
+
+                firstdataset = True
+
+                # Define attribution
+                attribution = f"Source data copyright of multiple organisations. For all data sources, see <a href=\"{branch['ckan']}\" target=\"_blank\">{branch['ckan'].replace('https://', '')}</a>"
+
+                # Iterate through all datasets inside each branch by flattening the hierarchy
+
+                branch_datasets = self.flatten(branch['datasets'])
+
+                for dataset in branch_datasets:
+
+                    self.log.info(f"Copying {dataset['dataset']}.mbtiles to {str(OpenSiteConstants.TILESERVER_DATA_FOLDER)}")
+
+                    mbtiles_basename    = f"{dataset['dataset']}.mbtiles"
+                    mbtiles_src         = str(OpenSiteConstants.OUTPUT_LAYERS_FOLDER / mbtiles_basename)
+                    mbtiles_dest        = str(OpenSiteConstants.TILESERVER_DATA_FOLDER / mbtiles_basename)
+
+                    shutil.copy(mbtiles_src, mbtiles_dest)
+
+                    self.log.info(f"Creating tileserver-gl style file for: {dataset['dataset']}")
+
+                    styles[dataset['dataset']] = \
+                    {
+                        "style":    f"{dataset['dataset']}.json",
+                        "tilejson": \
+                        {
+                            "type":     "overlay",
+                            "bounds":   clipping_bounds
+                        }
+                    }
+                    data[dataset['dataset']] = \
+                    {
+                        "mbtiles":  f"{dataset['dataset']}.mbtiles"
+                    }
+
+                    style_opacity   = 0.8 if dataset['level'] == 1 else 0.5
+                    style_file      = str(OpenSiteConstants.TILESERVER_STYLES_FOLDER / f"{dataset['dataset']}.json")
+                    style_json      = \
+                    {
+                        "version":  8,
+                        "id":       dataset['dataset'],
+                        "name":     dataset['title'],
+                        "sources": \
+                        {
+                            dataset['dataset']: \
+                            {
+                                "type":         "vector",
+                                "buffer":       512,
+                                "url":          str(Path(OpenSiteConstants.TILESERVER_URL) / "data" / f"{dataset['dataset']}.json"),
+                                "attribution":  attribution
+                            }
+                        },
+                        "glyphs": fonts_url,
+                        "layers": \
+                        [
+                            {
+                                "id":           dataset['dataset'],
+                                "source":       dataset['dataset'],
+                                "source-layer": dataset['dataset'],
+                                "type":         "fill",
+                                "paint":        \
+                                {
+                                    "fill-opacity":     style_opacity,
+                                    "fill-color":       dataset['color']
+                                }
+                            }
+                        ]
+                    }
+
+                    opensite_layer = style_json['layers'][0]
+                    # Temporary workaround as setting 'fill-outline-color'='#FFFFFF00' on individual style breaks WMTS
+                    opensite_layer['paint']['fill-outline-color'] = "#FFFFFF00"
+
+                    if dataset['defaultactive']: 
+                         opensite_layer['layout'] = {'visibility': 'visible'}
+                    else: 
+                         opensite_layer['layout'] = {'visibility': 'none'}
+
+                    # Hide first dataset
+                    if firstdataset: 
+                         opensite_layer['layout'] = {'visibility': 'none'}
+
+                    opensite_style_json['layers'].append(opensite_layer)
+                    opensite_style_json['sources'][dataset['dataset']] = style_json['sources'][dataset['dataset']]
+
+                    json.dump(style_json, open(style_file, 'w', encoding='utf-8'), indent=4)
+
+                    firstdataset = False
+
+            json.dump(opensite_style_json, open(str(OpenSiteConstants.TILESERVER_MAIN_STYLE_FILE), 'w', encoding='utf-8'), indent=4)
+
+            # Creating final tileserver-gl config file
+
+            config_json = \
+            {
+                "options": \
+                {
+                    "paths": \
+                    {
+                        "root":     "",
+                        "fonts":    "fonts",
+                        "sprites":  "sprites",
+                        "styles":   "styles",
+                        "mbtiles":  "data"
+                    }
+                },
+                "styles":   styles,
+                "data":     data
+            }
+
+            json.dump(config_json, open(str(OpenSiteConstants.TILESERVER_CONFIG_FILE), 'w', encoding='utf-8'), indent=4)
+
+        except (Exception) as e:
+            self.log.error(f"General error when generating openmaptiles.json: {e}")
+            return False
+
+    def clear_tileserver_data_folder(self, exceptions):
+        """
+        Clears tileserver data folder avoiding exceptions
+        """
+
+        self.log.info("Deleting non-basemap mbtiles from tileserver data folder")
+
+        for entry in os.scandir(str(OpenSiteConstants.TILESERVER_DATA_FOLDER)):
+            if entry.is_file() or entry.is_symlink():
+                filename = os.path.basename(entry.path)
+                if filename not in exceptions:
+                    os.remove(entry.path)
+
     def run(self):
         """
         Runs Web output
         """
 
         # TO DO
-        # 1. Download coastline to build
-        # 2. Run tilemaker to generate basemap
         # 3. Generate different config files for gl-tileserver
 
         js_filepath = Path(self.base_path) / self.node.output
         
         try:
+
+            self.log.info("Outputting main web page")
+
             # Copy main web index page to output folder
             shutil.copy('tileserver/index.html', str(Path(OpenSiteConstants.OUTPUT_FOLDER) / 'index.html'))
 
+            branches_input      = self.node.custom_properties
+            branches_output     = []
+            for branch in branches_input:
+                branch['bounds'] = None
+                if 'clip' in branch:
+                    branch_bounds_dict = self.postgis.get_area_bounds(branch['clip'], OpenSiteConstants.CRS_DEFAULT, OpenSiteConstants.CRS_OUTPUT)
+                    branch['bounds'] = [branch_bounds_dict['left'], branch_bounds_dict['bottom'], branch_bounds_dict['right'], branch_bounds_dict['top']]
+                branches_output.append(branch)
+
             with open(js_filepath, 'w', encoding='utf-8') as f:
-                f.write(f"var opensite_layers = {json.dumps(self.node.custom_properties, indent=4)};")
+                f.write(f"var opensite_layers = {json.dumps(branches_output, indent=4)};")
             self.log.info(f"[OpenSiteOutputWeb] Data exported to {self.node.output}")
+
+            self.log.info("Outputting tileserver mbtiles stylesheets")
+
+            if len(self.node.custom_properties) == 0:
+                self.log.error("No branches set, unable to generate web tileserver configuration files")
+                return False
+            
+            # All branches will share same default 'osm-default' path which was used to generate basemap
+            osm_basemap_mbtiles_file = os.path.basename(self.node.custom_properties[0]['osm-default']).replace('.osm.pbf', '.mbtiles')
+            self.clear_tileserver_data_folder(exceptions=[osm_basemap_mbtiles_file])
+            self.output_mbtiles_styles(osm_basemap_mbtiles_file)
 
             return True
         

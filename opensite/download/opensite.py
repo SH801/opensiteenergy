@@ -5,18 +5,16 @@ from opensite.model.node import Node
 from opensite.download.base import DownloadBase
 from opensite.logging.opensite import OpenSiteLogger
 from opensite.download.arcgis import ArcGISDownloader
-from opensite.download.kml import KMLDownloader
 from opensite.download.wfs import WFSDownloader
 
 class OpenSiteDownloader(DownloadBase):
 
     DOWNLOAD_INTERVAL_TIME = OpenSiteConstants.DOWNLOAD_INTERVAL_TIME
 
-    def __init__(self, log_level=logging.INFO, shared_lock=None):
+    def __init__(self, log_level=logging.INFO, shared_lock=None, shared_metadata=None):
+        super().__init__(log_level=log_level, shared_lock=shared_lock, shared_metadata=shared_metadata)
         self.log = OpenSiteLogger("OpenSiteDownloader", log_level, shared_lock)
         self.base_path = OpenSiteConstants.DOWNLOAD_FOLDER
-        self.log_level = log_level
-        self.shared_lock = shared_lock
 
     def _handle_node_input(self, node: Node, filename: str = None, subfolder: str = "", force: bool = False):
         """
@@ -37,7 +35,6 @@ class OpenSiteDownloader(DownloadBase):
         format_map = {
             'ArcGIS GeoServices REST API': ArcGISDownloader,
             'WFS': WFSDownloader,
-            'KML': KMLDownloader,
         }
 
         # Use case-insensitive lookup for the specialized map

@@ -1,0 +1,24 @@
+{
+  "options": {
+    "paths": {
+      "root": "/data",
+      "fonts": "fonts",
+      "sprites": "sprites",
+      "styles": "",
+      "mbtiles": ""
+    }
+  },
+  "styles": {
+    "custom-style": {
+      "style": "openmaptiles.json",
+      "tilejson": {
+        "type": "vector"
+      }
+    }
+  },
+  "data": {
+    "v3": {
+      "mbtiles": "united-kingdom-latest.mbtiles"
+    }
+  }
+}

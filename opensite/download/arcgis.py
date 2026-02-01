@@ -12,10 +12,13 @@ class ArcGISDownloader(DownloadBase):
 
     DOWNLOAD_INTERVAL_TIME = OpenSiteConstants.DOWNLOAD_INTERVAL_TIME
 
-    def __init__(self, log_level=logging.INFO, shared_lock=None):
+    def __init__(self, log_level=logging.INFO, shared_lock=None, shared_metadata=None):
+        self.log_level = log_level
+        self.shared_lock = shared_lock
+        self.shared_metadata = shared_metadata if shared_metadata is not None else {}
         self.log = OpenSiteLogger("ArcGISDownloader", log_level, shared_lock)
         self.base_path = OpenSiteConstants.DOWNLOAD_FOLDER
-    
+
     def get(self, url, target_file, subfolder=None, force=False) -> bool:
         """
         Handler for ArcGIS REST API pagination.

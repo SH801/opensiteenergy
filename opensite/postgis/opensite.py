@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import subprocess
-from psycopg2 import Error
+from psycopg2 import pool, sql, Error
 from opensite.constants import OpenSiteConstants
 from opensite.postgis.base import PostGISBase
 from opensite.logging.opensite import OpenSiteLogger
@@ -287,3 +287,37 @@ class OpenSitePostGIS(PostGISBase):
         except subprocess.CalledProcessError as e:
             self.log.error(f"PostGIS Export Error: {spatial_data_table} {e.stderr}")
             return False
+        
+    def get_area_bounds(self, area, crs_input, crs_output):
+        """
+        Get bounds of specific geometry with name = area
+        """
+
+        if area in OpenSiteConstants.OSM_NAME_CONVERT: area = OpenSiteConstants.OSM_NAME_CONVERT[area]
+
+        dbparams = {
+            "crs_input": sql.Literal(self.extract_crs_as_number(crs_input)),
+            "crs_output": sql.Literal(self.extract_crs_as_number(crs_output)),
+            'table': sql.Identifier(OpenSiteConstants.OPENSITE_OSMBOUNDARIES),
+            'area': sql.Literal(area)
+        }
+
+        query_maxbounds = sql.SQL("""
+        SELECT 
+            ST_XMin(extent_output_crs) AS left,
+            ST_YMin(extent_output_crs) AS bottom,
+            ST_XMax(extent_output_crs) AS right,
+            ST_YMax(extent_output_crs) AS top
+        FROM 
+            (
+            SELECT ST_Transform(ST_SetSRID(ST_Extent(geom), {crs_input}), {crs_output}) AS extent_output_crs FROM {table} 
+            WHERE name = {area} OR council_name = {area}
+            ) AS subquery
+        """).format(**dbparams)
+
+        try:
+            results = self.fetch_all(query_maxbounds)
+            return results[0]
+        except Exception as e:
+            self.log.error(f"PostGIS error: {e}")
+            return None

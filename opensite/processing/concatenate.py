@@ -11,7 +11,7 @@ class OpenSiteConcatenator(ProcessBase):
     def __init__(self, node, log_level=logging.INFO, shared_lock=None, shared_metadata=None):
         super().__init__(node, log_level=log_level, shared_lock=shared_lock, shared_metadata=shared_metadata)
         self.log = OpenSiteLogger("OpenSiteConcatenator", log_level)
-        self.base_path = OpenSiteConstants.OSM_FOLDER
+        self.base_path = OpenSiteConstants.OSM_DOWNLOAD_FOLDER
 
     def run(self) -> bool:
         self.log.info(f"Concatenating OSM YAML files for {self.node.name}")

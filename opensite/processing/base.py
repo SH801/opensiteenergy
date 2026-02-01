@@ -7,8 +7,10 @@ from opensite.logging.base import LoggingBase
 class ProcessBase:
     def __init__(self, node, log_level=logging.INFO, shared_lock=None, shared_metadata=None):
         self.node = node
+        self.log_level = log_level
         self.log = LoggingBase("ProcessBase", log_level, shared_lock)
         self.base_path = ""
+        self.shared_lock = shared_lock
         self.shared_metadata = shared_metadata if shared_metadata is not None else {}
 
     def set_output_variable(self, value: str, global_urn: int = None):

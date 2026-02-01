@@ -10,7 +10,7 @@ class OpenSiteRunner(ProcessBase):
     def __init__(self, node, log_level=logging.INFO, shared_lock=None, shared_metadata=None):
         super().__init__(node, log_level=log_level, shared_lock=shared_lock, shared_metadata=shared_metadata)
         self.log = OpenSiteLogger("OpenSiteRunner", log_level, shared_lock)
-        self.base_path = OpenSiteConstants.OSM_FOLDER
+        self.base_path = OpenSiteConstants.OSM_DOWNLOAD_FOLDER
 
     def run(self):
         """Executes command line tools like osm-export-tool via subprocess"""
@@ -34,7 +34,7 @@ class OpenSiteRunner(ProcessBase):
             self.log.info(f"{os.path.basename(output_base_file_final)} already exists, skipping osm-export-tool")
             return True
         
-        osm_file = str(Path(OpenSiteConstants.OSM_FOLDER) / os.path.basename(self.node.custom_properties['osm']))
+        osm_file = str(Path(OpenSiteConstants.OSM_DOWNLOAD_FOLDER) / os.path.basename(self.node.custom_properties['osm']))
 
         if not mapping_file or not os.path.exists(mapping_file):
             self.log.error(f"Mapping file not resolved or missing: {mapping_file}")

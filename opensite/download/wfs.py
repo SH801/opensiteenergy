@@ -14,11 +14,15 @@ from opensite.download.base import DownloadBase
 from opensite.logging.opensite import OpenSiteLogger
 
 class WFSDownloader(DownloadBase):
-    def __init__(self, log_level=logging.INFO, shared_lock=None):
+    def __init__(self, log_level=logging.INFO, shared_lock=None, shared_metadata=None):
+        self.log_level = log_level
+        self.shared_lock = shared_lock
+        self.shared_metadata = shared_metadata if shared_metadata is not None else {}
         self.log = OpenSiteLogger("WFSDownloader", log_level, shared_lock)
         self.base_path = OpenSiteConstants.DOWNLOAD_FOLDER
+
         # Scottish Gov / AWS required User-Agent
-        self.headers = {'User-Agent': 'openwindenergy/*'}
+        self.headers = {'User-Agent': OpenSiteConstants.WFS_USER_AGENT}
 
     def guess_wfs_layer(self, wfs):
         """Finds a boundary/boundaries layer if no specific layer is requested."""
@@ -30,7 +34,11 @@ class WFSDownloader(DownloadBase):
         return layers[0] if layers else None
 
     def get(self, url, target_file, subfolder=None, force=False, layer_name=None) -> bool:
-        # 1. Path Resolution
+        """
+        Gets WFS content from url
+        """
+
+        # Path Resolution
         final_dir = Path(self.base_path)
         if subfolder:
             final_dir = final_dir / subfolder

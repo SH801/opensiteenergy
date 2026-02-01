@@ -9,8 +9,8 @@ from opensite.constants import OpenSiteConstants
 from opensite.logging.opensite import OpenSiteLogger
 
 class OpenSiteUnzipper(ProcessBase):
-    def __init__(self, node, log_level=logging.INFO, shared_lock=None):
-        super().__init__(node, log_level, shared_lock)
+    def __init__(self, node, log_level=logging.INFO, shared_lock=None, shared_metadata=None):
+        super().__init__(node, log_level, shared_lock=shared_lock, shared_metadata=shared_metadata)
         self.base_path = OpenSiteConstants.DOWNLOAD_FOLDER
         self.log = OpenSiteLogger("OpenSiteUnzipper", log_level, shared_lock)
 

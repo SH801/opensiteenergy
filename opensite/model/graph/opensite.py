@@ -28,7 +28,10 @@ class OpenSiteGraph(Graph):
         self.db = OpenSitePostGIS()
         self.db.sync_registry()
         self.outputformats = outputformats
-        self.clip = clip
+
+        # clip is special case as will be absent in defaults.yml 
+        # so will not be automically added to self._overrides
+        if clip: self._overrides['clip'] = clip
 
         self.log.info("Graph initialized and ready.")
         
@@ -76,6 +79,7 @@ class OpenSiteGraph(Graph):
         """
         return {
             "io_bound": [
+                'install',
                 'download', 
                 'unzip', 
                 'concatenate'
@@ -553,6 +557,9 @@ class OpenSiteGraph(Graph):
         # Generate OSM boundaries file if necessary
         self.add_osmboundaries()
 
+        # Generate installer nodes
+        self.add_installers()
+
         # Update database registry with new nodes
         self.register_to_database()
 
@@ -655,7 +662,7 @@ class OpenSiteGraph(Graph):
         Gets path to osm download file relative to downloads folder
         """
         
-        full_path = OpenSiteConstants.OSM_FOLDER / osm_file
+        full_path = OpenSiteConstants.OSM_DOWNLOAD_FOLDER / osm_file
         relative_path = full_path.relative_to(OpenSiteConstants.DOWNLOAD_FOLDER)
         return str(relative_path)
 
@@ -710,7 +717,7 @@ class OpenSiteGraph(Graph):
                 download_node.custom_properties['branch'] = node_branch
 
                 # Determine local output path
-                if download_node.format in OpenSiteConstants.OSM_DOWNLOADS:
+                if download_node.format in OpenSiteConstants.OSM_RELATED_FORMATS:
                     osm_file = f"{node.name}.{extension}"
                     download_node.output = self.get_osm_path(osm_file)
                 else:
@@ -974,86 +981,6 @@ class OpenSiteGraph(Graph):
 
         self.log.info("Preprocess nodes injected with status 'unprocessed'.")
 
-    def add_osmboundaries(self):
-        """
-        Add nodes to create osm_boundaries file if necessary
-        """
-
-        self.log.info("Adding OSM boundaries nodes")
-
-        osm_boundaries_file = Path(OpenSiteConstants.OSM_FOLDER) / f"{OpenSiteConstants.OSM_BOUNDARIES}.gpkg"
-
-        build_osm_boundaries_yml_path = str(Path(OpenSiteConstants.OSM_FOLDER) / OpenSiteConstants.OSM_BOUNDARIES_YML)
-        shutil.copy(OpenSiteConstants.OSM_BOUNDARIES_YML, build_osm_boundaries_yml_path)
-
-        osm_downloaders = self.find_nodes_by_props({'node_type': 'osm-downloader'})
-        osm_default = self._defaults['osm']
-        osm_downloader_default_global_urn = set([f['global_urn'] for f in osm_downloaders if f['custom_properties']['osm'] == osm_default])
-
-        if not osm_downloader_default_global_urn:
-            osm_downloader_default_global_urn = self.get_new_global_urn()
-        else:
-            osm_downloader_default_global_urn = next(iter(osm_downloader_default_global_urn))
-        osm_runner_boundaries_global_urn = self.get_new_global_urn()
-        osm_importer_boundaries_global_urn = self.get_new_global_urn()
-
-        # If no clipping required on current graph, add to general output branch on all branches
-        # If clipping required on current graph, add before actual clipping
-        node_urns_to_amend = []
-        if self.clip is None:
-
-            current_branches = list(self.root.children)
-
-            for branch_node in current_branches:
-                if  ('branch_type' not in branch_node.custom_properties) or \
-                    (branch_node.custom_properties['branch_type'] != 'outputs'): 
-                    continue
-                node_urns_to_amend.append(branch_node.urn)
-
-        else:
-
-            node_urns_to_amend = [node['urn'] for node in self.find_nodes_by_props({'action': 'clip'})]
-
-        for node_urn_to_amend in node_urns_to_amend:
-            node = self.find_node_by_urn(node_urn_to_amend)
-            
-            osm_downloader = self.create_node(
-                name=f"osm-downloader--{osm_default}",
-                title="Download OSM for clipping boundaries",
-                global_urn=osm_downloader_default_global_urn,
-                format="OSM",
-                input=osm_default,
-                action="download",
-                output=f"osm/{os.path.basename(osm_default)}",
-                custom_properties={"osm": osm_default}
-            )
-
-            osm_runner = self.create_node(
-                name=f"osm-runner--{osm_default}",
-                title="Run osm-export-tool to create clipping boundaries",
-                global_urn=osm_runner_boundaries_global_urn,
-                node_type="osm-runner",
-                input=build_osm_boundaries_yml_path,
-                action="run",
-                output=build_osm_boundaries_yml_path.replace('.yml', ''),
-                custom_properties={"osm": osm_default},
-                children=[osm_downloader]
-            )
-
-            osm_importer = self.create_node(
-                name=OpenSiteConstants.OSM_BOUNDARIES,
-                title="Import OSM clipping boundaries",
-                global_urn=osm_importer_boundaries_global_urn,
-                node_type="source",
-                input=f"osm/{OpenSiteConstants.OSM_BOUNDARIES}.gpkg",
-                action="import",
-                output=OpenSiteConstants.OPENSITE_OSMBOUNDARIES,
-                custom_properties={"osm": osm_default},
-                children=[osm_runner]
-            )
-
-            node.children.append(osm_importer)
-
     def add_outputs(self):
         """
         Synthesizes output branches as independent siblings to data branches.
@@ -1152,10 +1079,11 @@ class OpenSiteGraph(Graph):
                 current_chain_head = pp_node
 
                 outputs_input = f"VAR:global_output_{pp_shared_global_urn}"
-                # 4. Clip
-                if self.clip is not None:
+
+                # Clip
+                if 'clip' in branch_node.custom_properties['yml']:
                     clip_shared_global_urn = self.get_new_global_urn()
-                    clip_val = str(self.clip).replace(" ", "-")
+                    clip_val = branch_node.custom_properties['yml']['clip'].replace(" ", "-")
                     clip_name = f"{pp_name}--clip-{clip_val}"
                     clip_node = self.create_node(
                         name=clip_name,
@@ -1164,7 +1092,12 @@ class OpenSiteGraph(Graph):
                         global_urn=clip_shared_global_urn,
                         input=f"VAR:global_output_{pp_shared_global_urn}",
                         output=f"VAR:global_output_{clip_shared_global_urn}",
-                        custom_properties={'branch': output_branch_name, 'branch_code': branch_code, 'branch_type': 'outputs', 'clip': self.clip}
+                        custom_properties={
+                            'branch': output_branch_name, 
+                            'branch_code': branch_code, 
+                            'branch_type': 'outputs', 
+                            'clip': branch_node.custom_properties['yml']['clip']
+                        }
                     )
                     clip_node.children.append(pp_node)
                     pp_node.parent = clip_node
@@ -1245,18 +1178,22 @@ class OpenSiteGraph(Graph):
                 'height-to-tip': branch.custom_properties['height-to-tip'],
                 'blade-radius': branch.custom_properties['blade-radius'],
             }
-            suffix = ''
-            if self.clip:
-                title += f" clipped to '{self.clip}'"
-                suffix = f"--clip-{self.clip.replace(' ', '-')}"
+            suffix, clip = '', None
+            if 'clip' in branch.custom_properties['yml']:
+                clip = branch.custom_properties['yml']['clip']
+                title += f" clipped to '{clip}'"
+                suffix = f"--clip-{clip.replace(' ', '-')}"
 
             main_child = branch.children[0]
             
             branchstructure = {
                 'code': branch_code,
                 'title': title,
-                'properties': properties
+                'properties': properties,
+                'osm-default': branch.custom_properties['yml']['osm'],
+                'ckan': branch.custom_properties['yml']['ckan']
             }
+            if clip: branchstructure['clip'] = clip
 
             datasets = [{
                 'title': title,
@@ -1304,4 +1241,150 @@ class OpenSiteGraph(Graph):
             structure.append(branchstructure)
 
         return structure
+
+    def add_osmboundaries(self):
+        """
+        Add nodes to create osm_boundaries file if necessary
+        """
+
+        self.log.info("Adding OSM boundaries nodes")
+
+        osm_boundaries_file = Path(OpenSiteConstants.OSM_DOWNLOAD_FOLDER) / f"{OpenSiteConstants.OSM_BOUNDARIES}.gpkg"
+
+        build_osm_boundaries_yml_path = str(Path(OpenSiteConstants.OSM_DOWNLOAD_FOLDER) / OpenSiteConstants.OSM_BOUNDARIES_YML)
+        shutil.copy(OpenSiteConstants.OSM_BOUNDARIES_YML, build_osm_boundaries_yml_path)
+
+        osm_downloaders = self.find_nodes_by_props({'node_type': 'osm-downloader'})
+        osm_default = self._defaults['osm']
+        osm_downloader_default_global_urn = set([f['global_urn'] for f in osm_downloaders if f['custom_properties']['osm'] == osm_default])
+
+        if not osm_downloader_default_global_urn:
+            osm_downloader_default_global_urn = self.get_new_global_urn()
+        else:
+            osm_downloader_default_global_urn = next(iter(osm_downloader_default_global_urn))
+        osm_runner_boundaries_global_urn = self.get_new_global_urn()
+        osm_importer_boundaries_global_urn = self.get_new_global_urn()
+
+        # If no clipping required on current graph, add to general output branch on all branches
+        # If clipping required on current graph, add before actual clipping
+        current_branches = list(self.root.children)
+        no_clipping_required = True
+        for branch_node in current_branches:
+            if 'yml' not in branch_node.custom_properties: continue
+            if 'clip' in branch_node.custom_properties['yml']: 
+                no_clipping_required = False
+
+        node_urns_to_amend = []
+        if no_clipping_required:
+
+            current_branches = list(self.root.children)
+
+            for branch_node in current_branches:
+                if  ('branch_type' not in branch_node.custom_properties) or \
+                    (branch_node.custom_properties['branch_type'] != 'outputs'): 
+                    continue
+                node_urns_to_amend.append(branch_node.urn)
+
+        else:
+
+            node_urns_to_amend = [node['urn'] for node in self.find_nodes_by_props({'action': 'clip'})]
+
+        for node_urn_to_amend in node_urns_to_amend:
+            node = self.find_node_by_urn(node_urn_to_amend)
+            
+            osm_downloader = self.create_node(
+                name=f"osm-downloader--{osm_default}",
+                title="Download OSM for clipping boundaries",
+                global_urn=osm_downloader_default_global_urn,
+                node_type="osm-downloader",
+                format="OSM",
+                input=osm_default,
+                action="download",
+                output=f"osm/{os.path.basename(osm_default)}",
+                custom_properties={"osm": osm_default}
+            )
+
+            osm_runner = self.create_node(
+                name=f"osm-runner--{osm_default}",
+                title="Run osm-export-tool to create clipping boundaries",
+                global_urn=osm_runner_boundaries_global_urn,
+                node_type="osm-runner",
+                input=build_osm_boundaries_yml_path,
+                action="run",
+                output=build_osm_boundaries_yml_path.replace('.yml', ''),
+                custom_properties={"osm": osm_default},
+                children=[osm_downloader]
+            )
+
+            osm_importer = self.create_node(
+                name=OpenSiteConstants.OSM_BOUNDARIES,
+                title="Import OSM clipping boundaries",
+                global_urn=osm_importer_boundaries_global_urn,
+                node_type="source",
+                input=f"osm/{OpenSiteConstants.OSM_BOUNDARIES}.gpkg",
+                action="import",
+                output=OpenSiteConstants.OPENSITE_OSMBOUNDARIES,
+                custom_properties={"osm": osm_default},
+                children=[osm_runner]
+            )
+
+            node.children.append(osm_importer)
+
+    def add_installers(self):
+        """
+        Adds installer nodes
+        """
+
+        self.log.info("Adding installer nodes")
+
+        osm_downloaders = self.find_nodes_by_props({'node_type': 'osm-downloader'})
+        osm_default = self._defaults['osm']
+        osm_downloader_default_global_urn = set([f['global_urn'] for f in osm_downloaders if f['custom_properties']['osm'] == osm_default])
+
+        if not osm_downloader_default_global_urn:
+            self.log.error("No OSM downloader nodes found - there should be at least one in every graph")
+            exit() 
+        else:
+            osm_downloader_default_global_urn = next(iter(osm_downloader_default_global_urn))
+
+        current_branches = list(self.root.children)
+
+        node_urns_to_amend = []
+        for branch_node in current_branches:
+            if  ('branch_type' not in branch_node.custom_properties) or \
+                (branch_node.custom_properties['branch_type'] != 'outputs'): 
+                continue
+            node_urns_to_amend.append(branch_node.urn)
+
+        tileserver_installer_global_urn = self.get_new_global_urn()
+
+        for node_urn_to_amend in node_urns_to_amend:
+            node = self.find_node_by_urn(node_urn_to_amend)
+            
+            osm_downloader_download_first = self.create_node(
+                name=f"osm-downloader--{osm_default}",
+                title="Download OSM - prerequisite for tileserver install",
+                global_urn=osm_downloader_default_global_urn,
+                format="OSM",
+                input=osm_default,
+                action="download",
+                output=f"osm/{os.path.basename(osm_default)}",
+                custom_properties={"osm": osm_default}
+            )
+
+            tileserver_installer = self.create_node(
+                name=f"tileserver-installer",
+                title="Download/install tileserver-related files and generate tileserver basemap",
+                global_urn=tileserver_installer_global_urn,
+                format="tileserver",
+                input=osm_default,
+                action="install",
+                custom_properties={"osm": osm_default},
+                children=[osm_downloader_download_first]
+            )
+
+            node.children.append(tileserver_installer)
+
+
+
 
