@@ -72,10 +72,8 @@ class OpenSiteTileserver(InstallBase):
 
         self.log.info("Installing tileserver files")
 
-        tileserver_install_src  = Path('tileserver')
-        tileserver_install_dest = OpenSiteConstants.TILESERVER_INSTALL_FOLDER
-        coastline_folder        = tileserver_install_dest / 'coastline'
-        landcover_folder        = tileserver_install_dest / 'landcover'
+        coastline_folder        = OpenSiteConstants.BASEMAP_FOLDER_DEST / 'coastline'
+        landcover_folder        = OpenSiteConstants.BASEMAP_FOLDER_DEST / 'landcover'
         basename_pbf            = os.path.basename(self.node.input)
         basename_mbtiles        = basename_pbf.replace(".osm.pbf", ".mbtiles")
         basemap_pbf             = OpenSiteConstants.OSM_DOWNLOAD_FOLDER / basename_pbf
@@ -91,13 +89,13 @@ class OpenSiteTileserver(InstallBase):
             self.log.error(f"{basename_pbf} missing from OSM downloads folder - required to install tileserver files")
             return False
         
-        if not tileserver_install_dest.exists():
+        if not OpenSiteConstants.BASEMAP_FOLDER_DEST.exists():
 
-            self.log.info("Copying 'tileserver' folder to build directory")
+            self.log.info("Copying tileserver basemap folder to build directory")
 
             try:
-                shutil.copytree(tileserver_install_src, tileserver_install_dest)
-                self.log.info(f"Successfully copied {tileserver_install_src} to {tileserver_install_dest}")
+                shutil.copytree(str(OpenSiteConstants.BASEMAP_FOLDER_SRC), str(OpenSiteConstants.BASEMAP_FOLDER_DEST))
+                self.log.info(f"Successfully copied {str(OpenSiteConstants.BASEMAP_FOLDER_SRC)} to {str(OpenSiteConstants.BASEMAP_FOLDER_DEST)}")
             except FileExistsError:
                 self.log.error("Error: Destination directory already exists.")
                 return False
@@ -105,13 +103,13 @@ class OpenSiteTileserver(InstallBase):
                 self.log.error(f"An error occurred: {e}")
                 return False
 
-        if not OpenSiteConstants.TILESERVER_SPRITES_FOLDER.exists():
+        if not OpenSiteConstants.TILESERVER_SPRITES_DEST.exists():
 
-            self.log.info("Copying 'tileserver' sprites folder to tileserver output directory")
+            self.log.info("Copying tileserver sprites folder to tileserver output directory")
 
             try:
-                shutil.copytree(str(OpenSiteConstants.TILESERVER_INSTALL_SPRITES), str(OpenSiteConstants.TILESERVER_SPRITES_FOLDER))
-                self.log.info(f"Successfully copied {str(OpenSiteConstants.TILESERVER_INSTALL_SPRITES)} to {str(OpenSiteConstants.TILESERVER_SPRITES_FOLDER)}")
+                shutil.copytree(str(OpenSiteConstants.TILESERVER_SPRITES_SRC), str(OpenSiteConstants.TILESERVER_SPRITES_DEST))
+                self.log.info(f"Successfully copied {str(OpenSiteConstants.TILESERVER_SPRITES_SRC)} to {str(OpenSiteConstants.TILESERVER_SPRITES_DEST)}")
             except FileExistsError:
                 self.log.error("Error: Destination directory already exists.")
                 return False
@@ -129,7 +127,7 @@ class OpenSiteTileserver(InstallBase):
             try:
 
                 # Execute shell command to download coastline and landcover data for whole earth
-                subprocess.run(cmd, cwd=str(tileserver_install_dest), capture_output=True, text=True, check=True)
+                subprocess.run(cmd, cwd=str(OpenSiteConstants.BASEMAP_FOLDER_DEST), capture_output=True, text=True, check=True)
                 self.log.info(f"Ran {OpenSiteConstants.SHELL_COASTLINE_LANDCOVER} to generate coastline and landcover data")
 
             except subprocess.CalledProcessError as e:
@@ -153,7 +151,7 @@ class OpenSiteTileserver(InstallBase):
                 self.log.info("Generating global coastline mbtiles as initial map")
 
                 # Prefix paths in config file to use correct location
-                self.update_json_file_paths(str(OpenSiteConstants.TILEMAKER_COASTLINE_CONFIG), f"{str(tileserver_install_dest)}/")
+                self.update_json_file_paths(str(OpenSiteConstants.TILEMAKER_COASTLINE_CONFIG), f"{str(OpenSiteConstants.BASEMAP_FOLDER_DEST)}/")
 
                 cmd = ([
                     "tilemaker", 

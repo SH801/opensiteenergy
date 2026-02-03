@@ -26,9 +26,9 @@ echo -e ""
 echo -e ""
 
 if [ -n "${BUILD_FOLDER+1}" ]; then
-    cd "$BUILD_FOLDER"app
+    cd "$BUILD_FOLDER"output
 else
-    cd build/app
+    cd build/output
 fi
 
 python3 -m http.server 

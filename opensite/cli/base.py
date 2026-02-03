@@ -16,3 +16,4 @@ class BaseCLI:
         """Parse arguments and store them in self.args."""
         self.args = self.parser.parse_args()
         return self.args
+    

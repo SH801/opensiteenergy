@@ -28,11 +28,10 @@ class OpenSiteOutputQGIS(OutputBase):
         """
 
         python_path = Path(self.QGIS_PYTHON_PATH)
-        qgis_output_path = Path(self.base_path) / self.node.output.replace('.qgis', 'qgs')
+        qgis_output_path = Path(self.base_path) / self.node.output
 
-        if (not self.overwrite) and qgis_output_path.exists():
-            self.log.info(f"{os.path.basename(qgis_output_path)} already exists, skipping creation")
-            return True
+        # Ordinarily we'd check for existence of output file here but for QGIS file, we always generate new one
+        self.log.info("Skipping output file existence check - always generate new QGIS file on every run")
         
         if not python_path.exists():
             self.log.error(f"Unable to locate QGIS Python at {self.QGIS_PYTHON_PATH}")
@@ -40,15 +39,9 @@ class OpenSiteOutputQGIS(OutputBase):
             self.log.error(" --> *** SKIPPING QGIS FILE CREATION ***")
             return False
 
-
         try:
 
-            json_filepath = Path(self.base_path) / self.node.output
-        
-            with open(json_filepath, 'w', encoding='utf-8') as f:
-                f.write(json.dumps(self.node.custom_properties, indent=4))
-            self.log.info(f"[OpenSiteOutputWeb] Data exported to {self.node.output}")
-        
+            self.log.info(f"[OpenSiteOutputWeb] Generating QGIS file at {str(qgis_output_path)}")
             cmd = [self.QGIS_PYTHON_PATH, 'build-qgis.py', str(qgis_output_path)]
             subprocess.run(cmd, capture_output=True, text=True, check=True)
 

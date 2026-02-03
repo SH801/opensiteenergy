@@ -24,16 +24,15 @@ class OpenSitePostGIS(PostGISBase):
     def purge_database(self):
         """Drops all tables with the opensite prefix (both internal and data tables)."""
         # Matches _opensite_branch, _opensite_registry, and opensite_hash...
-        sql_find = """
-            SELECT table_name 
+        sql_find = f"""
+            SELECT table_name , table_schema
             FROM information_schema.tables 
             WHERE table_schema = 'public' 
-            AND (table_name LIKE 'opensite_%' OR table_name LIKE '_opensite_%')
+            AND (table_name LIKE '{OpenSiteConstants.DATABASE_GENERAL_PREFIX.replace('_', r'\_')}%' OR table_name LIKE '{OpenSiteConstants.DATABASE_BASE.replace('_', r'\_')}%')
             AND table_type = 'BASE TABLE';
         """
         
         tables_to_drop = self.fetch_all(sql_find)
-        
         if not tables_to_drop:
             self.log.info("No OpenSite tables found to purge.")
             return
@@ -45,7 +44,12 @@ class OpenSitePostGIS(PostGISBase):
             try:
                 # CASCADE handles foreign keys or views that might depend on these tables
                 self.execute_query(f"DROP TABLE IF EXISTS {table} CASCADE;")
-                self.log.debug(f"Dropped: {table}")
+
+                if hasattr(self, 'connection'):
+                    self.connection.commit()
+                    self.log.info("Transaction committed successfully.")
+                    self.log.debug(f"Dropped: {table}")
+
             except Exception as e:
                 self.log.error(f"Failed to drop {table}: {e}")
         

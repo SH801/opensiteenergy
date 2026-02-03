@@ -8,6 +8,7 @@ from opensite.output.geojson import OpenSiteOutputGeoJSON
 from opensite.output.gpkg import OpenSiteOutputGPKG
 from opensite.output.mbtiles import OpenSiteOutputMbtiles
 from opensite.output.shp import OpenSiteOutputSHP
+from opensite.output.json import OpenSiteOutputJSON
 from opensite.output.qgis import OpenSiteOutputQGIS
 from opensite.output.web import OpenSiteOutputWeb
 
@@ -35,6 +36,9 @@ class OpenSiteOutput(OutputBase):
 
         if self.node.format == 'shp':
             outputObject = OpenSiteOutputSHP(self.node, self.log_level, self.overwrite, self.shared_lock, self.shared_metadata)
+
+        if self.node.format == 'json':
+            outputObject = OpenSiteOutputJSON(self.node, self.log_level, self.overwrite, self.shared_lock, self.shared_metadata)
 
         if self.node.format == 'qgis':
             outputObject = OpenSiteOutputQGIS(self.node, self.log_level, self.overwrite, self.shared_lock, self.shared_metadata)

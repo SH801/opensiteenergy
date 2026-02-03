@@ -22,7 +22,6 @@ class OpenSiteOutputMbtiles(OutputBase):
         Creates grid clipped version of file to improve rendering and performance when used as mbtiles
         """
 
-        source_table = self.get_variable(self.node.input)
         tmp_output = f"tmp-{self.node.output.replace('.mbtiles', '.geojson')}" 
         tmp_output_path = Path(self.base_path) / tmp_output
         final_output_path = Path(self.base_path) / self.node.output
@@ -32,7 +31,7 @@ class OpenSiteOutputMbtiles(OutputBase):
         dbparams = {
             "crs": sql.Literal(self.get_crs_default()),
             "grid": sql.Identifier(grid_table),
-            "input": sql.Identifier(source_table),
+            "input": sql.Identifier(self.node.input),
             "scratch1": sql.Identifier(scratch_table_1),
             "scratch1_index": sql.Identifier(f"{scratch_table_1}_idx"),
         }

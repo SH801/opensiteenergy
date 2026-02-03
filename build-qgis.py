@@ -1,20 +1,31 @@
 import sys
 import os
 import json
+import xml.etree.ElementTree as ET
+from pathlib import Path
 from os.path import isfile, basename
-from qgis.core import (QgsProject, QgsVectorLayer, QgsRasterLayer, QgsRectangle, QgsReferencedRectangle, QgsApplication, QgsCoordinateReferenceSystem)
+from qgis.core import (\
+    QgsProject, 
+    QgsVectorLayer, 
+    QgsRasterLayer, 
+    QgsRectangle, 
+    QgsReferencedRectangle, 
+    QgsApplication, 
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+)
 from qgis.gui import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import QFileInfo
 
-BUILD_FOLDER = 'build-cli/'
-if 'BUILD_FOLDER' in os.environ: BUILD_FOLDER = os.environ['BUILD_FOLDER']
+BUILD_FOLDER = Path('build')
+if 'BUILD_FOLDER' in os.environ: BUILD_FOLDER = Path(os.environ['BUILD_FOLDER'])
 
 QGIS_PREFIX_PATH = '/usr/'
 if 'QGIS_PREFIX_PATH' in os.environ: QGIS_PREFIX_PATH = os.environ['QGIS_PREFIX_PATH']
 
-QGIS_OUTPUT_FILE = BUILD_FOLDER + "all-layers.qgs"
-if len(sys.argv) > 1: QGIS_OUTPUT_FILE = sys.argv[1]
+QGIS_OUTPUT_FILE = BUILD_FOLDER / "output" / "opensiteenergy.qgs"
+if len(sys.argv) > 1: QGIS_OUTPUT_FILE = Path(sys.argv[1])
 
 
 # We can only set these environment variables now as setting them
@@ -213,6 +224,56 @@ def convertCSSColor2RGB(color):
     color = color[1:]
     return hex_to_rgb(color)
 
+def force_qgis_startup_extent(project_path, extent_list, epsg_in=4326):
+    tree = ET.parse(project_path)
+    root = tree.getroot()
+
+    # 1. Get/Transform the Rect (same as before)
+    crs_node = root.find(".//destinationsrs/spatialrefsys/authid")
+    proj_epsg = crs_node.text if crs_node is not None else f"EPSG:{epsg_in}"
+    source_crs = QgsCoordinateReferenceSystem.fromEpsgId(epsg_in)
+    dest_crs = QgsCoordinateReferenceSystem(proj_epsg)
+    rect = QgsRectangle(extent_list[0], extent_list[1], extent_list[2], extent_list[3])
+    
+    if source_crs != dest_crs:
+        xform = QgsCoordinateTransform(source_crs, dest_crs, QgsProject.instance())
+        rect = xform.transformBoundingBox(rect)
+
+    # 2. Update the Properties Block (The "Secret" location)
+    properties = root.find("properties")
+    if properties is None:
+        properties = ET.SubElement(root, "properties")
+    
+    # We need to find or create the 'Gui' and 'CanvasExtentFull' sections
+    gui = properties.find("Gui")
+    if gui is None:
+        gui = ET.SubElement(properties, "Gui")
+    
+    canvas_ext = gui.find("CanvasExtentFull")
+    if canvas_ext is None:
+        canvas_ext = ET.SubElement(gui, "CanvasExtentFull")
+    
+    # This string format is specific: xmin, ymin, xmax, ymax
+    ext_str = f"{rect.xMinimum()},{rect.yMinimum()},{rect.xMaximum()},{rect.yMaximum()}"
+    canvas_ext.text = ext_str
+
+    # 3. Repeat for the standard MapCanvas (for when QGIS is already open)
+    mapcanvas = root.find("mapcanvas")
+    if mapcanvas is None:
+        mapcanvas = ET.SubElement(root, "mapcanvas")
+    
+    extent_node = mapcanvas.find("extent")
+    if extent_node is None:
+        extent_node = ET.SubElement(mapcanvas, "extent")
+    
+    for child in list(extent_node): extent_node.remove(child)
+    ET.SubElement(extent_node, "xmin").text = str(rect.xMinimum())
+    ET.SubElement(extent_node, "ymin").text = str(rect.yMinimum())
+    ET.SubElement(extent_node, "xmax").text = str(rect.xMaximum())
+    ET.SubElement(extent_node, "ymax").text = str(rect.yMaximum())
+
+    tree.write(project_path)
+
 def createQGISFile():
     """
     Creates QGIS file using structure of datasets in 'datasets-style.json'
@@ -220,11 +281,15 @@ def createQGISFile():
 
     global BUILD_FOLDER, QGIS_PREFIX_PATH, QGIS_OUTPUT_FILE
 
-    datasets_structure = getJSON(BUILD_FOLDER + 'datasets-style.json')
+    data = getJSON(str(BUILD_FOLDER / "output" / "opensiteenergy-data.json"))
+
+    # Folder with all gpkg layers
+
+    layers_folder = Path(BUILD_FOLDER).resolve() /  "output" / "layers"
 
     # Delete existing file if it exists
 
-    if isfile(QGIS_OUTPUT_FILE): os.remove(QGIS_OUTPUT_FILE)
+    if QGIS_OUTPUT_FILE.exists(): QGIS_OUTPUT_FILE.unlink()
 
     # Initialize QGIS and start project
 
@@ -233,7 +298,7 @@ def createQGISFile():
     QGISAPP = QgsApplication([], True)
     QGISAPP.initQgis()
     project = QgsProject.instance()
-    project_path = QFileInfo(QGIS_OUTPUT_FILE).absoluteFilePath()
+    project.setCrs(QgsCoordinateReferenceSystem.fromEpsgId(4326))
 
     # Set crs of project
 
@@ -241,62 +306,62 @@ def createQGISFile():
 
     # Add layers and groups to QGIS project 
 
-    root = QgsProject.instance().layerTreeRoot()
+    root        = QgsProject.instance().layerTreeRoot()
+    firstlayer  = None
 
-    for group in datasets_structure:
-        dataset = group['dataset']
-        dataset_file = BUILD_FOLDER + 'output/' + dataset + '.gpkg'
-        color = convertCSSColor2RGB(group['color'])
-        if color is None: color = convertCSSColor2RGB('grey')
-        title = group['title']
+    for branch in data:
 
-        if dataset == datasets_structure[0]['dataset']: 
-            title +=  ' - Tip height ' + str(group['height-to-tip']) + 'm, blade radius ' + str(group['blade-radius']) + 'm'
-            if 'configuration' in group: 
-                if group['configuration'] != "": title += ' using configuration ' + group['configuration']
+        # Add branch
 
-        # Add group
+        qgis_branch = root.addGroup(branch['title'])
 
-        qgis_group = root.addGroup(title)
+        # Iterate through every section in branch
 
-        # Add layer to group
+        for section in branch['datasets']:
 
-        layer = QgsVectorLayer(dataset_file, basename(dataset_file))
-        layer.setName(title)
-        layer.renderer().symbol().setOpacity(QGIS_PARENT_OPACITY)
-        layer.renderer().symbol().setColor(QColor.fromRgb(color[0], color[1], color[2]))
-        layer.renderer().symbol().symbolLayer(0).setStrokeWidth(0)
-        layer.renderer().symbol().symbolLayer(0).setStrokeColor(QColor.fromRgb(color[0], color[1], color[2]))
-        project.addMapLayer(layer, False)
-        qgis_group.addLayer(layer)
+            qgis_section    = qgis_branch.addGroup(section['title'])
+            dataset         = section['dataset']
+            color           = convertCSSColor2RGB(section['color'])
+            if color is None: 
+                color = convertCSSColor2RGB('grey')
 
-        # If first group, ie. aggregate layer, make invisible
+            layer = QgsVectorLayer(str(layers_folder / f"{section['dataset']}.gpkg"), section['title'])
+            layer.setName(section['title'])
+            layer.renderer().symbol().setOpacity(QGIS_PARENT_OPACITY)
+            layer.renderer().symbol().setColor(QColor.fromRgb(color[0], color[1], color[2]))
+            layer.renderer().symbol().symbolLayer(0).setStrokeWidth(0)
+            layer.renderer().symbol().symbolLayer(0).setStrokeColor(QColor.fromRgb(color[0], color[1], color[2]))
+            project.addMapLayer(layer, False)
+            qgis_section.addLayer(layer)
+            qgis_section.setExpanded(False)
 
-        if dataset == datasets_structure[0]['dataset']:
+            if not firstlayer: firstlayer = layer
 
-            qgis_group.setItemVisibilityChecked(False)
+            if dataset == branch['datasets'][0]['dataset']:
 
-            # Set default full extent of project to extent of first (aggregate) layer
+                qgis_section.setItemVisibilityChecked(False)
 
-            project.viewSettings().setPresetFullExtent(QgsReferencedRectangle(layer.extent(), QgsCoordinateReferenceSystem.fromEpsgId(4326)))
-            project.viewSettings().setDefaultViewExtent(QgsReferencedRectangle(layer.extent(), QgsCoordinateReferenceSystem.fromEpsgId(4326)))
+                # Set default full extent of project to extent of first (aggregate) layer
 
-        if 'children' in group:
-            for child in group['children']:
-                child_dataset = child['dataset']
-                child_dataset_file = BUILD_FOLDER + 'output/' + child_dataset + '.gpkg'
+                # Use the layer's native CRS to avoid projection errors
+                ref_rect = QgsReferencedRectangle(layer.extent(), layer.crs())
+                project.viewSettings().setPresetFullExtent(ref_rect)
+                project.viewSettings().setDefaultViewExtent(ref_rect)
 
-                # Add layer to group
+                # project.viewSettings().setPresetFullExtent(QgsReferencedRectangle(layer.extent(), QgsCoordinateReferenceSystem.fromEpsgId(4326)))
+                # project.viewSettings().setDefaultViewExtent(QgsReferencedRectangle(layer.extent(), QgsCoordinateReferenceSystem.fromEpsgId(4326)))
 
-                layer = QgsVectorLayer(child_dataset_file, basename(child_dataset_file))
-                layer.setName("- " + child['title'])
-                if layer.renderer() is None: continue
+            # Iterate through every child in section
+
+            for child in section['children']:
+                layer = QgsVectorLayer(str(layers_folder / f"{child['dataset']}.gpkg"), child['title'])
+                layer.setName(child['title'])
                 layer.renderer().symbol().setOpacity(QGIS_CHILD_OPACITY)
-                layer.renderer().symbol().setColor(QColor.fromRgb(  color[0], color[1], color[2]))
+                layer.renderer().symbol().setColor(QColor.fromRgb(color[0], color[1], color[2]))
                 layer.renderer().symbol().symbolLayer(0).setStrokeWidth(0)
-                layer.renderer().symbol().symbolLayer(0).setStrokeColor(QColor.fromRgb( color[0], color[1], color[2]))
+                layer.renderer().symbol().symbolLayer(0).setStrokeColor(QColor.fromRgb(color[0], color[1], color[2]))
                 project.addMapLayer(layer, False)
-                qgis_group.addLayer(layer)
+                qgis_section.addLayer(layer)
 
                 # Make layer invisible
 
@@ -316,8 +381,10 @@ def createQGISFile():
 
     # Save project and quit
 
-    project.write(QGIS_OUTPUT_FILE)
+    project.write(str(QGIS_OUTPUT_FILE))
     QGISAPP.exitQgis()
+
+    force_qgis_startup_extent(str(QGIS_OUTPUT_FILE), [-0.15, 51.48, -0.10, 51.52]) # London Bounds
 
     print("QGIS file created at:", QGIS_OUTPUT_FILE)
 

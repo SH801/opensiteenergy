@@ -13,27 +13,6 @@ class ProcessBase:
         self.shared_lock = shared_lock
         self.shared_metadata = shared_metadata if shared_metadata is not None else {}
 
-    def set_output_variable(self, value: str, global_urn: int = None):
-        """
-        Publishes a value to the shared metadata registry.
-        Defaults to the current node's global_urn if none is provided.
-        """
-        target_urn = global_urn if global_urn is not None else self.node.global_urn
-        var_key = f"VAR:global_output_{target_urn}"
-        
-        self.shared_metadata[var_key] = value
-
-    def get_variable(self, var_name: str) -> str:
-        """
-        Retrieves a value from the shared metadata registry.
-        var_name should be the full string: 'VAR:global_output_76'
-        """
-
-        if var_name.startswith('VAR:'):
-            return self.shared_metadata.get(var_name)
-        else:
-            return var_name
-
     def get_top_variable(self, file_path):
         """Get topmost variable from yaml file - needed to determine osm-export-tool layer name"""
         with open(file_path, 'r') as f:

@@ -66,7 +66,7 @@ class PostGISBase:
                 cursor.execute(query)
                 conn.commit()
                 if hasattr(self, 'log'):
-                    self.log.debug(f"Successfully dropped table: {schema}.{table_name}")
+                    self.log.info(f"Successfully dropped table: {schema}.{table_name}")
                 return True
         except Error as e:
             conn.rollback()

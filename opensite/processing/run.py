@@ -13,44 +13,51 @@ class OpenSiteRunner(ProcessBase):
         self.base_path = OpenSiteConstants.OSM_DOWNLOAD_FOLDER
 
     def run(self):
-        """Executes command line tools like osm-export-tool via subprocess"""
+        """
+        Executes command line tools like osm-export-tool via subprocess
 
-        # Resolve variables from shared_metadata
-        # Assuming node.input is the URN of the concatenate/unzip task
-        mapping_file = self.get_variable(self.node.input)
-        if not mapping_file:
+        For osm-runner nodes, crucial fields are:
+
+        input:  The YML file basename to use as mapping file. This should be in the OSM_DOWNLOAD_FOLDER, eg. osm-boundaries.yml
+        output: The output GPKG that will be generated. This should be in the OSM_DOWNLOAD_FOLDER, eg. osm-boundaries.gpkg
+        """
+
+        if not self.node.input:
             self.log.error(f"Could not resolve input mapping for node {self.node.urn}")
             return False
 
         # Derive paths
-        # Strip .yml to get base name for osm-export-tool
-        output_base_file = mapping_file.rsplit('.yml', 1)[0]
-        output_base_file_tmp = output_base_file + '-tmp'
-        output_base_file_final = output_base_file + '.gpkg'
-        output_base_file_temp_final = output_base_file_tmp + '.gpkg'
-        self.set_output_variable(output_base_file_final, self.node.global_urn)
+        # Strip .gpkg to get base name (no '.gpkg' extension) for osm-export-tool as osm-export-tool requires this to run
+        mapping_file                = self.base_path / self.node.input
+        output_path                 = self.base_path / self.node.output
+        output_basename             = self.node.output.rsplit('.gpkg', 1)[0]
+        osm_export_output_param     = self.base_path / f"{output_basename}-tmp"
+        output_tmp_path             = self.base_path / f"{output_basename}-tmp.gpkg"
 
-        if os.path.exists(output_base_file_final):
-            self.log.info(f"{os.path.basename(output_base_file_final)} already exists, skipping osm-export-tool")
+        if output_tmp_path.exists(): output_tmp_path.unlink()
+
+        if output_path.exists():
+            self.log.info(f"{os.path.basename(str(output_path))} already exists, skipping osm-export-tool")
             return True
         
-        osm_file = str(Path(OpenSiteConstants.OSM_DOWNLOAD_FOLDER) / os.path.basename(self.node.custom_properties['osm']))
+        osm_file = str(self.base_path / os.path.basename(self.node.custom_properties['osm']))
 
-        if not mapping_file or not os.path.exists(mapping_file):
-            self.log.error(f"Mapping file not resolved or missing: {mapping_file}")
+        if not self.node.input or not mapping_file.exists():
+            self.log.error(f"Mapping file not resolved or missing: {self.node.input}")
             return False
 
         # Build the command list
         cmd = [
             "osm-export-tool",
-            "-m", mapping_file,
+            "-m", str(mapping_file),
             osm_file,
-            output_base_file_tmp
+            str(osm_export_output_param)
         ]
 
-        self.log.info(f"Executing osm-export-tool (note: long duration) - {mapping_file}")
+        self.log.info(f"Executing osm-export-tool (note: long duration) - {self.node.input}")
 
         try:
+
             result = subprocess.run(
                 cmd,
                 check=True,
@@ -58,9 +65,9 @@ class OpenSiteRunner(ProcessBase):
                 text=True
             )
 
-            os.replace(output_base_file_temp_final, output_base_file_final)
+            os.replace(str(output_tmp_path), str(output_path))
 
-            self.log.info(f"osm-export-tool successful. Created file at {os.path.basename(output_base_file_final)}")
+            self.log.info(f"osm-export-tool successful. Created file at {os.path.basename(str(output_path))}")
             return True
         except subprocess.CalledProcessError as e:
             self.log.error(f"Shell execution failed: {e.stderr}")

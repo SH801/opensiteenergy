@@ -22,8 +22,7 @@ import time
 class Node:
     urn: int
     name: str
-    global_urn: Optional[int] = None
-
+    global_urn: Optional[str] = None
     title: Optional[str] = None
     node_type: Optional[str] = 'source'  # 'source', 'destination', or None (Group)
     format: Optional[str] = None

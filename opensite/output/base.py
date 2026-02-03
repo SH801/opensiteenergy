@@ -23,23 +23,6 @@ class OutputBase:
 
         return Path(filename).stem
 
-    def set_output_variable(self, value: str, global_urn: int = None):
-        """
-        Publishes a value to the shared metadata registry.
-        Defaults to the current node's global_urn if none is provided.
-        """
-        target_urn = global_urn if global_urn is not None else self.node.global_urn
-        var_key = f"VAR:global_output_{target_urn}"
-        
-        self.shared_metadata[var_key] = value
-
-    def get_variable(self, var_name: str) -> str:
-        """
-        Retrieves a value from the shared metadata registry.
-        var_name should be the full string: 'VAR:global_output_76'
-        """
-        return self.shared_metadata.get(var_name)
-
     def run(self):
         """Main entry point for the process."""
         raise NotImplementedError("Subclasses must implement run()")

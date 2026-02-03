@@ -293,15 +293,6 @@ class OpenSiteQueue:
                         if node.global_urn: self.sync_global_status(node.urn, node.status)
 
                     self.graph.generate_graph_preview()
-
-                    # Update any 'amalgamate' nodes + clones that are now possible with appropriate 'output' value
-                    if node.action == 'amalgamate':
-                        children_info = self.graph.get_children_info(node)
-                        node.custom_properties['children'] = children_info['children']
-                        # Use variable so value can be dynamically used in downstream nodes
-                        var_key = f"VAR:global_output_{node.global_urn}"
-                        shared_metadata[var_key] = children_info['output']
-                        self.graph.sync_global_field(node.global_urn, 'output', children_info['output'])
         
                     if node.action in self.action_groups['io_bound']:
                         future = io_exec.submit(self.process_io_task, node, self.log_level, shared_lock, shared_metadata)

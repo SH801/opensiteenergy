@@ -1,4 +1,329 @@
-ERROR 1: Point outside of projection domain
-ERROR 1: Failed to reproject feature 12242 (geometry probably out of source or destination SRS).
-ERROR 1: Terminating translation prematurely after failed
-translation of layer Historic_Buildings_Record_13Mar2025 (use -skipfailures to skip errors)
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--all-layers.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--all-layers.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--aviation-and-exclusion-areas.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--aviation-and-exclusion-areas.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--airspace.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--airspace.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--civilian-airports.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--civilian-airports.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--danger-areas.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--danger-areas.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--mod-training-areas.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--mod-training-areas.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--ecology-and-wildlife.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--ecology-and-wildlife.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--ancient-woodlands.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--ancient-woodlands.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--hedgerows.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--hedgerows.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--local-nature-reserves.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--local-nature-reserves.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--national-nature-reserves.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--national-nature-reserves.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--osm-nature-reserves.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--osm-nature-reserves.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--ramsar-sites.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--ramsar-sites.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--sites-of-special-scientific-interest.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--sites-of-special-scientific-interest.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--special-areas-of-conservation.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--special-areas-of-conservation.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--special-protection-areas.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--special-protection-areas.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--wild-land-areas.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--wild-land-areas.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--environmental-data.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--environmental-data.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--inadequate-wind-speeds.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--inadequate-wind-speeds.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--heritage-impacts.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--heritage-impacts.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--conservation-areas.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--conservation-areas.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--listed-buildings.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--listed-buildings.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--registered-historic-battlefields.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--registered-historic-battlefields.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--registered-parks-and-gardens.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--registered-parks-and-gardens.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--scheduled-ancient-monuments.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--scheduled-ancient-monuments.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--world-heritage-sites.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--world-heritage-sites.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--landscape-and-visual-impacts.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--landscape-and-visual-impacts.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--areas-of-outstanding-natural-beauty.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--areas-of-outstanding-natural-beauty.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--heritage-coasts.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--heritage-coasts.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--national-parks.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--national-parks.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--other-technical-constraints.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--other-technical-constraints.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--bridleways.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--bridleways.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--inland-waters.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--inland-waters.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--pipelines.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--pipelines.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--power-lines.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--power-lines.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--public-footpaths.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--public-footpaths.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--public-roads-a-and-b-roads-and-motorways.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--public-roads-a-and-b-roads-and-motorways.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--railway-lines.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--railway-lines.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--separation-distance-from-residential-properties.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--separation-distance-from-residential-properties.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--residential-buildings-os.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--residential-buildings-os.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--residential-buildings-osm.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-124-2--residential-buildings-osm.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--all-layers.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--all-layers.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--aviation-and-exclusion-areas.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--aviation-and-exclusion-areas.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--airspace.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--airspace.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--civilian-airports.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--civilian-airports.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--danger-areas.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--danger-areas.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--mod-training-areas.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--mod-training-areas.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--ecology-and-wildlife.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--ecology-and-wildlife.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--ancient-woodlands.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--ancient-woodlands.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--hedgerows.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--hedgerows.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--local-nature-reserves.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--local-nature-reserves.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--national-nature-reserves.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--national-nature-reserves.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--osm-nature-reserves.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--osm-nature-reserves.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--ramsar-sites.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--ramsar-sites.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--sites-of-special-scientific-interest.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--sites-of-special-scientific-interest.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--special-areas-of-conservation.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--special-areas-of-conservation.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--special-protection-areas.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--special-protection-areas.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--wild-land-areas.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--wild-land-areas.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--environmental-data.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--environmental-data.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--inadequate-wind-speeds.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--inadequate-wind-speeds.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--heritage-impacts.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--heritage-impacts.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--conservation-areas.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--conservation-areas.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--listed-buildings.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--listed-buildings.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--registered-historic-battlefields.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--registered-historic-battlefields.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--registered-parks-and-gardens.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--registered-parks-and-gardens.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--scheduled-ancient-monuments.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--scheduled-ancient-monuments.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--world-heritage-sites.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--world-heritage-sites.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--landscape-and-visual-impacts.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--landscape-and-visual-impacts.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--areas-of-outstanding-natural-beauty.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--areas-of-outstanding-natural-beauty.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--heritage-coasts.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--heritage-coasts.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--national-parks.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--national-parks.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--other-technical-constraints.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--other-technical-constraints.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--bridleways.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--bridleways.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--inland-waters.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--inland-waters.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--pipelines.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--pipelines.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--power-lines.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--power-lines.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--public-footpaths.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--public-footpaths.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--public-roads-a-and-b-roads-and-motorways.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--public-roads-a-and-b-roads-and-motorways.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--railway-lines.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--railway-lines.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--separation-distance-from-residential-properties.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--separation-distance-from-residential-properties.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--residential-buildings-os.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--residential-buildings-os.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--residential-buildings-osm.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/wind-200--residential-buildings-osm.gpkg' may only be partially supported

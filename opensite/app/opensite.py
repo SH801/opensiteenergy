@@ -6,6 +6,7 @@ import os
 import threading
 import uvicorn
 import time
+from datetime import datetime
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -167,6 +168,11 @@ class OpenSiteApplication:
         BOLD = "\033[1m"
         RESET = "\033[0m"
 
+        if OpenSiteConstants.SERVER_BUILD:
+            if Path(OpenSiteConstants.PROCESSING_COMPLETE_FILE).exists():
+                self.log.info("Previous build run complete, aborting this run")
+                exit()
+
         # Initialise CLI
         cli = OpenSiteCLI(log_level=self.log_level) 
         if cli.purgedb:
@@ -178,8 +184,8 @@ class OpenSiteApplication:
             confirm = input(f"Type {BOLD}'yes'{RESET} to delete all OpenSite data: ").strip().lower()
             if confirm == 'yes':
                 self.purgedb()
-                return
-            print("Purge aborted. No tables were harmed.")
+            else:
+                self.log.warning("Purge aborted. No tables were harmed.")
 
         if cli.purgeall:
             print(f"\n{RED}{BOLD}{'='*60}")
@@ -190,8 +196,8 @@ class OpenSiteApplication:
             confirm = input(f"Type {BOLD}'yes'{RESET} to delete all downloads and OpenSite data: ").strip().lower()
             if confirm == 'yes':
                 self.purgeall()
-                return
-            print("Purge aborted. No files or tables were harmed.")
+            else:
+                self.log.warning("Purge aborted. No files or tables were harmed.")
 
         self.init_environment()
 
@@ -216,7 +222,24 @@ class OpenSiteApplication:
 
         # If not '--graphonly', run processing queue
         queue = OpenSiteQueue(graph, log_level=self.log_level, overwrite=cli.get_overwrite())
-        if not cli.get_graphonly(): queue.run()
+
+        # Main processing loop
+        if not cli.get_graphonly(): 
+
+            # Change state files in case running in server environment
+            with open(OpenSiteConstants.PROCESSING_START_FILE, 'w', encoding='utf-8') as file: 
+                file.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S,000 Processing started\n"))
+            with open(OpenSiteConstants.PROCESSING_STATE_FILE, 'w') as file: file.write('PROCESSING')
+            with open(OpenSiteConstants.PROCESSING_CMD_FILE, 'w') as file: file.write(cli.get_command_line())
+            if Path(OpenSiteConstants.PROCESSING_COMPLETE_FILE).exists(): Path(OpenSiteConstants.PROCESSING_COMPLETE_FILE).unlink()
+            
+            queue.run()
+
+            # Change state files in case running in server environment
+            with open(OpenSiteConstants.PROCESSING_START_FILE, 'a', encoding='utf-8') as file: 
+                file.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S,000 Processing completed\n"))
+            os.replace(OpenSiteConstants.PROCESSING_START_FILE, OpenSiteConstants.PROCESSING_COMPLETE_FILE)
+            if Path(OpenSiteConstants.PROCESSING_STATE_FILE).exists(): Path(OpenSiteConstants.PROCESSING_STATE_FILE).unlink()
 
         # Show elapsed time at end
         self.show_elapsed_time()

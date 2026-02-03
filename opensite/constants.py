@@ -8,17 +8,17 @@ class OpenSiteConstants:
     # Version of opensite application
     OPENSITEENERGY_VERSION      = "1.0"
 
+    # Text used when creating tables and files
+    OPENSITEENERGY_SHORTNAME    = 'opensiteenergy'
+    
+    # Whether we're running a server build
+    SERVER_BUILD                = os.getenv("SERVER_BUILD", False)
+
     # Directory script is run from
     WORKING_FOLDER              = str(Path(__file__).absolute().parent) + '/'
 
     # Redirect ogr2ogr warnings to log file
     os.environ['CPL_LOG']       = WORKING_FOLDER + 'log-ogr2ogr.txt'
-
-    # State file to indicate processing is happening
-    PROCESSING_STATE_FILE       = 'PROCESSING'
-
-    # State file to indicate processing has completed
-    PROCESSING_COMPLETE_FILE    = 'PROCESSINGCOMPLETE'
 
     # Default logging level for entire application
     LOGGING_LEVEL               = logging.DEBUG
@@ -119,14 +119,17 @@ class OpenSiteConstants:
     # ------------------------------------------------------------
     # Tilemaker-related properties
     # ------------------------------------------------------------
-    TILESERVER_INSTALL_FOLDER   = INSTALL_FOLDER / "tileserver"
-    TILESERVER_INSTALL_SPRITES  = TILESERVER_INSTALL_FOLDER / "sprites"
+
+    TILESERVER_FOLDER_SRC       = Path("tileserver")
     TILESERVER_OUTPUT_FOLDER    = BUILD_ROOT / "tileserver"
+    BASEMAP_FOLDER_SRC          = TILESERVER_FOLDER_SRC / "basemap"
+    BASEMAP_FOLDER_DEST         = INSTALL_FOLDER / "tileserver-basemap"
+    TILESERVER_SPRITES_SRC      = TILESERVER_FOLDER_SRC / "sprites"
+    TILESERVER_SPRITES_DEST     = TILESERVER_OUTPUT_FOLDER / "sprites"
     TILESERVER_CONFIG_FILE      = TILESERVER_OUTPUT_FOLDER / 'config.json'
     TILESERVER_DATA_FOLDER      = TILESERVER_OUTPUT_FOLDER / "data"
     TILESERVER_STYLES_FOLDER    = TILESERVER_OUTPUT_FOLDER / "styles"
     TILESERVER_MAIN_STYLE_FILE  = TILESERVER_STYLES_FOLDER / 'opensiteenergy.json'
-    TILESERVER_SPRITES_FOLDER   = TILESERVER_OUTPUT_FOLDER / "sprites"
     TILESERVER_FONTS_FOLDER     = TILESERVER_OUTPUT_FOLDER / "fonts"
     TILESERVER_FONTS_GITHUB     = "https://github.com/open-wind/openmaptiles-fonts.git"
     TILESERVER_FONTS_SRC_GITHUB = 'https://github.com/openmaptiles/fonts'
@@ -142,10 +145,29 @@ class OpenSiteConstants:
     TILEMAKER_BBOX_WORLD        = "-180,-85,180,85"
 
     # Tilemaker build configuration files
-    TILEMAKER_COASTLINE_CONFIG  = TILESERVER_INSTALL_FOLDER / 'config-coastline.json'
-    TILEMAKER_COASTLINE_PROCESS = TILESERVER_INSTALL_FOLDER / 'process-coastline.lua'
-    TILEMAKER_OMT_CONFIG        = TILESERVER_INSTALL_FOLDER / 'config-openmaptiles.json'
-    TILEMAKER_OMT_PROCESS       = TILESERVER_INSTALL_FOLDER / 'process-openmaptiles.lua'
+    TILEMAKER_COASTLINE_CONFIG  = BASEMAP_FOLDER_DEST / 'config-coastline.json'
+    TILEMAKER_COASTLINE_PROCESS = BASEMAP_FOLDER_DEST / 'process-coastline.lua'
+    TILEMAKER_OMT_CONFIG        = BASEMAP_FOLDER_DEST / 'config-openmaptiles.json'
+    TILEMAKER_OMT_PROCESS       = BASEMAP_FOLDER_DEST / 'process-openmaptiles.lua'
+
+    # ------------------------------------------------------------
+    # Processing state files - used by server implementation
+    # ------------------------------------------------------------
+
+    # State file to indicate processing is happening
+    PROCESSING_STATE_FILE       = 'PROCESSING'
+
+    # State file showing command line submitted
+    PROCESSING_CMD_FILE         = 'PROCESSINGCMD'
+
+    # State file to indicate processing has started
+    # Contains start time during processing
+    PROCESSING_START_FILE       = 'PROCESSINGSTART'
+
+    # State file to indicate processing has completed
+    # Contains start and end times after processing has completed
+    PROCESSING_COMPLETE_FILE    = 'PROCESSINGCOMPLETE'
+
 
     # Acceptable CLI properties
     TREE_BRANCH_PROPERTIES      = \
@@ -180,8 +202,8 @@ class OpenSiteConstants:
     OSM_BOUNDARIES_YML          = OSM_BOUNDARIES + '.yml'
 
     # Database tables
-    DATABASE_GENERAL_PREFIX     = 'opensite_'
-    DATABASE_BASE               = '_' + DATABASE_GENERAL_PREFIX
+    DATABASE_GENERAL_PREFIX     = f"opensite_"
+    DATABASE_BASE               = f"_{DATABASE_GENERAL_PREFIX}" 
     OPENSITE_REGISTRY           = DATABASE_BASE + 'registry'
     OPENSITE_BRANCH             = DATABASE_BASE + 'branch'
     OPENSITE_CLIPPINGMASTER     = DATABASE_BASE + 'clipping_master'

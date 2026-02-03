@@ -1,9 +1,11 @@
 import copy
 import os
+import hashlib
 import json
 import shutil
 import yaml
 import logging
+import uuid
 import webbrowser
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -551,7 +553,10 @@ class OpenSiteGraph(Graph):
         # During preprocessing, we dump and select single geometry type then slice data into grid squares to reduce memory use 
         self.add_preprocess()
 
-        # Generate output nodes
+        # Calculate final amalgamation children outputs
+        self.compute_amalgamation_outputs()
+
+        # # Generate output nodes
         self.add_outputs()
 
         # Generate OSM boundaries file if necessary
@@ -559,6 +564,9 @@ class OpenSiteGraph(Graph):
 
         # Generate installer nodes
         self.add_installers()
+
+        # Add global urns across nodes that share same output
+        self.add_global_urns()
 
         # Update database registry with new nodes
         self.register_to_database()
@@ -628,7 +636,7 @@ class OpenSiteGraph(Graph):
 
             for group_name, siblings in group_map.items():
                 child_urns = [s.urn for s in siblings]
-                
+
                 # 1. Title Logic: Inherit from first child
                 ref_child = siblings[0]
                 original_title = getattr(ref_child, 'title', ref_child.name)
@@ -668,14 +676,11 @@ class OpenSiteGraph(Graph):
 
     def add_downloads(self):
         """
-        Identifies terminal nodes with remote inputs and inserts a 
-        'download' node as a child. Deduplicates by URL using global_urn.
+        Identifies terminal nodes with remote inputs and inserts a 'download' node as a child
         """
+
         self.log.info("Adding download nodes for remote datasources...")
-        
-        # 1. Map to track URLs we've already seen in this graph build
-        url_to_urn = {}
-        
+                
         terminals = self.get_terminal_nodes()
 
         for node in terminals:
@@ -686,28 +691,11 @@ class OpenSiteGraph(Graph):
                 node_format = getattr(node, 'format', 'Unknown')
                 node_branch = node.custom_properties['branch']
                 extension = OpenSiteConstants.CKAN_FILE_EXTENSIONS.get(node_format, 'ERROR')
-                
-                # Deduplication Logic: Check if we've seen this URL before
-                if input_url in url_to_urn:
-                    # Retrieve the existing global_urn for this specific URL
-                    existing_global_urn = url_to_urn[input_url]
-                    
-                    # Create a new Node instance, but give it the SHARED global_urn
-                    download_node = self.create_node(
-                        name=f"{node.name}", 
-                        title=f"Shared download - {node.title}", 
-                    )
-                    download_node.global_urn = existing_global_urn
-                    self.log.debug(f"Reusing global_urn {existing_global_urn} for duplicate URL: {input_url}")
-                else:
-                    # First time seeing this URL: generate a fresh global_urn
-                    download_node = self.create_node(
-                        name=f"{node.name}", 
-                        title=f"Download - {node.title}", 
-                    )
-                    # Use a new global URN for the first instance
-                    download_node.global_urn = self.get_new_global_urn() 
-                    url_to_urn[input_url] = download_node.global_urn
+
+                download_node = self.create_node(
+                    name=f"{node.name}", 
+                    title=f"Download - {node.title}", 
+                )
 
                 # Configure common Download node properties
                 download_node.node_type = 'download'
@@ -809,14 +797,12 @@ class OpenSiteGraph(Graph):
 
         # 3. Process each unique OSM source group
         for osm_url, group_nodes in groups.items():
-            group_outputs = sorted(list(set(n.output for n in group_nodes if n.output)))
+            group_outputs = sorted(list(set(n.output for n in group_nodes if n.input)))
             osm_url_basename = os.path.basename(osm_url)
-            
-            concat_gurn = self.get_new_global_urn()
-            run_gurn = self.get_new_global_urn()
-            down_gurn = self.get_new_global_urn()
-            concat_output = f"VAR:global_output_{concat_gurn}"
-            run_output = f"VAR:global_output_{run_gurn}"
+            hash_payload = osm_url + json.dumps(group_outputs, sort_keys=True)
+            yml_group_hash = hashlib.md5(hash_payload.encode()).hexdigest()[0:16]
+            concat_output = f"{OpenSiteConstants.DATABASE_GENERAL_PREFIX}{yml_group_hash}.yml"
+            run_output = f"{OpenSiteConstants.DATABASE_GENERAL_PREFIX}{yml_group_hash}.gpkg"
 
             for node in group_nodes:
                 node_branch = node.custom_properties['branch']
@@ -826,7 +812,6 @@ class OpenSiteGraph(Graph):
                     name=f"osm-concatenator--{osm_url}",
                     title=f"Concatenate OSM Configs - {osm_url_basename}",
                 )
-                concat_node.global_urn = concat_gurn
                 concat_node.action = 'concatenate'
                 concat_node.node_type = 'osm-concatenator'
                 concat_node.input = group_outputs 
@@ -837,7 +822,6 @@ class OpenSiteGraph(Graph):
                     title=f"Download OSM Source - {osm_url_basename}",
                     format='OSM',
                 )
-                down_node.global_urn = down_gurn
                 down_node.action = 'download'
                 down_node.node_type = 'osm-downloader'
                 down_node.input = osm_url
@@ -847,7 +831,6 @@ class OpenSiteGraph(Graph):
                     name=f"osm-runner--{osm_url}",
                     title=f"Run OSM Export Tool - {osm_url_basename}",
                 )
-                run_node.global_urn = run_gurn
                 run_node.action = 'run'
                 run_node.node_type = 'osm-runner'
                 run_node.input = concat_output
@@ -888,13 +871,32 @@ class OpenSiteGraph(Graph):
                 runner_parent = self.find_parent(run_node.urn)
                 if runner_parent:
                     runner_parent.action = 'import'
-                    runner_parent.input = run_output
+                    # Change location to /osm as import is non-OSM-specific
+                    runner_parent.input = f"osm/{run_output}"
                     if not hasattr(runner_parent, 'custom_properties') or runner_parent.custom_properties is None:
                         runner_parent.custom_properties = {}
                     runner_parent.custom_properties['osm'] = osm_url
                     runner_parent.custom_properties['yml'] = node.output
 
         self.log.debug("OSM Tree complete: Runner is now parent to both Downloader and Concatenator.")
+
+    def get_buffer_string(self, buffer):
+        """
+        Generates buffer string, removing extraneous decimal zeros
+        """
+
+        buffer = str(buffer)
+        if buffer.endswith('.0'): buffer = buffer[:-2]
+        return buffer
+
+    def get_buffer_suffix(self, buffer):
+        """
+        Generates buffer suffix
+        """
+
+        buffer = self.get_buffer_string(buffer)
+        buffer = buffer.replace('.', '-')
+        return f"--buffer-{buffer}"
 
     def add_buffers(self):
         """
@@ -914,19 +916,19 @@ class OpenSiteGraph(Graph):
 
         for node in target_nodes:
             buffer = node.custom_properties['buffer']
+            buffer_str = self.get_buffer_string(buffer)
             
             # Define the new name and properties
-            new_name = f"{node.name}--buffer-{buffer}"
+            new_name = f"{node.name}{self.get_buffer_suffix(buffer)}"
             
             buffer_node = self.create_node(
                 name=new_name,
-                title=f"{node.title} - Buffer {buffer}m",
+                title=f"{node.title} - Buffer {buffer_str}m",
             )
 
             # 3. Configure the Buffer Node
             buffer_node.action = 'buffer'
             buffer_node.node_type = 'process'
-            buffer_node.global_urn = self.get_new_global_urn()
             
             # Clone properties so we keep lineage (like 'osm' URL)
             buffer_node.custom_properties = node.custom_properties.copy()
@@ -984,7 +986,6 @@ class OpenSiteGraph(Graph):
     def add_outputs(self):
         """
         Synthesizes output branches as independent siblings to data branches.
-        Structure is strictly parallel; connection exists only via shared global_urns.
         """
 
         # 1. Prepare format lists
@@ -1001,10 +1002,7 @@ class OpenSiteGraph(Graph):
         # We take a snapshot of children to avoid modifying the list while iterating
         current_branches = list(self.root.children)
         
-        global_output_urns = {}
-        for gfmt in global_formats:
-            global_output_urns[gfmt] = self.get_new_global_urn()
-        global_branch_custom_properties = self.get_structure(current_branches)
+        global_branch_custom_properties = {'structure': self.get_structure(current_branches)}
 
         for branch_node in current_branches:
 
@@ -1045,53 +1043,49 @@ class OpenSiteGraph(Graph):
 
             for match in am_matches:
                 am_node = self.find_node_by_urn(match['urn'])
-                
-                # Sync Global URN: This is the invisible logical bridge
-                shared_global_urn = self.get_new_global_urn()
-                am_node.global_urn = shared_global_urn
-                
+                                
                 # Clone for the output branch
                 # NOTE: We do NOT set am_node as a child. This keeps the branches visually disconnected.
                 cloned_am = self.create_node(
                     name=branch_code + "--" + am_node.name,
                     title=branch_code + " - " + am_node.title,
                     action=am_node.action,
-                    global_urn=shared_global_urn,
-                    output=f"VAR:global_output_{shared_global_urn}",
+                    input=am_node.input,
+                    output=am_node.output,
                     custom_properties=branch_node_custom_properties
                 )
+
+                node_hash = hashlib.md5(f"{am_node.output}--postprocess".encode()).hexdigest()
+                postprocess_output = f"{OpenSiteConstants.DATABASE_GENERAL_PREFIX}{node_hash}"
 
                 # 3. Postprocess
-                pp_shared_global_urn = self.get_new_global_urn()
-                pp_name = f"{cloned_am.name}----postprocess"
-                pp_node = self.create_node(
-                    name=pp_name,
+                postprocess_name = f"{cloned_am.name}----postprocess"
+                postprocess_node = self.create_node(
+                    name=postprocess_name,
                     title=cloned_am.title + ' - Postprocess',
                     action='postprocess',
-                    global_urn = pp_shared_global_urn,
-                    input=f"VAR:global_output_{shared_global_urn}",
-                    output=f"VAR:global_output_{pp_shared_global_urn}",
+                    input=am_node.output,
+                    output=postprocess_output,
                     custom_properties=branch_node_custom_properties
                 )
-                pp_node.children.append(cloned_am)
-                cloned_am.parent = pp_node
-                current_logic_name = pp_name
-                current_chain_head = pp_node
-
-                outputs_input = f"VAR:global_output_{pp_shared_global_urn}"
+                postprocess_node.children.append(cloned_am)
+                cloned_am.parent = postprocess_node
+                current_logic_name = postprocess_name
+                current_chain_head = postprocess_node
+                outputs_input = postprocess_output
 
                 # Clip
                 if 'clip' in branch_node.custom_properties['yml']:
-                    clip_shared_global_urn = self.get_new_global_urn()
+                    node_hash = hashlib.md5(f"{postprocess_output}--clip".encode()).hexdigest()
+                    clip_output = f"{OpenSiteConstants.DATABASE_GENERAL_PREFIX}{node_hash}"
                     clip_val = branch_node.custom_properties['yml']['clip'].replace(" ", "-")
-                    clip_name = f"{pp_name}--clip-{clip_val}"
+                    clip_name = f"{postprocess_name}--clip-{clip_val}"
                     clip_node = self.create_node(
                         name=clip_name,
-                        title=pp_node.title + ' - Clip',
+                        title=postprocess_node.title + ' - Clip',
                         action='clip',
-                        global_urn=clip_shared_global_urn,
-                        input=f"VAR:global_output_{pp_shared_global_urn}",
-                        output=f"VAR:global_output_{clip_shared_global_urn}",
+                        input=postprocess_output,
+                        output=clip_output,
                         custom_properties={
                             'branch': output_branch_name, 
                             'branch_code': branch_code, 
@@ -1099,11 +1093,11 @@ class OpenSiteGraph(Graph):
                             'clip': branch_node.custom_properties['yml']['clip']
                         }
                     )
-                    clip_node.children.append(pp_node)
-                    pp_node.parent = clip_node
+                    clip_node.children.append(postprocess_node)
+                    postprocess_node.parent = clip_node
                     current_logic_name = clip_name
                     current_chain_head = clip_node
-                    outputs_input = f"VAR:global_output_{clip_shared_global_urn}"
+                    outputs_input = clip_output
 
                 # 5. Local Formats (gpkg, geojson, etc.)
                 clean_filename_base = current_logic_name.replace("----postprocess", "")
@@ -1134,10 +1128,25 @@ class OpenSiteGraph(Graph):
             # Global Formats (web/qgis)
             # These wrap around the collector, effectively becoming the top of the branch
             branch_top = collector_node
+
+            # If qgis or web, add json output as both require json data file
+            if bool(set(global_formats) & set(['qgis', 'web'])):
+                gnode = self.create_node(
+                    name=f"all-branches--json",
+                    title=f"All branches - JSON",
+                    format='json',
+                    action='output',
+                    output=f"{OpenSiteConstants.OPENSITEENERGY_SHORTNAME}-data.json",
+                    custom_properties=global_branch_custom_properties,
+                )
+                gnode.children.append(branch_top)
+                branch_top.parent = gnode
+                branch_top = gnode
+
+            # Add rest of output formats above last branch_top
             for gfmt in global_formats:
                 gnode = self.create_node(
                     name=f"all-branches--{gfmt}",
-                    global_urn=global_output_urns[gfmt],
                     title=f"All branches - {gfmt.capitalize()}",
                     format=gfmt,
                     action='output',
@@ -1147,10 +1156,9 @@ class OpenSiteGraph(Graph):
                 branch_top.parent = gnode
                 
                 # Global filename logic
-                clean_branch_name = branch_node.name.replace(' ', '-').lower()
-                gnode.output = f"opensite-layers.{gfmt}"
-                if gfmt == 'qgis': gnode.output = 'opensite-layers.json'
-                if gfmt == 'web': gnode.output = 'opensite-layers.js'
+                gnode.output = f"{OpenSiteConstants.OPENSITEENERGY_SHORTNAME}-data.{gfmt}"
+                if gfmt == 'qgis':  gnode.output = f"{OpenSiteConstants.OPENSITEENERGY_SHORTNAME}.qgs"
+                if gfmt == 'web':   gnode.output = "index.html"
                 branch_top = gnode
 
             # Final Step: Attach the highest node of the chain to the Branch Root
@@ -1179,22 +1187,41 @@ class OpenSiteGraph(Graph):
                 'blade-radius': branch.custom_properties['blade-radius'],
             }
             suffix, clip = '', None
+            bounds = self.db.get_table_bounds(OpenSiteConstants.OPENSITE_CLIPPINGMASTER, OpenSiteConstants.CRS_DEFAULT, OpenSiteConstants.CRS_OUTPUT)
             if 'clip' in branch.custom_properties['yml']:
                 clip = branch.custom_properties['yml']['clip']
                 title += f" clipped to '{clip}'"
                 suffix = f"--clip-{clip.replace(' ', '-')}"
+                bounds = self.db.get_area_bounds(clip, OpenSiteConstants.CRS_DEFAULT, OpenSiteConstants.CRS_OUTPUT)
 
             main_child = branch.children[0]
-            
+
+            maplibre_bounds = \
+            [
+                [
+                    bounds['left'], bounds['bottom']
+                ],
+                [
+                    bounds['right'], bounds['top']
+                ]
+            ]
+            center_lng      = (bounds['left'] + bounds['right']) / 2
+            center_lat      = (bounds['bottom'] + bounds['top']) / 2
+            maplibre_centre = [center_lng, center_lat]
+
             branchstructure = {
                 'code': branch_code,
                 'title': title,
                 'properties': properties,
                 'osm-default': branch.custom_properties['yml']['osm'],
-                'ckan': branch.custom_properties['yml']['ckan']
+                'ckan': branch.custom_properties['yml']['ckan'],
+                'bounds': bounds,
+                'maplibre_bounds': maplibre_bounds,
+                'maplibre_centre': maplibre_centre,
+                'tileserver': f"{OpenSiteConstants.TILESERVER_URL}/styles/{OpenSiteConstants.OPENSITEENERGY_SHORTNAME}/style.json",
             }
             if clip: branchstructure['clip'] = clip
-
+            
             datasets = [{
                 'title': title,
                 'color': defaultcolor,
@@ -1256,14 +1283,6 @@ class OpenSiteGraph(Graph):
 
         osm_downloaders = self.find_nodes_by_props({'node_type': 'osm-downloader'})
         osm_default = self._defaults['osm']
-        osm_downloader_default_global_urn = set([f['global_urn'] for f in osm_downloaders if f['custom_properties']['osm'] == osm_default])
-
-        if not osm_downloader_default_global_urn:
-            osm_downloader_default_global_urn = self.get_new_global_urn()
-        else:
-            osm_downloader_default_global_urn = next(iter(osm_downloader_default_global_urn))
-        osm_runner_boundaries_global_urn = self.get_new_global_urn()
-        osm_importer_boundaries_global_urn = self.get_new_global_urn()
 
         # If no clipping required on current graph, add to general output branch on all branches
         # If clipping required on current graph, add before actual clipping
@@ -1295,7 +1314,6 @@ class OpenSiteGraph(Graph):
             osm_downloader = self.create_node(
                 name=f"osm-downloader--{osm_default}",
                 title="Download OSM for clipping boundaries",
-                global_urn=osm_downloader_default_global_urn,
                 node_type="osm-downloader",
                 format="OSM",
                 input=osm_default,
@@ -1307,11 +1325,10 @@ class OpenSiteGraph(Graph):
             osm_runner = self.create_node(
                 name=f"osm-runner--{osm_default}",
                 title="Run osm-export-tool to create clipping boundaries",
-                global_urn=osm_runner_boundaries_global_urn,
                 node_type="osm-runner",
-                input=build_osm_boundaries_yml_path,
+                input=OpenSiteConstants.OSM_BOUNDARIES_YML,
                 action="run",
-                output=build_osm_boundaries_yml_path.replace('.yml', ''),
+                output=OpenSiteConstants.OSM_BOUNDARIES_YML.replace('.yml', '.gpkg'),
                 custom_properties={"osm": osm_default},
                 children=[osm_downloader]
             )
@@ -1319,7 +1336,6 @@ class OpenSiteGraph(Graph):
             osm_importer = self.create_node(
                 name=OpenSiteConstants.OSM_BOUNDARIES,
                 title="Import OSM clipping boundaries",
-                global_urn=osm_importer_boundaries_global_urn,
                 node_type="source",
                 input=f"osm/{OpenSiteConstants.OSM_BOUNDARIES}.gpkg",
                 action="import",
@@ -1339,14 +1355,6 @@ class OpenSiteGraph(Graph):
 
         osm_downloaders = self.find_nodes_by_props({'node_type': 'osm-downloader'})
         osm_default = self._defaults['osm']
-        osm_downloader_default_global_urn = set([f['global_urn'] for f in osm_downloaders if f['custom_properties']['osm'] == osm_default])
-
-        if not osm_downloader_default_global_urn:
-            self.log.error("No OSM downloader nodes found - there should be at least one in every graph")
-            exit() 
-        else:
-            osm_downloader_default_global_urn = next(iter(osm_downloader_default_global_urn))
-
         current_branches = list(self.root.children)
 
         node_urns_to_amend = []
@@ -1356,15 +1364,12 @@ class OpenSiteGraph(Graph):
                 continue
             node_urns_to_amend.append(branch_node.urn)
 
-        tileserver_installer_global_urn = self.get_new_global_urn()
-
         for node_urn_to_amend in node_urns_to_amend:
             node = self.find_node_by_urn(node_urn_to_amend)
             
             osm_downloader_download_first = self.create_node(
                 name=f"osm-downloader--{osm_default}",
-                title="Download OSM - prerequisite for tileserver install",
-                global_urn=osm_downloader_default_global_urn,
+                title="Download OSM - prerequisite for tileserver basemap generation",
                 format="OSM",
                 input=osm_default,
                 action="download",
@@ -1375,16 +1380,77 @@ class OpenSiteGraph(Graph):
             tileserver_installer = self.create_node(
                 name=f"tileserver-installer",
                 title="Download/install tileserver-related files and generate tileserver basemap",
-                global_urn=tileserver_installer_global_urn,
                 format="tileserver",
                 input=osm_default,
                 action="install",
+                output="install-tileserver-basemap",
                 custom_properties={"osm": osm_default},
                 children=[osm_downloader_download_first]
             )
 
             node.children.append(tileserver_installer)
 
+    def compute_amalgamation_outputs(self, node=None):
+        """
+        Computes outputs of all amalgamation nodes recursively by 
+        generating hash of the amalgamation's child output fields 
+        - but only once each child's output field is non-null
+        """
 
+        if node is None: node = self.root
 
+        for child in node.children:
+            self.compute_amalgamation_outputs(child)
+
+        # Process only if it's an 'amalgamate' node and hasn't been solved yet
+        if node.action == 'amalgamate' and node.output is None:
+            
+            # Check if all children now have their outputs
+            if all(child.output is not None for child in node.children):
+                
+                # Create alphabetically ordered list of child outputs
+                child_outputs = sorted([child.output for child in node.children])
+                
+                # Update custom_properties
+                node.input = child_outputs
+
+                # Create a deterministic hash
+                # Using sort_keys=True is a safety measure for JSON stability
+                hash_payload = json.dumps(child_outputs, sort_keys=True)
+                node_hash = hashlib.md5(hash_payload.encode()).hexdigest()
+                
+                # Set the output field
+                node.output = f"{OpenSiteConstants.DATABASE_GENERAL_PREFIX}{node_hash}"
+
+    def add_global_urns(self, node=None):
+        """
+        Traverses the tree, identifies nodes with shared outputs, 
+        and assigns a consistent global_urn to them.
+        """
+
+        output_map = {}
+
+        # Pass 1: Collect all nodes grouped by their output value
+        def collect_outputs(node):
+            if node.output:
+                if node.output not in output_map:
+                    output_map[node.output] = []
+                output_map[node.output].append(node)
+            
+            for child in node.children:
+                collect_outputs(child)
+
+        collect_outputs(self.root)
+
+        # Pass 2: Assign URNs where outputs are shared
+        for out_val, shared_nodes in output_map.items():
+            # If any two nodes (or more) share the same output
+            if len(shared_nodes) > 1:
+                # Generate one URN for this specific output value
+                # Using a namespace or deterministic UUID based on the output string 
+                # ensures that if the output stays the same, the URN stays the same.
+                global_urn = f"{uuid.uuid5(uuid.NAMESPACE_DNS, out_val)}"
+                
+                for node in shared_nodes:
+                    node.global_urn = global_urn
 

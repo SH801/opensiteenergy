@@ -1,6 +1,7 @@
 
 osm:
-  https://download.geofabrik.de/europe/united-kingdom-latest.osm.pbf
+  # https://download.geofabrik.de/europe/united-kingdom-latest.osm.pbf
+  https://download.geofabrik.de/europe/united-kingdom/wales-latest.osm.pbf
 
 # Based on openwind's own manual data on all large (>=75 m to tip-height) failed and successful UK onshore wind projects
 height-to-tip:

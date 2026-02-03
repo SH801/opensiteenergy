@@ -409,8 +409,6 @@ class OpenSiteSpatial(ProcessBase):
         Note: amalgamate is universally applied to all geographical subcomponents even if one subcomponent
         """
 
-        self.node.output = self.get_variable(f"VAR:global_output_{self.node.global_urn}")
-
         if self.postgis.table_exists(self.node.output):
             self.log.info(f"[amalgamate] [{self.node.output}] already exists, skipping amalgamate")
             self.node.status = 'processed'
@@ -423,11 +421,11 @@ class OpenSiteSpatial(ProcessBase):
                 self.node.status = 'failed'
                 return False
 
+        inputs = self.node.input
         grid_table = OpenSiteConstants.OPENSITE_GRIDPROCESSING
         gridsquare_ids = self.get_processing_grid_square_ids()
         scratch_table_1 = '_s1_' + self.node.output
-        children = self.node.custom_properties['children']
-
+        
         dbparams = {
             "crs": sql.Literal(self.get_crs_default()),
             "grid": sql.Identifier(grid_table),
@@ -447,10 +445,10 @@ class OpenSiteSpatial(ProcessBase):
             self.postgis.execute_query(sql.SQL("CREATE UNLOGGED TABLE {output} (id int, geom geometry(Geometry, {crs}))").format(**dbparams))
             self.postgis.add_table_comment(self.node.output, self.node.name)
 
-            if len(children) == 1:
+            if len(inputs) == 1:
 
-                dbparams['input'] = sql.Identifier(children[0])
-                self.log.info(f"[{self.node.name}] Single child so directly copying from {children[0]} to {self.node.output}")
+                dbparams['input'] = sql.Identifier(inputs[0])
+                self.log.info(f"[{self.node.name}] Single child so directly copying from {inputs[0]} to {self.node.output}")
                 self.postgis.execute_query(sql.SQL("INSERT INTO {output} SELECT * FROM {input}").format(**dbparams))
 
             else:
@@ -458,12 +456,12 @@ class OpenSiteSpatial(ProcessBase):
                 # Create empty tables first using UNLOGGED for speed
                 self.postgis.execute_query(sql.SQL("CREATE UNLOGGED TABLE {scratch1} (id int, geom geometry(Geometry, {crs}))").format(**dbparams))
         
-                # Pour each child table in one by one
-                child_index = 0
-                for child in children:
-                    child_index += 1
-                    dbparams['input'] = sql.Identifier(child)
-                    self.log.info(f"[amalgamate] [{self.node.name}] Amalgamating child table {child_index}/{len(children)}")
+                # Pour each input table in one by one
+                input_index = 0
+                for input in inputs:
+                    input_index += 1
+                    dbparams['input'] = sql.Identifier(input)
+                    self.log.info(f"[amalgamate] [{self.node.name}] Amalgamating child table {input_index}/{len(inputs)}")
                     query_add_table = sql.SQL("INSERT INTO {scratch1} (id, geom) SELECT id, (ST_Dump(geom)).geom FROM {input}").format(**dbparams)
                     self.postgis.execute_query(query_add_table)
 
@@ -536,30 +534,24 @@ class OpenSiteSpatial(ProcessBase):
         ie. if postprocessing is needed on multiple children, insert amalgamate as single child 
         """
 
-        # Set global variables if necessary
-        input = self.get_variable(self.node.input)
-        output = self.generatehash(f"{input}--postprocess")
-        self.node.output = output
-        self.set_output_variable(output, self.node.global_urn)
-
         # Temporarily convert output-focused name to normal name for registry listing
         name_elements = self.parse_output_node_name(self.node.name)
         self.node.name = name_elements['name']
 
         dbparams = {
-            "input": sql.Identifier(input),
-            "output": sql.Identifier(output),
-            "output_index": sql.Identifier(f"{output}_idx"),
+            "input": sql.Identifier(self.node.input),
+            "output": sql.Identifier(self.node.output),
+            "output_index": sql.Identifier(f"{self.node.output}_idx"),
         }
 
         query_output_st_union = sql.SQL("CREATE TABLE {output} AS SELECT (ST_Dump(ST_Union(geom))).geom geom FROM {input}").format(**dbparams)
         query_output_create_index = sql.SQL("CREATE INDEX {output_index} ON {output} USING GIST (geom)").format(**dbparams)
 
-        if self.postgis.table_exists(output):
-            self.log.info(f"[postprocess] [{output}] already exists, skipping postprocess")
+        if self.postgis.table_exists(self.node.output):
+            self.log.info(f"[postprocess] [{self.node.output}] already exists, skipping postprocess")
             return True
 
-        self.log.info(f"[postprocess] Starting ST_Union on {self.node.name} {input} -> {output}")
+        self.log.info(f"[postprocess] Starting ST_Union on {self.node.name} {self.node.input} -> {self.node.output}")
 
         try:
             self.postgis.execute_query(query_output_st_union)
@@ -568,7 +560,7 @@ class OpenSiteSpatial(ProcessBase):
 
             # Register new table manually as output uses variable ()
             self.postgis.register_node(self.node, None, name_elements['branch'])
-            if self.postgis.set_table_completed(output):
+            if self.postgis.set_table_completed(self.node.output):
                 self.log.info(f"[postprocess] [{self.node.name}] COMPLETED")
                 return True
             else:
@@ -588,24 +580,14 @@ class OpenSiteSpatial(ProcessBase):
         Clips dataset to clipping path
         """
 
-        # Set global variables if necessary
-        input = self.get_variable(self.node.input)
-        output = self.generatehash(f"{input}--clip-{self.node.custom_properties['clip']}")
-        self.node.output = output
-        self.set_output_variable(output, self.node.global_urn)
-
         # Convert output-focused name to normal name for registry listing
         name_elements = self.parse_output_node_name(self.node.name)
         self.node.name = name_elements['name']
 
         self.log.info(f"[clip] Running clip mask '{self.node.custom_properties['clip']}' on {self.node.name} table {input}")
 
-        # if self.postgis.table_exists(output):
-        #     self.log.info(f"[clip] [{output}] already exists, skipping clip mask")
-        #     return True
-
-        if self.postgis.table_exists(output):
-            self.postgis.drop_table(output)
+        if self.postgis.table_exists(self.node.output):
+            self.postgis.drop_table(self.node.output)
 
         cliptemp = '_s1_' + self.node.output
 
@@ -647,12 +629,11 @@ class OpenSiteSpatial(ProcessBase):
             self.postgis.execute_query(query_cliptemp_create_index)
             self.postgis.execute_query(query_fast_clip)
             self.postgis.drop_table(cliptemp)
-
             self.postgis.add_table_comment(self.node.output, self.node.name)
 
             # Register new table manually as output uses variable ()
             self.postgis.register_node(self.node, None, name_elements['branch'])
-            if self.postgis.set_table_completed(output):
+            if self.postgis.set_table_completed(self.node.output):
                 self.log.info(f"[clip] [{self.node.name}] COMPLETED")
                 return True
             else:

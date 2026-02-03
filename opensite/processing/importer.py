@@ -148,19 +148,8 @@ class OpenSiteImporter(ProcessBase):
             self.node.status = 'processed'
             return True
 
-        input_file = self.node.input
-        if input_file and input_file.startswith('VAR:'):
-            # Lookup the value from our shared tracking (metadata/output variables)
-            # This follows pattern for resolving dynamic node dependencies
-            input_file_variable_name = input_file
-            input_file = self.get_variable(input_file_variable_name)
-            yaml_path = str(Path(self.base_path) / self.node.custom_properties['yml'])
-            # Layer name within GPKG is defined in osm-export-tool YML file topmost variable
-            osm_export_tool_layer_name = self.get_top_variable(yaml_path)
-            self.log.debug(f"Resolved osm-export-tool variable {input_file_variable_name} to layer name: {osm_export_tool_layer_name}")
-        else:
-            input_file = str(Path(self.base_path) / input_file)
-        
+        input_file = str(Path(self.base_path) / self.node.input)
+
         if not input_file or not os.path.exists(input_file):
             self.log.error(f"Import failed: File not found for input '{input_file}'")
             self.node.status = 'failed'
@@ -199,9 +188,16 @@ class OpenSiteImporter(ProcessBase):
 
         # Format-Specific Logic
         if self.node.format == OpenSiteConstants.OSM_YML_FORMAT:
+
+            # Layer name within GPKG is defined in osm-export-tool YML file topmost variable
+            yaml_path = str(Path(self.base_path) / self.node.custom_properties['yml'])
+            osm_export_tool_layer_name = self.get_top_variable(yaml_path)
+            self.log.debug(f"Resolved osm-export-tool variable using {os.path.basename(yaml_path)} to layer name: {osm_export_tool_layer_name}")
+
             # In ogr2ogr, the layer name follows the input file
             cmd.insert(5, osm_export_tool_layer_name)
             self.log.info(f"Importing OSM layer '{osm_export_tool_layer_name}' to '{self.node.output} from {os.path.basename(input_file)}")
+
         else:
             # For GeoJSON or other single-layer files, just set the table name
             self.log.info(f"Importing file {os.path.basename(input_file)} to table '{self.node.output}'")

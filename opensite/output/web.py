@@ -65,22 +65,21 @@ class OpenSiteOutputWeb(OutputBase):
             # Modify 'openmaptiles.json' and generate mbtiles stylesheets for each dataset
 
             fonts_url = OpenSiteConstants.TILESERVER_URL + '/fonts/{fontstack}/{range}.pbf'
-
-            openmaptiles_style_file_src = str(OpenSiteConstants.TILESERVER_INSTALL_FOLDER / 'openmaptiles.json')
+            openmaptiles_style_file_src = str(OpenSiteConstants.TILESERVER_FOLDER_SRC / 'openmaptiles.json')
             openmaptiles_style_file_dst = str(OpenSiteConstants.TILESERVER_STYLES_FOLDER / 'openmaptiles.json')
             openmaptiles_style_json = json.load(open(openmaptiles_style_file_src, 'r', encoding='utf-8'))
             openmaptiles_style_json['sources']['openmaptiles']['url'] = OpenSiteConstants.TILESERVER_URL + "/data/openmaptiles.json"
             openmaptiles_style_json['glyphs'] = fonts_url
             json.dump(openmaptiles_style_json, open(openmaptiles_style_file_dst, 'w', encoding='utf-8'), indent=4)
 
-            first_branch_ckan = self.node.custom_properties[0]['ckan']
+            first_branch_ckan = self.node.custom_properties['structure'][0]['ckan']
             attribution = f"Source data copyright of multiple organisations. For all data sources, see <a href=\"{first_branch_ckan}\" target=\"_blank\">{first_branch_ckan.replace('https://', '')}</a>"
             opensite_style_json = openmaptiles_style_json
             opensite_style_json['name'] = 'Open Site Energy'
             opensite_style_json['id'] = 'opensiteenergy'
             opensite_style_json['sources']['attribution']['attribution'] += " " + attribution
 
-            for branch in self.node.custom_properties:
+            for branch in self.node.custom_properties['structure']:
 
                 firstdataset = True
 
@@ -214,41 +213,23 @@ class OpenSiteOutputWeb(OutputBase):
         """
         Runs Web output
         """
-
-        # TO DO
-        # 3. Generate different config files for gl-tileserver
-
-        js_filepath = Path(self.base_path) / self.node.output
         
         try:
 
             self.log.info("Outputting main web page")
 
             # Copy main web index page to output folder
-            shutil.copy('tileserver/index.html', str(Path(OpenSiteConstants.OUTPUT_FOLDER) / 'index.html'))
-
-            branches_input      = self.node.custom_properties
-            branches_output     = []
-            for branch in branches_input:
-                branch['bounds'] = None
-                if 'clip' in branch:
-                    branch_bounds_dict = self.postgis.get_area_bounds(branch['clip'], OpenSiteConstants.CRS_DEFAULT, OpenSiteConstants.CRS_OUTPUT)
-                    branch['bounds'] = [branch_bounds_dict['left'], branch_bounds_dict['bottom'], branch_bounds_dict['right'], branch_bounds_dict['top']]
-                branches_output.append(branch)
-
-            with open(js_filepath, 'w', encoding='utf-8') as f:
-                f.write(f"var opensite_layers = {json.dumps(branches_output, indent=4)};")
-            self.log.info(f"[OpenSiteOutputWeb] Data exported to {self.node.output}")
+            shutil.copy('tileserver/index.html', str(Path(OpenSiteConstants.OUTPUT_FOLDER) / self.node.output))
 
             self.log.info("Outputting tileserver mbtiles stylesheets")
 
-            if len(self.node.custom_properties) == 0:
+            if ('structure' not in self.node.custom_properties) or (len(self.node.custom_properties['structure']) == 0):
                 self.log.error("No branches set, unable to generate web tileserver configuration files")
                 return False
             
             # All branches share same 'osm-default' path used to 
             # generate basemap so okay to use first branch to get path
-            osm_basemap_mbtiles_file = os.path.basename(self.node.custom_properties[0]['osm-default']).replace('.osm.pbf', '.mbtiles')
+            osm_basemap_mbtiles_file = os.path.basename(self.node.custom_properties['structure'][0]['osm-default']).replace('.osm.pbf', '.mbtiles')
 
             self.log.info("Deleting non-basemap mbtiles from tileserver data folder")
             self.clear_folder(str(OpenSiteConstants.TILESERVER_DATA_FOLDER), exceptions=[osm_basemap_mbtiles_file])

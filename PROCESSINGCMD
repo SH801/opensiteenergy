@@ -1,0 +1,1 @@
+./build.sh test/wind_small.yml test/wind2_small.yml

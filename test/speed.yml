@@ -1,0 +1,46 @@
+title:
+  "Speed test"
+
+type:
+  speed
+
+code:
+  speed
+  
+height-to-tip:
+  124.2
+
+osm:
+  https://download.geofabrik.de/europe/united-kingdom-latest.osm.pbf
+
+# clip:
+#   East Sussex
+  
+areas:
+  - england
+  - wales
+  - scotland
+  - northern-ireland
+  - uk
+
+structure:
+  separation-distance-from-residential-properties:
+    - pipelines--uk
+
+buffers: 
+  residential-buildings-os--gb:
+    400
+
+style:
+  separation-distance-from-residential-properties:
+    color:
+      darkorange
+
+
+
+
+
+
+
+
+

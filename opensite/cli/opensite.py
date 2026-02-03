@@ -1,6 +1,7 @@
 import yaml
 import os
 import logging
+import sys
 from .base import BaseCLI
 from opensite.logging.opensite import OpenSiteLogger
 
@@ -34,6 +35,21 @@ class OpenSiteCLI(BaseCLI):
         self.parser.add_argument('--clip', type=str, help="Name of the area to clip data to (e.g., 'Sussex')")
         self.parser.add_argument('--overwrite', action='store_true', help="Reexports all output files, overwriting files already created")
         self.parser.add_argument('--graphonly', action='store_true', help="Generate build graph but don't run build")
+
+    def get_command_line(self):
+        """
+        Regenerate full command line from list of arguments
+        """
+
+        output_args = []
+        for arg in sys.argv:
+            if ' ' in arg: arg = "'" + str(arg) + "'"
+            output_args.append(arg)
+
+        commandline = ' '.join(output_args)
+        commandline = commandline.replace('opensiteenergy.py', './build.sh')
+        
+        return commandline
 
     def _load_and_filter_defaults(self):
         """Loads the file and keeps only int, float, and str variables."""

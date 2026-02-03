@@ -1,125 +1,8 @@
 
 
-def initPipeline(command_line):
-    """
-    Carry out tasks essential to subsequent tasks
-    """
-
-    global OSM_RELATED_FORMATS_FOLDER, OSM_MAIN_DOWNLOAD, BUILD_FOLDER, OSM_BOUNDARIES, OSM_BOUNDARIES_YML, OVERALL_CLIPPING_FILE, WORKING_FOLDER
-    global POSTGRES_HOST, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, WORKING_CRS
-    global PROCESSING_STATE_FILE
-
-    with open(PROCESSING_STATE_FILE, 'w') as file: file.write(command_line)
-
-    postgisDropLegacyTables()
-
-    osm_main_download_path = OSM_RELATED_FORMATS_FOLDER + basename(OSM_MAIN_DOWNLOAD)
-    osm_boundaries_table = reformatTableNameAbsolute(OSM_BOUNDARIES)
-    osm_boundaries_osm_export_path = BUILD_FOLDER + OSM_BOUNDARIES
-    osm_boundaries_gpkg = osm_boundaries_osm_export_path + '.gpkg'
-
-    # If osm_boundaries_gkpg file does exist, quickly check layers - if no layers (likely that processing was interrupted), getGPKGProjection will delete it
-    if isfile(osm_boundaries_gpkg): getGPKGProjection(osm_boundaries_gpkg)
-
-    # If osm_boundaries_gpkg file doesn't exist, carry out OSM download using default OSM specification
-    # (before any custom configuration) and run osm-export-tool on osm_boundaries_yml to generate osm_boundaries_gpkg
-
-    if not isfile(osm_boundaries_gpkg):
-
-        osmDownloadData()
-
-        LogMessage("Generating " + basename(osm_boundaries_gpkg) + " from " + basename(OSM_MAIN_DOWNLOAD))
-
-        if not isfile(OSM_BOUNDARIES_YML): LogFatalError("Missing file: " + OSM_BOUNDARIES_YML + ", aborting")
-
-        # Note: 'osm-export-tool' needs path to .gpkg to be output but without .gpkg extension
-        runSubprocess([ "osm-export-tool", osm_main_download_path, osm_boundaries_osm_export_path, "-m", OSM_BOUNDARIES_YML])
-
-    osm_boundaries_projection = getGPKGProjection(osm_boundaries_gpkg)
-
-    if not postgisCheckTableExists(osm_boundaries_table):
-
-        LogMessage("Importing into PostGIS: " + basename(osm_boundaries_gpkg))
-
-        scratch_table_1 = '_scratch_table_clipping'
-        scratch_table_2 = '_scratch_table_preclipped_boundaries'
-        overall_clipping_layer = reformatTableName(OVERALL_CLIPPING_FILE)
-
-        if postgisCheckTableExists(scratch_table_1): postgisDropTable(scratch_table_1)
-        if postgisCheckTableExists(scratch_table_2): postgisDropTable(scratch_table_2)
-
-        LogMessage(" --> Step 1: Importing overall clipping layer (dissolved) into scratch table")
-
-        runSubprocess([ "ogr2ogr", \
-                        "-f", "PostgreSQL", \
-                        'PG:host=' + POSTGRES_HOST + ' user=' + POSTGRES_USER + ' password=' + POSTGRES_PASSWORD + ' dbname=' + POSTGRES_DB, \
-                        OVERALL_CLIPPING_FILE, \
-                        "-nln", scratch_table_1, \
-                        "-nlt", "MULTIPOLYGON", \
-                        "-sql", \
-                        "SELECT ST_Union(geom) geom FROM 'uk-clipping'", \
-                        "--config", "OGR_PG_ENABLE_METADATA", "NO", \
-                        "--config", "PG_USE_COPY", "YES" ])
-
-        LogMessage(" --> Step 2: Importing unclipped boundaries into scratch table")
-
-        # Note: clipping on OVERALL_CLIPPING_FILE as some osm boundaries - esp UK nations - are not clipped tightly on coastlines
-        runSubprocess([ "ogr2ogr", \
-                        "-f", "PostgreSQL", \
-                        'PG:host=' + POSTGRES_HOST + ' user=' + POSTGRES_USER + ' password=' + POSTGRES_PASSWORD + ' dbname=' + POSTGRES_DB, \
-                        osm_boundaries_gpkg, \
-                        "-nln", scratch_table_2, \
-                        "-nlt", "MULTIPOLYGON", \
-                        "--config", "OGR_PG_ENABLE_METADATA", "NO", \
-                        "--config", "PG_USE_COPY", "YES" ])
-
-        LogMessage(" --> Step 3: Clipping partially overlapping polygons")
-
-        postgisExec("""
-        CREATE TABLE %s AS 
-            SELECT data.fid, data.osm_id, data.name, data.council_name, data.boundary, data.admin_level, ST_Intersection(clipping.geom, data.geom) geom
-            FROM %s data, %s clipping 
-            WHERE 
-                (NOT ST_Contains(clipping.geom, data.geom) AND 
-                ST_Intersects(clipping.geom, data.geom));""", \
-            (AsIs(osm_boundaries_table), AsIs(scratch_table_2), AsIs(scratch_table_1), ))
-
-        LogMessage(" --> Step 4: Adding fully enclosed polygons")
-
-        postgisExec("""
-        INSERT INTO %s  
-            SELECT data.fid, data.osm_id, data.name, data.council_name, data.boundary, data.admin_level, data.geom  
-            FROM %s data, %s clipping 
-            WHERE 
-                ST_Contains(clipping.geom, data.geom);""", \
-            (AsIs(osm_boundaries_table), AsIs(scratch_table_2), AsIs(scratch_table_1), ))
-
-        if postgisCheckTableExists(scratch_table_1): postgisDropTable(scratch_table_1)
-        if postgisCheckTableExists(scratch_table_2): postgisDropTable(scratch_table_2)
-
-        LogMessage(" --> COMPLETED: Processed table: " + osm_boundaries_table)
-        LogMessage("------------------------------------------------------------")
-
-        # Once imported, add index to 'name', 'council_name' and 'admin_level' fields
-        if postgisCheckTableExists(osm_boundaries_table):
-            postgisExec("CREATE INDEX ON %s (name)", (AsIs(osm_boundaries_table), ))
-            postgisExec("CREATE INDEX ON %s (council_name)", (AsIs(osm_boundaries_table), ))
-            postgisExec("CREATE INDEX ON %s (admin_level)", (AsIs(osm_boundaries_table), ))
 
 
 
-
-
-
-def runProcessingOnDownloads(output_folder):
-    """
-    Processes folder of GeoJSON and GPKG files
-    - Adds buffers where appropriate
-    - Joins and dissolves child datasets into single parent dataset
-    - Joins and dissolves datasets into CKAN groups, one for each group
-    - Create single final joined-and-dissolved dataset for entire CKAN database of datasets
-    - Converts final files to GeoJSON (EPSG:4326)
-    """
 
     global CUSTOM_CONFIGURATION, CUSTOM_CONFIGURATION_FILE_PREFIX, PROCESSING_START
     global DEBUG_RUN, HEIGHT_TO_TIP, WORKING_CRS, BUILD_FOLDER, OSM_MAIN_DOWNLOAD, OSM_EXPORT_DATA, OSM_BOUNDARIES
@@ -141,80 +24,6 @@ def runProcessingOnDownloads(output_folder):
     custom_configuration_prefix = ''
     if CUSTOM_CONFIGURATION is not None: custom_configuration_prefix = CUSTOM_CONFIGURATION_FILE_PREFIX
 
-    # Ensure all necessary folders exists
-
-    makeFolder(BUILD_FOLDER)
-    makeFolder(output_folder)
-    makeFolder(FINALLAYERS_OUTPUT_FOLDER)
-
-  
-    # Import overall clipping into PostGIS
-
-    # If custom configuration has 'clipping' defined, use this instead of default overall clipping
-
-    clipping = None
-    if CUSTOM_CONFIGURATION is not None:
-        if 'clipping' in CUSTOM_CONFIGURATION:
-            clipping = CUSTOM_CONFIGURATION['clipping']
-
-            # Convert area names into OSM names
-            # For example convert 'northern-ireland' (internal area name) to 'Northern Ireland / Tuaisceart Éireann' (OSM name)
-            for clipping_index in range(len(clipping)):
-                clipping_current = clipping[clipping_index].lower()
-                if clipping_current in OSM_NAME_CONVERT: clipping[clipping_index] = OSM_NAME_CONVERT[clipping_current]
-                clipping[clipping_index] = "'" + clipping[clipping_index] + "'"
-
-    # reformatTableName will add CUSTOM_CONFIGURATION_TABLE_PREFIX to table name if using custom configuration file
-    # so if using custom config, new copy of clipping_table will be created at CUSTOM_CONFIGURATION_TABLE_PREFIX + 'overall_clipping'
-
-    clipping_table = reformatTableName(OVERALL_CLIPPING_FILE)
-
-    if not postgisCheckTableExists(clipping_table):
-
-        # If CUSTOM_CONFIGURATION requires specific area, modify how we create overall clipping area
-
-        if clipping is None:
-
-            LogMessage("Importing into PostGIS: " + OVERALL_CLIPPING_FILE)
-
-            clipping_file_projection = getGPKGProjection(OVERALL_CLIPPING_FILE)
-
-            runSubprocess([ "ogr2ogr", \
-                            "-f", "PostgreSQL", \
-                            'PG:host=' + POSTGRES_HOST + ' user=' + POSTGRES_USER + ' password=' + POSTGRES_PASSWORD + ' dbname=' + POSTGRES_DB, \
-                            OVERALL_CLIPPING_FILE, \
-                            "-overwrite", \
-                            "-nln", clipping_table, \
-                            "-lco", "GEOMETRY_NAME=geom", \
-                            "-lco", "OVERWRITE=YES", \
-                            "-s_srs", clipping_file_projection, \
-                            "-t_srs", WORKING_CRS, \
-                            "--config", "OGR_PG_ENABLE_METADATA", "NO"])
-
-        else:
-
-            osm_boundaries_table = reformatTableNameAbsolute(OSM_BOUNDARIES)
-
-            if not postgisCheckTableExists(osm_boundaries_table): LogFatalError("Essential boundaries table '" + osm_boundaries_table + "' missing - aborting")
-
-            LogMessage("Creating custom clipping boundaries for " + ",".join(clipping) + " from " + osm_boundaries_table)
-
-            postgisExec("CREATE TABLE %s AS SELECT geom FROM %s WHERE (name IN (%s)) OR (council_name IN (%s)) ", (AsIs(clipping_table), AsIs(osm_boundaries_table), AsIs(",".join(clipping)), AsIs(",".join(clipping)), ))
-            postgisExec("CREATE INDEX %s ON %s USING GIST (geom);", (AsIs(clipping_table + "_idx"), AsIs(clipping_table), ))
-
-    LogMessage("Checking/creating union of clipping layer - may be default clipping layer or custom clipping layer...")
-
-    clipping_union_table = buildUnionTableName(clipping_table)
-
-    if not postgisCheckTableExists(clipping_union_table):
-
-        LogMessage("Running ST_Union within PostGIS: " + clipping_table + " -> " + clipping_union_table)
-
-        postgisExec("CREATE TABLE %s AS SELECT ST_Union(geom) geom FROM %s", \
-                    (AsIs(clipping_union_table), AsIs(clipping_table), ))
-        postgisExec("CREATE INDEX %s ON %s USING GIST (geom);", (AsIs(clipping_union_table + "_idx"), AsIs(clipping_union_table), ))
-
-    LogMessage("Finished checking/creating union of clipping layer")
 
     # If custom clipping, get bounds and centre
 
@@ -237,14 +46,6 @@ def runProcessingOnDownloads(output_folder):
     outputBoundsAndCenterJavascript()
 
 
-
-    # Build tile server files
-
-    buildTileserverFiles()
-
-    # Build QGIS file
-
-    buildQGISFile()
 
 
     run_script = './run-cli.sh'

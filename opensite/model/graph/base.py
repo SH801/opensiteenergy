@@ -520,29 +520,6 @@ class Graph:
                     child.parent = parent_node
                     parent_node.children.append(child)
 
-    def get_children_info(self, node) -> dict:
-        """
-        Generates an ordered list of child names and a unique hash representing 
-        the combined state of dependencies and additional metadata.
-        """
-        # Generate alphabetically ordered list of child node output fields
-        child_names = []
-        for urn in node.dependencies:
-            child_node = self.find_node_by_urn(urn) 
-            if child_node:
-                child_names.append(str(child_node.output))
-        
-        child_names.sort()
-
-        # Create a hash on json.dumps([list]) + node.name
-        combined_string = json.dumps(child_names) + str(node.name)
-        content_hash = hashlib.md5(combined_string.encode()).hexdigest()
-
-        return {
-            "children": child_names,
-            "output": f"{self.TABLENAME_PREFIX}{content_hash}"
-        }
-
     def get_output(self, node) -> str:
         """
         Generates a PostGIS-safe table name.
@@ -557,6 +534,20 @@ class Graph:
         table_name = f"{self.TABLENAME_PREFIX}{node_hash}"
 
         return table_name
+
+    def round_float(self, val):
+        """
+        Rounds to 1 decimal place and removes .0 if it exists.
+        Example: 245.04 -> 245, 245.06 -> 245.1
+        """
+        # Round to 1 decimal place
+        rounded = round(float(val), 1)
+        
+        # Check if the float is an integer value (ends in .0)
+        if rounded.is_integer():
+            return float(int(rounded))
+        
+        return rounded
 
     def resolve_math(self, expression: Any, context: Dict[str, Any]) -> Any:
         """
@@ -586,7 +577,7 @@ class Graph:
             try:
                 # We strip dangerous built-ins to keep eval safe.
                 # This performs the actual "math" (multiplication, addition, etc.)
-                return eval(templated_expr, {"__builtins__": None}, {})
+                return self.round_float(eval(templated_expr, {"__builtins__": None}, {}))
             except Exception as e:
                 # If the math is garbage (e.g. "1.1 * /path/to/osm"), return raw string.
                 return expression

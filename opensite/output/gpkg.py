@@ -18,7 +18,7 @@ class OpenSiteOutputGPKG(OutputBase):
         Runs GPKG output
         """
 
-        source_table = self.get_variable(self.node.input)
+        source_table = self.node.input
         temp_output = 'tmp-' + self.node.output
         temp_output_path = Path(self.base_path) / temp_output
         final_output = self.node.output
