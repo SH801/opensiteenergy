@@ -224,16 +224,6 @@ class OpenSiteConstants:
                                     'Northern Ireland': 'Northern Ireland / Tuaisceart Éireann'
                                 }
     
-    # Colour codes for logger
-    LOGGER_WHITE                = "\033[37m"
-    LOGGER_YELLOW               = "\033[33m"
-    LOGGER_ORANGE               = "\033[33m"
-    LOGGER_RED                  = "\033[31m"
-    LOGGER_GREEN                = "\033[32m"
-    LOGGER_BLUE                 = "\033[34m"
-    LOGGER_RESET                = "\033[0m"
-    LOGGER_BOLD                 = "\033[1m"
-
     # All folders that need to be created at run time
     ALL_FOLDERS                 = \
                                 [

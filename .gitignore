@@ -47,6 +47,7 @@ terraform/gcp/.terraform/
 terraform/gcp/terraform.tfstate
 terraform/gcp/terraform.tfstate.backup
 
+graph.html
 tidy_away_move_back_when_advanced
 opensite.log
 PROCESSING

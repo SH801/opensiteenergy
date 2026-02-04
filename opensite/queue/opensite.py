@@ -18,6 +18,9 @@ from opensite.processing.run import OpenSiteRunner
 from opensite.processing.importer import OpenSiteImporter
 from opensite.processing.spatial import OpenSiteSpatial
 from opensite.output.opensite import OpenSiteOutput
+from colorama import Fore, Style, init
+
+init()
 
 class OpenSiteQueue:
 
@@ -327,9 +330,9 @@ class OpenSiteQueue:
                                  if n.get('status') not in ['processed', 'failed']]
                     
                     if not unfinished:
-                        self.graph.log.info(f"{OpenSiteConstants.LOGGER_GREEN}{'='*60}{OpenSiteConstants.LOGGER_RESET}")
-                        self.graph.log.info(f"{OpenSiteConstants.LOGGER_GREEN}{'*'*19} PROCESSING COMPLETE {'*'*20}{OpenSiteConstants.LOGGER_RESET}")
-                        self.graph.log.info(f"{OpenSiteConstants.LOGGER_GREEN}{'='*60}{OpenSiteConstants.LOGGER_RESET}")
+                        self.graph.log.info(f"{Fore.GREEN}{'='*60}{Style.RESET_ALL}")
+                        self.graph.log.info(f"{Fore.GREEN}{'*'*19} PROCESSING COMPLETE {'*'*20}{Style.RESET_ALL}")
+                        self.graph.log.info(f"{Fore.GREEN}{'='*60}{Style.RESET_ALL}")
                         return True
                     else:
                         if unfinishednodes == len(unfinished):

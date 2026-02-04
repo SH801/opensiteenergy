@@ -1,1 +1,1 @@
-./build.sh test/wind.yml test/wind2.yml test/wind3_different.yml --purgeall
+./build.sh wind --outputformats=qgis,web

@@ -18,6 +18,9 @@ from opensite.model.graph.opensite import OpenSiteGraph
 from opensite.queue.opensite import OpenSiteQueue
 from opensite.postgis.opensite import OpenSitePostGIS
 from opensite.processing.spatial import OpenSiteSpatial
+from colorama import Fore, Style, init
+
+init()
 
 class OpenSiteApplication:
     def __init__(self, log_level=OpenSiteConstants.LOGGING_LEVEL):
@@ -25,9 +28,9 @@ class OpenSiteApplication:
         self.log_level = os.getenv("OPENSITE_LOG_LEVEL", log_level)
         self.processing_start = time.time()
         self.server_thread = None
-        self.log.info(f"{OpenSiteConstants.LOGGER_GREEN}{'='*60}{OpenSiteConstants.LOGGER_RESET}")
-        self.log.info(f"{OpenSiteConstants.LOGGER_GREEN}{'*'*17} APPLICATION INITIALIZED {'*'*18}{OpenSiteConstants.LOGGER_RESET}")
-        self.log.info(f"{OpenSiteConstants.LOGGER_GREEN}{'='*60}{OpenSiteConstants.LOGGER_RESET}")
+        self.log.info(f"{Fore.GREEN}{'='*60}{Style.RESET_ALL}")
+        self.log.info(f"{Fore.GREEN}{'*'*17} APPLICATION INITIALIZED {'*'*18}{Style.RESET_ALL}")
+        self.log.info(f"{Fore.GREEN}{'='*60}{Style.RESET_ALL}")
 
         # self.stop_event = threading.Event()
         # self.app = self._setup_fastapi()
@@ -68,7 +71,7 @@ class OpenSiteApplication:
         processing_time_minutes = round(processing_time / 60, 1)
         processing_time_hours = round(processing_time / (60 * 60), 1)
         time_text = f"{processing_time_minutes} minutes ({processing_time_hours} hours) to complete"
-        self.log.info(f"{OpenSiteConstants.LOGGER_YELLOW}Completed processing - {time_text}{OpenSiteConstants.LOGGER_RESET}")
+        self.log.info(f"{Fore.YELLOW}Completed processing - {time_text}{Style.RESET_ALL}")
         print("")
 
     def init_environment(self):
@@ -113,16 +116,15 @@ class OpenSiteApplication:
     def show_success_message(self, outputformats):
         """Gets final message text"""
 
-        final_message = f"""\n\033[1;34m{'='*60}\n**************** OPEN SITE ENERGY BUILD PROCESS COMPLETE **************{'='*60}\033[0m
-\nFinal layers created at:
-\n\033[1;94m{OpenSiteConstants.OUTPUT_FOLDER}\033[0m
-\n\nTo view latest constraint layers as map, enter:
-\n\033[1;94m./webview.sh\033[0m
-\n\n"""
+        final_message = f"""
+{Fore.MAGENTA}{'='*60}\n{'*'*10} OPEN SITE ENERGY BUILD PROCESS COMPLETE {'*'*9}\n{'='*60}{Style.RESET_ALL}
+\nFinal layers created at:\n\n{Fore.CYAN + Style.BRIGHT}{OpenSiteConstants.OUTPUT_LAYERS_FOLDER}{Style.RESET_ALL}\n\n\n"""
+
+        if 'web' in outputformats:
+            final_message += f"""To view latest constraint layers as map, enter:\n\n{Fore.CYAN + Style.BRIGHT}./webview.sh{Style.RESET_ALL}\n\n\n"""
         
         if 'qgis' in outputformats:
-            final_message += f"""GIS file created at:\n
-\033[1;94m{str(Path(OpenSiteConstants.OUTPUT_FOLDER) / OpenSiteConstants.OPENSITEENERGY_SHORTNAME)}.qgs\033[0m\n\n"""
+            final_message += f"""QGIS file created at:\n\n{Fore.CYAN + Style.BRIGHT}{str(Path(OpenSiteConstants.OUTPUT_FOLDER) / OpenSiteConstants.OPENSITEENERGY_SHORTNAME)}.qgs{Style.RESET_ALL}\n\n"""
 
         print(final_message)
 
@@ -196,24 +198,24 @@ class OpenSiteApplication:
         # Initialise CLI
         cli = OpenSiteCLI(log_level=self.log_level) 
         if cli.purgedb:
-            print(f"\n{OpenSiteConstants.LOGGER_RED}{OpenSiteConstants.LOGGER_BOLD}{'='*60}")
+            print(f"\n{Fore.RED}{Style.BRIGHT}{'='*60}")
             print(f"WARNING: You are about to delete all opensite tables")
             print(f"This includes registry, branch, and all spatial data tables.")
-            print(f"{'='*60}{OpenSiteConstants.LOGGER_RESET}\n")
+            print(f"{'='*60}{Style.RESET_ALL}\n")
             
-            confirm = input(f"Type {OpenSiteConstants.LOGGER_BOLD}'yes'{OpenSiteConstants.LOGGER_RESET} to delete all OpenSite data: ").strip().lower()
+            confirm = input(f"Type {Style.BRIGHT}'yes'{Style.RESET_ALL} to delete all OpenSite data: ").strip().lower()
             if confirm == 'yes':
                 self.purgedb()
             else:
                 self.log.warning("Purge aborted. No tables were harmed.")
 
         if cli.purgeall:
-            print(f"\n{OpenSiteConstants.LOGGER_RED}{OpenSiteConstants.LOGGER_BOLD}{'='*60}")
+            print(f"\n{Fore.RED}{Style.BRIGHT}{'='*60}")
             print(f"WARNING: You are about to delete all downloads and opensite tables")
             print(f"This includes registry, branch, and all spatial data tables.")
-            print(f"{'='*60}{OpenSiteConstants.LOGGER_RESET}\n")
+            print(f"{'='*60}{Style.RESET_ALL}\n")
             
-            confirm = input(f"Type {OpenSiteConstants.LOGGER_BOLD}'yes'{OpenSiteConstants.LOGGER_RESET} to delete all downloads and OpenSite data: ").strip().lower()
+            confirm = input(f"Type {Style.BRIGHT}'yes'{Style.RESET_ALL} to delete all downloads and OpenSite data: ").strip().lower()
             if confirm == 'yes':
                 self.purgeall()
             else:
@@ -252,6 +254,7 @@ class OpenSiteApplication:
         queue = OpenSiteQueue(graph, log_level=self.log_level, overwrite=cli.get_overwrite())
 
         # Main processing loop
+        success = False
         if not cli.get_graphonly(): 
 
             # Change state files in case running in server environment
@@ -261,8 +264,7 @@ class OpenSiteApplication:
             with open(OpenSiteConstants.PROCESSING_CMD_FILE, 'w') as file: file.write(cli.get_command_line())
             if Path(OpenSiteConstants.PROCESSING_COMPLETE_FILE).exists(): Path(OpenSiteConstants.PROCESSING_COMPLETE_FILE).unlink()
             
-            if queue.run():
-                self.show_success_message(cli.get_outputformats())
+            success = queue.run()
 
             # Change state files in case running in server environment
             with open(OpenSiteConstants.PROCESSING_START_FILE, 'a', encoding='utf-8') as file: 
@@ -272,6 +274,9 @@ class OpenSiteApplication:
 
         # Show elapsed time at end
         self.show_elapsed_time()
+
+        if success:
+            self.show_success_message(cli.get_outputformats())
 
     def shutdown(self, message="Process Complete"):
         """Clean exit point for the application."""
