@@ -29,7 +29,7 @@ class OpenSiteCLI(BaseCLI):
         # Override base function
         super().add_standard_args()
         self.parser.add_argument("sites", nargs="*", help="Site(s) to generate")
-        self.parser.add_argument('--preview', action='store_true', help='Generate an interactive graph preview and skip database modifications')
+        self.parser.add_argument('--preview', action='store_true', help='Loads interactive processing graph view')
         self.parser.add_argument('--purgedb', action='store_true', help="Drop all opensite tables and exit")
         self.parser.add_argument('--purgeall', action='store_true', help="Delete all download files, drop all opensite tables and exit")
         self.parser.add_argument('--clip', type=str, help="Name of the area to clip data to (e.g., 'Sussex')")

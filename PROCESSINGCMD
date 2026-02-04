@@ -1,1 +1,1 @@
-./build.sh wind
+./build.sh wind --purgeall --preview

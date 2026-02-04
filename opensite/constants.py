@@ -115,7 +115,9 @@ class OpenSiteConstants:
     OUTPUT_FOLDER               = BUILD_ROOT / "output"
     OUTPUT_LAYERS_FOLDER        = OUTPUT_FOLDER / "layers"
     INSTALL_FOLDER              = BUILD_ROOT / "install"
-
+    PROCESSING_WEB_FOLDER       = Path("web")
+    
+    # Location 
     # ------------------------------------------------------------
     # Tilemaker-related properties
     # ------------------------------------------------------------

@@ -1,10 +1,15 @@
 import json
 import os
+import threading
+import uvicorn
 import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
 import logging
 import multiprocessing
 import time
+import webbrowser
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from typing import List
 from pathlib import Path
 from opensite.logging.opensite import OpenSiteLogger
@@ -34,13 +39,53 @@ class OpenSiteQueue:
         self.log_level = log_level
         self.overwrite = overwrite
         self.logger = OpenSiteLogger("OpenSiteQueue", self.log_level)
+        self.server_thread = None
+        self.stop_event = None
 
         # Resource Scaling
         self.cpus = os.cpu_count() or 1
+        if self.cpus > 1: self.cpus -= 1
         self.cpu_workers = max_workers or self.cpus
         self.io_workers = self.cpu_workers * 4  # Higher concurrency for network/disk
         
         self.graph.log.info(f"Processor ready. CPU Workers: {self.cpu_workers}, I/O Workers: {self.io_workers}")
+
+    def _setup_fastapi(self):
+        """Initializes the FastAPI app with routes."""
+        app = FastAPI(title="OpenSite Graph API")
+
+        @app.get("/", response_class=HTMLResponse)
+        async def show_index():
+            return open(str(OpenSiteConstants.PROCESSING_WEB_FOLDER / "index.html"), 'r').read()
+
+        @app.get("/nodes")
+        async def get_nodes():
+            return self.graph.to_json()
+
+        @app.get("/health")
+        async def health():
+            return {"status": "running"}
+
+        return app
+
+    def start_web_server(self, host="127.0.0.1", port=8000):
+        """Starts FastAPI in a background thread."""
+        config = uvicorn.Config(self.app, host=host, port=port, log_level="info")
+        server = uvicorn.Server(config)
+
+        def run_server():
+            # The server runs until the loop is stopped
+            server.run()
+
+        self.server_thread = threading.Thread(target=run_server, daemon=True)
+        self.server_thread.start()
+        self.logger.info(f"[*] FastAPI started on http://{host}:{port}")
+        self.logger.info(f"[*] API Docs available at http://{host}:{port}/docs")
+
+    def shutdown(self):
+        """Clean exit point for the application."""
+
+        if self.stop_event: self.stop_event.set()
 
     def _fetch_filesizes_parallel(self, nodes: List[Node]):
         """Helper to fetch remote sizes for a list of nodes in parallel."""
@@ -254,13 +299,22 @@ class OpenSiteQueue:
 
             return 'failed'
 
-    def run(self):
+    def run(self, preview=False):
         """
         Main orchestration loop. Uses a continuous sweep to pipeline
         I/O and CPU tasks simultaneously.
         """
         self.graph.log.info(f"Starting orchestration with {self.io_workers} I/O threads and {self.cpu_workers} CPU processes.")
         
+        if preview:
+            # Run processing preview system
+            self.stop_event = threading.Event()
+            self.app = self._setup_fastapi()
+            self.start_web_server()
+            # If not running in server mode, open browser
+            if not OpenSiteConstants.SERVER_BUILD:
+                webbrowser.open(f"http://localhost:8000")
+
         # Track active futures: {future: urn}
         active_tasks = {}
         
@@ -333,10 +387,12 @@ class OpenSiteQueue:
                         self.graph.log.info(f"{Fore.GREEN}{'='*60}{Style.RESET_ALL}")
                         self.graph.log.info(f"{Fore.GREEN}{'*'*19} PROCESSING COMPLETE {'*'*20}{Style.RESET_ALL}")
                         self.graph.log.info(f"{Fore.GREEN}{'='*60}{Style.RESET_ALL}")
+                        self.shutdown()
                         return True
                     else:
                         if unfinishednodes == len(unfinished):
                             self.graph.log.warning(f"Queue stalled. {len(unfinished)} nodes unfinished")
+                            self.shutdown()
                             return False
 
                         unfinishednodes = len(unfinished)

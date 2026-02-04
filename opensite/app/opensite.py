@@ -3,11 +3,8 @@ import json
 import shutil
 import time
 import os
-import threading
-import uvicorn
 import time
 from datetime import datetime
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from pathlib import Path
 from opensite.constants import OpenSiteConstants
@@ -27,42 +24,9 @@ class OpenSiteApplication:
         self.log = OpenSiteLogger("OpenSiteApplication")
         self.log_level = os.getenv("OPENSITE_LOG_LEVEL", log_level)
         self.processing_start = time.time()
-        self.server_thread = None
         self.log.info(f"{Fore.GREEN}{'='*60}{Style.RESET_ALL}")
         self.log.info(f"{Fore.GREEN}{'*'*17} APPLICATION INITIALIZED {'*'*18}{Style.RESET_ALL}")
         self.log.info(f"{Fore.GREEN}{'='*60}{Style.RESET_ALL}")
-
-        # self.stop_event = threading.Event()
-        # self.app = self._setup_fastapi()
-        # self.start_web_server()
-
-    def _setup_fastapi(self):
-        """Initializes the FastAPI app with routes."""
-        app = FastAPI(title="OpenSite Graph API")
-
-        @app.get("/nodes")
-        async def get_nodes():
-            return {"nodes": [n.to_dict() for n in self.graph.all_nodes]}
-
-        @app.get("/health")
-        async def health():
-            return {"status": "running"}
-
-        return app
-
-    def start_web_server(self, host="127.0.0.1", port=8000):
-        """Starts FastAPI in a background thread."""
-        config = uvicorn.Config(self.app, host=host, port=port, log_level="info")
-        server = uvicorn.Server(config)
-
-        def run_server():
-            # The server runs until the loop is stopped
-            server.run()
-
-        self.server_thread = threading.Thread(target=run_server, daemon=True)
-        self.server_thread.start()
-        self.log.info(f"[*] FastAPI started on http://{host}:{port}")
-        self.log.info(f"[*] API Docs available at http://{host}:{port}/docs")
 
     def show_elapsed_time(self):
         """Shows elapsed time since object was created, ie. when process started"""
@@ -247,9 +211,6 @@ class OpenSiteApplication:
         # Generate all required processing steps
         graph.explode()
 
-        # Generate graph visualisation
-        graph.generate_graph_preview(load=cli.get_preview())
-
         # If not '--graphonly', run processing queue
         queue = OpenSiteQueue(graph, log_level=self.log_level, overwrite=cli.get_overwrite())
 
@@ -264,7 +225,7 @@ class OpenSiteApplication:
             with open(OpenSiteConstants.PROCESSING_CMD_FILE, 'w') as file: file.write(cli.get_command_line())
             if Path(OpenSiteConstants.PROCESSING_COMPLETE_FILE).exists(): Path(OpenSiteConstants.PROCESSING_COMPLETE_FILE).unlink()
             
-            success = queue.run()
+            success = queue.run(preview=cli.get_preview())
 
             # Change state files in case running in server environment
             with open(OpenSiteConstants.PROCESSING_START_FILE, 'a', encoding='utf-8') as file: 
@@ -280,10 +241,5 @@ class OpenSiteApplication:
 
     def shutdown(self, message="Process Complete"):
         """Clean exit point for the application."""
-
-        self.stop_event.set()
-        
-        if self.graph:
-            self.graph.cleanup_connections()
 
         self.log.info(message)

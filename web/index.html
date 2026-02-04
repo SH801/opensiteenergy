@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OpenSite Pipeline Monitor - Stable Layout</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; background: #ffffff; overflow: hidden; }
+        #network-container { width: 100vw; height: 100vh; }
+        
+        #ui-overlay {
+            position: absolute; top: 20px; left: 20px; z-index: 10;
+            background: rgba(255, 255, 255, 0.9); padding: 15px;
+            border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 250px;
+        }
+
+        #property-panel {
+            position: fixed; top: 0; right: 0; width: 500px; height: 100%; 
+            background: white; border-left: 1px solid #ccc; padding: 20px; 
+            overflow-y: auto; z-index: 1000; display: none; box-shadow: -5px 0 15px rgba(0,0,0,0.05);
+        }
+        
+        .legend-item { display: flex; align-items: center; margin-bottom: 5px; font-size: 0.85rem; }
+        .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 10px; }
+        pre { background: #f8f8f8; padding: 10px; border-radius: 4px; font-size: 0.75rem; white-space: pre-wrap; }
+        button { cursor: pointer; padding: 5px 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-overlay">
+        <h2 style="margin:0 0 10px 0; font-size: 1.2rem;">Pipeline Status</h2>
+        <div id="last-sync" style="font-size: 0.7rem; color: #666; margin-bottom: 10px;">Initializing...</div>
+        <div class="legend">
+            <div class="legend-item"><span class="dot" style="background: #0b7a39;"></span> Processed</div>
+            <div class="legend-item"><span class="dot" style="background: #CBF974;"></span> Processing</div>
+            <div class="legend-item"><span class="dot" style="background: #FEE245;"></span> Unprocessed</div>
+            <div class="legend-item"><span class="dot" style="background: #ec0a0a;"></span> Failed</div>
+        </div>
+        <button onclick="network.fit()" style="margin-top: 10px; width: 100%;">Zoom to Fit</button>
+    </div>
+
+    <div id="property-panel">
+        <button onclick="document.getElementById('property-panel').style.display='none'">× Close</button>
+        <h3 id="prop-title" style="margin-top: 20px;">Node Properties</h3>
+        <pre id="prop-content"></pre>
+    </div>
+
+    <div id="network-container"></div>
+
+    <script type="text/javascript">
+        const nodes = new vis.DataSet([]);
+        const edges = new vis.DataSet([]);
+        const container = document.getElementById('network-container');
+
+        const statusColors = {
+            "processed": "#0b7a39",
+            "processing": "#CBF974",
+            "unprocessed": "#FEE245",
+            "failed": "#ec0a0a"
+        };
+
+        let colorStep = 0;
+
+        function pulseProcessingNodes() {
+            colorStep += 0.5; // Slightly slower for a "breathing" transition
+            // factor will oscillate smoothly between 0 (yellow) and 1 (green)
+            const factor = (Math.sin(colorStep) + 1) / 2; 
+
+            const yellow = "#CBF974"; 
+            const green = "#FFFFFF";
+
+            const currentColor = lerpColor(yellow, green, factor);
+
+            // Filter for nodes currently in 'processing' status
+            const processingNodes = nodes.get({
+                filter: (item) => item.raw && item.raw.status === 'processing'
+            });
+
+            const updates = processingNodes.map(node => ({
+                id: node.id,
+                color: {
+                    background: currentColor,
+                    border: "#333"
+                }
+            }));
+
+            if (updates.length > 0) {
+                nodes.update(updates);
+            }
+        }
+
+        // Helper to blend two hex colors
+        function lerpColor(color1, color2, factor) {
+            const r1 = parseInt(color1.substring(1, 3), 16);
+            const g1 = parseInt(color1.substring(3, 5), 16);
+            const b1 = parseInt(color1.substring(5, 7), 16);
+
+            const r2 = parseInt(color2.substring(1, 3), 16);
+            const g2 = parseInt(color2.substring(3, 5), 16);
+            const b2 = parseInt(color2.substring(5, 7), 16);
+
+            const r = Math.round(r1 + factor * (r2 - r1));
+            const g = Math.round(g1 + factor * (g2 - g1));
+            const b = Math.round(b1 + factor * (b2 - b1));
+
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        function parsePipelineData(node, nodesArray, edgesArray) {
+            // We do NOT provide x/y here; let the hierarchical engine do it the first time.
+            nodesArray.push({
+                id: node.urn,
+                label: node.title || node.name,
+                title: `${node.title}\n` + 
+               `Type: ${node.node_type}\n` +
+               `Status: ${node.status.toUpperCase()}`,
+                color: {
+                    background: statusColors[node.status] || "#efefef",
+                    border: "#333"
+                },
+                font: { size: 36, face: 'Tahoma' },
+                raw: node 
+            });
+
+            if (node.children) {
+                node.children.forEach(child => {
+                    edgesArray.push({
+                        from: node.urn,
+                        to: child.urn,
+                        arrows: 'to',
+                        color: { color: '#999' }
+                    });
+                    parsePipelineData(child, nodesArray, edgesArray);
+                });
+            }
+        }
+
+        async function updateGraph() {
+            try {
+                const response = await fetch('/nodes');
+                const rawData = await response.json();
+                
+                const tempNodes = [];
+                const tempEdges = [];
+
+                // SKIP ROOT: This breaks the tree into separate branch "islands"
+                if (rawData.children && rawData.children.length > 0) {
+                    rawData.children.forEach(branch => {
+                        parsePipelineData(branch, tempNodes, tempEdges);
+                    });
+                } else {
+                    parsePipelineData(rawData, tempNodes, tempEdges);
+                }
+
+                // Update the DataSets (Vis.js handles the ID matching)
+                nodes.update(tempNodes);
+                edges.update(tempEdges);
+
+                document.getElementById('last-sync').innerText = "Last Sync: " + new Date().toLocaleTimeString();
+            } catch (error) {
+                console.error("API Error:", error);
+            }
+        }
+
+        const options = {
+            nodes: { shape: 'dot', size: 200 },
+            edges: {
+                smooth: false,
+                width: 2,
+                color: { color: '#999' },
+                arrows: {
+                    to: { enabled: true, scaleFactor: 1 }
+                }
+            },
+            layout: {
+                hierarchical: {
+                    enabled: true,
+                    direction: "UD",
+                    sortMethod: "directed",
+                    levelSeparation: 600,
+                    nodeSpacing: 900,
+                    treeSpacing: 800
+                }
+            },
+            physics: { enabled: false },
+            interaction: { dragNodes: true, hover: true }
+        };
+
+        const network = new vis.Network(container, { nodes, edges }, options);
+
+        // THE FIX: Once the network has stabilized (drawn its first layout), 
+        // we disable the hierarchical engine entirely.
+        network.once("stabilizationIterationsDone", function() {
+            network.setOptions({ layout: { hierarchical: false } });
+        });
+
+        // Backup fix: also disable after first drawing just in case
+        network.once("afterDrawing", function() {
+            setTimeout(() => {
+                network.setOptions({ layout: { hierarchical: false } });
+            }, 1000);
+        });
+
+        network.on("click", function (params) {
+            if (params.nodes.length > 0) {
+                const node = nodes.get(params.nodes[0]);
+                const metadata = { ...node.raw };
+                delete metadata.children;
+
+                document.getElementById('property-panel').style.display = 'block';
+                document.getElementById('prop-title').innerText = node.label;
+                document.getElementById('prop-content').innerText = JSON.stringify(metadata, null, 2);
+            }
+        });
+
+        // Initial load
+        updateGraph().then(() => {
+            setTimeout(() => network.fit(), 500);
+        });
+
+        // Update data every 5 seconds without moving nodes
+        setInterval(updateGraph, 5000);
+
+        // Run the color pulse much faster than the data sync (every 50ms)
+        setInterval(pulseProcessingNodes, 50);
+
+    </script>
+</body>
+</html>
