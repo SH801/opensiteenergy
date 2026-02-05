@@ -578,25 +578,38 @@ class OpenSiteSpatial(ProcessBase):
     def clip(self):
         """
         Clips dataset to clipping path
+        We assume all clipping areas are an alphabetically-ordered lowercase list, eg. ['east sussex', 'surrey']
         """
 
         # Convert output-focused name to normal name for registry listing
         name_elements = self.parse_output_node_name(self.node.name)
         self.node.name = name_elements['name']
+        clip_text = ';'.join(self.node.custom_properties['clip'])
 
-        self.log.info(f"[clip] Running clip mask '{self.node.custom_properties['clip']}' on {self.node.name} table {input}")
+        self.log.info(f"[clip] Running clip mask '{clip_text}' on {self.node.name} table {input}")
 
         if self.postgis.table_exists(self.node.output):
             self.postgis.drop_table(self.node.output)
 
         cliptemp = '_s1_' + self.node.output
 
-        area = self.node.custom_properties['clip']
-        if area in OpenSiteConstants.OSM_NAME_CONVERT: area = OpenSiteConstants.OSM_NAME_CONVERT[area]
+        areas, initial_areas = [], self.node.custom_properties['clip']
+
+        # Convert all areas and check each exists in boundaries database
+        for area in initial_areas:
+
+            if area in OpenSiteConstants.OSM_NAME_CONVERT: area = OpenSiteConstants.OSM_NAME_CONVERT[area]
+
+            # Run get_area_bounds as check to see if area exists in boundaries table
+            if not self.postgis.get_area_bounds(area):
+                self.log.error(f"[clip] Unable to find clipping area '{area}' in boundaries database, unable to proceed")
+                return False
+
+            areas.append(area)
 
         dbparams = {
             "crs": sql.Literal(int(self.get_crs_default())),
-            "area": sql.Literal(area),
+            "areas": sql.Literal(areas),
             "input": sql.Identifier(self.node.input),
             "clip": sql.Identifier(OpenSiteConstants.OPENSITE_OSMBOUNDARIES),
             "cliptemp": sql.Identifier(cliptemp),
@@ -605,15 +618,12 @@ class OpenSiteSpatial(ProcessBase):
             "output_index": sql.Identifier(f"{self.node.output}_idx"),
         }
 
-        # Run get_area_bounds as check to see if area exists in boundaries table
-        if not self.postgis.get_area_bounds(area):
-            self.log.error(f"[clip] Unable to find clipping area '{area}' in boundaries database, unable to proceed")
-            return False
-
         query_cliptemp_st_union = sql.SQL("""
         CREATE TABLE {cliptemp} AS 
             SELECT (ST_Dump(ST_Union(ST_MakeValid(geom)))).geom::geometry(Polygon, {crs}) as geom 
-            FROM {clip} WHERE name = {area} OR council_name = {area}"""
+            FROM {clip} 
+            WHERE LOWER(name) = ANY({areas}) 
+            OR LOWER(council_name) = ANY({areas})"""
         ).format(**dbparams)
         query_cliptemp_create_index = sql.SQL("CREATE INDEX {cliptemp_index} ON {cliptemp} USING GIST (geom)").format(**dbparams)
         query_fast_clip = sql.SQL("""

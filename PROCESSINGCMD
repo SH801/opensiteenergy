@@ -1,1 +1,1 @@
-./build.sh wind --purgeall --preview
+./build.sh '--clip=Surrey;East Sussex' --preview

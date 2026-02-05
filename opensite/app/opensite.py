@@ -141,13 +141,16 @@ class OpenSiteApplication:
 
         return True
 
-    def early_check_area(self, area):
+    def early_check_area(self, areas):
         """If boundaries table exist, check area is valid"""
 
         postgis = OpenSitePostGIS()
         if postgis.table_exists(OpenSiteConstants.OPENSITE_OSMBOUNDARIES):
-            country = postgis.get_country_from_area(area)
-            return (country is not None)
+            for area in areas:
+                country = postgis.get_country_from_area(area)
+                if country is None: return False
+            return True
+        return False
 
     def run(self):
         """
@@ -190,7 +193,7 @@ class OpenSiteApplication:
         # Attempt to check clipping area (if set) is valid
         if cli.get_clip():
             if not self.early_check_area(cli.get_clip()):
-                self.log.error(f"'{cli.get_clip()}' not found in boundary database, clipping will not be possible.")
+                self.log.error(f"At least one area in '{cli.get_clip()}' not found in boundary database, clipping will not be possible.")
                 self.log.error(f"Please select the name of a different clipping area.")
                 self.log.error(f"******** ABORTING ********")
                 exit()
@@ -210,6 +213,9 @@ class OpenSiteApplication:
 
         # Generate all required processing steps
         graph.explode()
+
+        # Generate initial processing graph
+        graph.generate_graph_preview()
 
         # If not '--graphonly', run processing queue
         queue = OpenSiteQueue(graph, log_level=self.log_level, overwrite=cli.get_overwrite())

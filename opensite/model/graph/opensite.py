@@ -2,6 +2,7 @@ import copy
 import os
 import hashlib
 import json
+import re
 import shutil
 import yaml
 import logging
@@ -116,36 +117,32 @@ class OpenSiteGraph(Graph):
         all_nodes = self.find_nodes_by_props({})
         return sorted(list(set(node.get('action') for node in all_nodes if node.get('action'))))
 
-    def convert_name_to_title(self, name: str) -> str:
+    def get_string_buffer(self, buffer):
         """
-        'railway-lines--uk' -> 'Railway Lines'
-        'hazard-zone--exclusion--restricted' -> 'Hazard Zone - Exclusion - Restricted'
+        Generates buffer string, removing extraneous decimal zeros
         """
 
-        # REDUNDANT - We use CKAN to get correct title
-        lowercase_words = [" And ", " Of ", " From "]
+        buffer = str(buffer)
+        if buffer.endswith('.0'): buffer = buffer[:-2]
+        return buffer
 
-        if not name:
-            return ""
+    def get_suffix_buffer(self, buffer):
+        """
+        Generates buffer suffix
+        """
 
-        delete_area = ['uk', 'gb', 'eu']
+        buffer = self.get_string_buffer(buffer)
+        buffer = buffer.replace('.', '-')
+        return f"--buffer-{buffer}"
 
-        # Split on double hyphen
-        parts = name.split("--")
-        
-        # Filter and process
-        cleaned_parts = []
-        for part in parts:
-            if part.lower() not in delete_area:
-                # Replace single hyphens with spaces
-                words = part.replace("-", " ").split()
-                capitalized_words = " ".join([w.capitalize() for w in words])
-                cleaned_parts.append(capitalized_words)
+    def get_suffix_clip(self, clip):
+        """
+        Generates clip suffix
+        """
 
-        title = " - ".join(cleaned_parts)
-        for lowercase_word in lowercase_words: title = title.replace(lowercase_word, lowercase_word.lower())
-
-        return title
+        clip = '--'.join(clip)
+        sanitized_clip = re.sub(r'[^a-zA-Z0-9-]+', '-', clip)
+        return f"--clip--{sanitized_clip}"
 
     def generate_graph_preview(self, filename="graph.html", load=False):
         """
@@ -425,18 +422,6 @@ class OpenSiteGraph(Graph):
             branch.children.append(node)
 
         self.delete_node(struct_root)
-
-    def _apply_titles_recursive(self, node: Node):
-        """Walks down the graph and sets titles if they are currently just the name."""
-
-        # If title is missing or still matches the raw name, format it
-        if not node.title or node.title == node.name:
-            node.title = self.convert_name_to_title(node.name)
-        
-        self.log.debug(f"Running _apply_titles_recursive: {node.name} --> '{node.title}'")
-
-        for child in node.children:
-            self._apply_titles_recursive(child)
 
     def choose_priority_resource(self, resources, priority_ordered_formats):
         """
@@ -802,8 +787,8 @@ class OpenSiteGraph(Graph):
             osm_url_basename = os.path.basename(osm_url)
             hash_payload = osm_url + json.dumps(group_outputs, sort_keys=True)
             yml_group_hash = hashlib.md5(hash_payload.encode()).hexdigest()[0:16]
-            concat_output = f"{OpenSiteConstants.DATABASE_GENERAL_PREFIX}{yml_group_hash}.yml"
-            run_output = f"{OpenSiteConstants.DATABASE_GENERAL_PREFIX}{yml_group_hash}.gpkg"
+            concat_output = f"{OpenSiteConstants.DATABASE_GENERAL_PREFIX.replace('_', '-')}{yml_group_hash}.yml"
+            run_output = f"{OpenSiteConstants.DATABASE_GENERAL_PREFIX.replace('_', '-')}{yml_group_hash}.gpkg"
 
             for node in group_nodes:
                 node_branch = node.custom_properties['branch']
@@ -881,24 +866,6 @@ class OpenSiteGraph(Graph):
 
         self.log.debug("OSM Tree complete: Runner is now parent to both Downloader and Concatenator.")
 
-    def get_buffer_string(self, buffer):
-        """
-        Generates buffer string, removing extraneous decimal zeros
-        """
-
-        buffer = str(buffer)
-        if buffer.endswith('.0'): buffer = buffer[:-2]
-        return buffer
-
-    def get_buffer_suffix(self, buffer):
-        """
-        Generates buffer suffix
-        """
-
-        buffer = self.get_buffer_string(buffer)
-        buffer = buffer.replace('.', '-')
-        return f"--buffer-{buffer}"
-
     def add_buffers(self):
         """
         Inserts a buffer node above any node with a 'buffer' custom property.
@@ -917,10 +884,10 @@ class OpenSiteGraph(Graph):
 
         for node in target_nodes:
             buffer = node.custom_properties['buffer']
-            buffer_str = self.get_buffer_string(buffer)
+            buffer_str = self.get_string_buffer(buffer)
             
             # Define the new name and properties
-            new_name = f"{node.name}{self.get_buffer_suffix(buffer)}"
+            new_name = f"{node.name}{self.get_suffix_buffer(buffer)}"
             
             buffer_node = self.create_node(
                 name=new_name,
@@ -1079,11 +1046,11 @@ class OpenSiteGraph(Graph):
                 if 'clip' in branch_node.custom_properties['yml']:
                     node_hash = hashlib.md5(f"{postprocess_output}--clip".encode()).hexdigest()
                     clip_output = f"{OpenSiteConstants.DATABASE_GENERAL_PREFIX}{node_hash}"
-                    clip_val = branch_node.custom_properties['yml']['clip'].replace(" ", "-")
-                    clip_name = f"{postprocess_name}--clip-{clip_val}"
+                    clip_name = f"{postprocess_name}{self.get_suffix_clip(branch_node.custom_properties['yml']['clip'])}"
+                    clip_title = ";".join(branch_node.custom_properties['yml']['clip'])
                     clip_node = self.create_node(
                         name=clip_name,
-                        title=postprocess_node.title + ' - Clip',
+                        title=f"{postprocess_node.title} - Clip - {clip_title}",
                         action='clip',
                         input=postprocess_output,
                         output=clip_output,
@@ -1190,10 +1157,10 @@ class OpenSiteGraph(Graph):
             suffix, clip = '', None
             bounds = self.db.get_table_bounds(OpenSiteConstants.OPENSITE_CLIPPINGMASTER, OpenSiteConstants.CRS_DEFAULT, OpenSiteConstants.CRS_OUTPUT)
             if 'clip' in branch.custom_properties['yml']:
-                clip = branch.custom_properties['yml']['clip']
+                clip = ";".join(branch.custom_properties['yml']['clip'])
                 title += f" clipped to '{clip}'"
-                suffix = f"--clip-{clip.replace(' ', '-')}"
-
+                suffix = self.get_suffix_clip(branch.custom_properties['yml']['clip'])
+                
             main_child = branch.children[0]
 
             maplibre_bounds = \

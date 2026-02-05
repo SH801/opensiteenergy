@@ -32,7 +32,7 @@ class OpenSiteCLI(BaseCLI):
         self.parser.add_argument('--preview', action='store_true', help='Loads interactive processing graph view')
         self.parser.add_argument('--purgedb', action='store_true', help="Drop all opensite tables and exit")
         self.parser.add_argument('--purgeall', action='store_true', help="Delete all download files, drop all opensite tables and exit")
-        self.parser.add_argument('--clip', type=str, help="Name of the area to clip data to (e.g., 'Sussex')")
+        self.parser.add_argument('--clip', type=str, help="Name of area to clip data to, e.g., 'Surrey'. For multiple clipping areas, separate with semicolon, eg. --clip=\"East Sussex;Devon\"")
         self.parser.add_argument('--overwrite', action='store_true', help="Reexports all output files, overwriting files already created")
         self.parser.add_argument('--graphonly', action='store_true', help="Generate build graph but don't run build")
 
@@ -174,7 +174,10 @@ class OpenSiteCLI(BaseCLI):
                 if 'mbtiles' not in self.outputformats: self.outputformats.append('mbtiles')
 
         # Set clip to clip value provided in CLI
-        self.clip = self.args.clip
+        if self.args.clip:
+            clip_items = sorted(self.args.clip.split(";"))
+            clip_items = [clip_item.lower() for clip_item in clip_items]
+            self.clip = clip_items
 
         # Capture the final state of the simple variables
         overrides = {}
