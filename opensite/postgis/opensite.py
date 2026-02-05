@@ -13,6 +13,7 @@ class OpenSitePostGIS(PostGISBase):
     OPENSITE_BRANCH         = OpenSiteConstants.OPENSITE_BRANCH
     OPENSITE_CLIPPINGMASTER = OpenSiteConstants.OPENSITE_CLIPPINGMASTER
     OPENSITE_GRIDPROCESSING = OpenSiteConstants.OPENSITE_GRIDPROCESSING
+    OPENSITE_GRIDBUFFEDGES  = OpenSiteConstants.OPENSITE_GRIDBUFFEDGES
     OPENSITE_GRIDOUTPUT     = OpenSiteConstants.OPENSITE_GRIDOUTPUT
     OPENSITE_OSMBOUNDARIES  = OpenSiteConstants.OPENSITE_OSMBOUNDARIES
     
@@ -100,6 +101,7 @@ class OpenSitePostGIS(PostGISBase):
             self.OPENSITE_BRANCH, 
             self.OPENSITE_CLIPPINGMASTER,
             self.OPENSITE_GRIDPROCESSING,
+            self.OPENSITE_GRIDBUFFEDGES,
             self.OPENSITE_GRIDOUTPUT,
             self.OPENSITE_OSMBOUNDARIES,
             'spatial_ref_sys', 
@@ -292,20 +294,28 @@ class OpenSitePostGIS(PostGISBase):
             self.log.error(f"PostGIS Export Error: {spatial_data_table} {e.stderr}")
             return False
         
-    def get_area_bounds(self, area, crs_input=OpenSiteConstants.CRS_DEFAULT, crs_output=OpenSiteConstants.CRS_OUTPUT):
+    def get_areas_bounds(self, areas, crs_input=OpenSiteConstants.CRS_DEFAULT, crs_output=OpenSiteConstants.CRS_OUTPUT):
         """
-        Get bounds of specific geometry with name = area
+        Get collective bounds of geometries for a list of area names
         """
 
-        if area in OpenSiteConstants.OSM_NAME_CONVERT: area = OpenSiteConstants.OSM_NAME_CONVERT[area]
+        # Normalize the list of names using your conversion map
+        processed_areas = []
+        for area in areas:
+            if area in OpenSiteConstants.OSM_NAME_CONVERT:
+                area = OpenSiteConstants.OSM_NAME_CONVERT[area]
+            processed_areas.append(area)
 
+        # Prepare parameters
+        # We use a literal tuple/list for the SQL 'ANY' comparison
         dbparams = {
             "crs_input": sql.Literal(self.extract_crs_as_number(crs_input)),
             "crs_output": sql.Literal(self.extract_crs_as_number(crs_output)),
             'table': sql.Identifier(OpenSiteConstants.OPENSITE_OSMBOUNDARIES),
-            'area': sql.Literal(area)
+            'areas': sql.Literal(processed_areas)
         }
 
+        # Use ILIKE ANY to match any string in the list
         query_maxbounds = sql.SQL("""
         SELECT 
             ST_XMin(extent_output_crs) AS left,
@@ -314,25 +324,29 @@ class OpenSitePostGIS(PostGISBase):
             ST_YMax(extent_output_crs) AS top
         FROM 
             (
-            SELECT ST_Transform(ST_SetSRID(ST_Extent(geom), {crs_input}), {crs_output}) AS extent_output_crs FROM {table} 
-            WHERE name ILIKE {area} OR council_name ILIKE {area}
+            SELECT ST_Transform(ST_SetSRID(ST_Extent(geom), {crs_input}), {crs_output}) AS extent_output_crs 
+            FROM {table} 
+            WHERE name ILIKE ANY ({areas}) OR council_name ILIKE ANY ({areas})
             ) AS subquery
         """).format(**dbparams)
 
         try:
             results = self.fetch_all(query_maxbounds)
-            if results[0]['left'] is None:
-                self.log.debug(f"Unable to find clipping area '{area}' in boundary database - unable to proceed")
+            
+            # Check if we actually found anything
+            if not results or results[0]['left'] is None:
+                self.log.debug(f"Unable to find any clipping areas from list {areas} in boundary database")
                 return None
 
             return results[0]
+            
         except Exception as e:
-            self.log.error(f"PostGIS error: {e}")
+            self.log.error(f"PostGIS error while fetching multi-area bounds: {e}")
             return None
 
     def get_country_from_area(self, area):
         """
-        Determine country that area is in using OPENSITE_OSMBOUNDARIES
+        Determine country that single area is in using OPENSITE_OSMBOUNDARIES
         """
 
         # Get list of all possible OSM country names from OSM_NAME_CONVERT

@@ -31,7 +31,7 @@ class OpenSiteOutputJSON(OutputBase):
             for branch in branches_input:
                 branch['bounds'] = None
                 if 'clip' in branch:
-                    branch_bounds_dict = self.postgis.get_area_bounds(branch['clip'], OpenSiteConstants.CRS_DEFAULT, OpenSiteConstants.CRS_OUTPUT)
+                    branch_bounds_dict = self.postgis.get_areas_bounds(branch['clip'], OpenSiteConstants.CRS_DEFAULT, OpenSiteConstants.CRS_OUTPUT)
                     branch['bounds'] = [branch_bounds_dict['left'], branch_bounds_dict['bottom'], branch_bounds_dict['right'], branch_bounds_dict['top']]
                 branches_output.append(branch)
 

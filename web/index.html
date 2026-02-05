@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>OpenSite Pipeline Monitor</title>
+    <title>OpenSiteEnergy Data Pipeline Monitor</title>
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; background: #ffffff; overflow: hidden; }
@@ -38,9 +38,29 @@
 
         .legend-item { display: flex; align-items: center; margin-bottom: 5px; font-size: 0.85rem; }
         .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 10px; border: 1px solid #999; }
+        .count-val { font-weight: bold; margin-left: 4px; color: #2c3e50; }
+
         pre { background: #f8f8f8; padding: 10px; border-radius: 4px; font-size: 0.75rem; white-space: pre-wrap; }
         button { cursor: pointer; padding: 8px; border-radius: 4px; border: 1px solid #ccc; background: #fff; width: 100%; margin-top: 10px; }
         button:hover { background: #f0f0f0; }
+
+        /* TOOLTIP: Plenty of space, standard legible font */
+        div.vis-network div.vis-tooltip {
+            background-color: #2c3e50;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            font-size: 14px;
+            padding: 0; /* Let the internal div handle padding for the colored border */
+            border-radius: 6px;
+            border: 1px solid #1a252f;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+        }
+
+        .tooltip-inner {
+            padding: 10px;
+            border-left: 5px solid; /* Color is set inline in JS */
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -57,10 +77,10 @@
         <div id="last-sync" style="font-size: 0.7rem; color: #888; margin-bottom: 12px;">Waiting for data...</div>
         
         <div class="legend">
-            <div class="legend-item"><span class="dot" style="background: #0b7a39;"></span> Processed</div>
-            <div class="legend-item"><span class="dot" style="background: #FFA500;"></span> Processing (Active)</div>
-            <div class="legend-item"><span class="dot" style="background: #FEE245;"></span> Unprocessed</div>
-            <div class="legend-item"><span class="dot" style="background: #ec0a0a;"></span> Failed</div>
+            <div class="legend-item"><span class="dot" style="background: #0b7a39;"></span> Processed <span id="count-processed" class="count-val">(0)</span></div>
+            <div class="legend-item"><span class="dot" style="background: #FFA500;"></span> Processing <span id="count-processing" class="count-val">(0)</span></div>
+            <div class="legend-item"><span class="dot" style="background: #FEE245;"></span> Unprocessed <span id="count-unprocessed" class="count-val">(0)</span></div>
+            <div class="legend-item"><span class="dot" style="background: #ec0a0a;"></span> Failed <span id="count-failed" class="count-val">(0)</span></div>
         </div>
         <button onclick="network.fit()">Center View</button>
         <button class="btn-console" onclick="toggleConsole()">Toggle Console Logs</button>
@@ -98,62 +118,37 @@
         function toggleConsole() {
             const panel = document.getElementById('console-panel');
             const isHidden = window.getComputedStyle(panel).display === 'none';
-            
             panel.style.display = isHidden ? 'block' : 'none';
-
             if (isHidden) {
-                setTimeout(() => {
-                    panel.scrollTop = panel.scrollHeight;
-                }, 10);
+                setTimeout(() => { panel.scrollTop = panel.scrollHeight; }, 10);
             }
         }
 
-        // --- COLOR PULSE LOGIC ---
         function lerpColor(color1, color2, factor) {
-            const r1 = parseInt(color1.substring(1, 3), 16);
-            const g1 = parseInt(color1.substring(3, 5), 16);
-            const b1 = parseInt(color1.substring(5, 7), 16);
-            const r2 = parseInt(color2.substring(1, 3), 16);
-            const g2 = parseInt(color2.substring(3, 5), 16);
-            const b2 = parseInt(color2.substring(5, 7), 16);
-            const r = Math.round(r1 + factor * (r2 - r1));
-            const g = Math.round(g1 + factor * (g2 - g1));
-            const b = Math.round(b1 + factor * (b2 - b1));
+            const r1 = parseInt(color1.substring(1, 3), 16), g1 = parseInt(color1.substring(3, 5), 16), b1 = parseInt(color1.substring(5, 7), 16);
+            const r2 = parseInt(color2.substring(1, 3), 16), g2 = parseInt(color2.substring(3, 5), 16), b2 = parseInt(color2.substring(5, 7), 16);
+            const r = Math.round(r1 + factor * (r2 - r1)), g = Math.round(g1 + factor * (g2 - g1)), b = Math.round(b1 + factor * (b2 - b1));
             return `rgb(${r}, ${g}, ${b})`;
         }
 
         function pulseProcessingNodes() {
             colorStep += 0.5;
             const factor = (Math.sin(colorStep) + 1) / 2; 
-            const currentColor = lerpColor("#FFA500", "#FFFFFF", factor); // Orange to White pulse
+            const currentColor = lerpColor("#FFA500", "#FFFFFF", factor);
             const processingNodes = nodes.get({ filter: (item) => item.raw && item.raw.status === 'processing' });
-            
-            const updates = processingNodes.map(node => ({
-                id: node.id,
-                color: { background: currentColor, border: "#333" }
-            }));
+            const updates = processingNodes.map(node => ({ id: node.id, color: { background: currentColor, border: "#BBB" } }));
             if (updates.length > 0) nodes.update(updates);
         }
 
-        // --- TIMER LOGIC ---
         function updateGlobalTimer() {
             if (!serverStartTime) return;
             const allNodes = nodes.get();
             const isStillWorking = allNodes.some(n => n.raw.status === 'processing' || n.raw.status === 'unprocessed');
-
             let displaySeconds = finalDuration ? finalDuration : Math.max(0, Math.floor((Date.now() - serverStartTime) / 1000));
-
-            const hrs = Math.floor(displaySeconds / 3600);
-            const mins = Math.floor((displaySeconds % 3600) / 60);
-            const secs = displaySeconds % 60;
-
-            const formatted = (hrs > 0 ? hrs + ":" : "") + 
-                              mins.toString().padStart(2, '0') + ":" + 
-                              secs.toString().padStart(2, '0');
-
+            const hrs = Math.floor(displaySeconds / 3600), mins = Math.floor((displaySeconds % 3600) / 60), secs = displaySeconds % 60;
+            const formatted = (hrs > 0 ? hrs + ":" : "") + mins.toString().padStart(2, '0') + ":" + secs.toString().padStart(2, '0');
             const timerElement = document.getElementById('timer-val');
             timerElement.innerText = formatted;
-
             if (!isStillWorking && allNodes.length > 0 && !finalDuration) {
                 finalDuration = displaySeconds;
                 document.getElementById('total-time').style.display = 'block';
@@ -162,20 +157,47 @@
             }
         }
 
-        // --- DATA PARSING ---
         function parsePipelineData(node, nodesArray, edgesArray) {
+            const color = statusColors[node.status] || "#efefef";
+            
+            // Create an HTML title with a colored border
+            const titleElement = document.createElement("div");
+            titleElement.className = "tooltip-inner";
+            titleElement.style.borderLeftColor = color;
+
+            let durationText = "";
+            if (node.log && Array.isArray(node.log)) {
+                // Find the dict that has the 'duration' key
+                const durationEntry = node.log.find(entry => "duration" in entry);
+                if (durationEntry) {
+                    const cleanDuration = durationEntry.duration.split('.')[0];
+                    durationText = `<div style="margin-top: 8px; border-top: 1px solid #444; pt-5px;">
+                                        <span style="color: #18bc9c; font-weight: bold;">Duration:</span> ${cleanDuration}
+                                    </div>`;
+                }
+            }
+
+            titleElement.innerHTML = `
+                <div style="font-weight:bold; margin-bottom: 5px;">${node.title || node.name}</div>
+                <div style="font-size: 0.8rem; opacity: 0.9;">
+                    Type: ${node.node_type}<br>
+                    Status: <span style="color:${color}; font-weight:bold;">${node.status.toUpperCase()}</span>
+                    ${durationText}
+                </div>
+            `;
+
             nodesArray.push({
                 id: node.urn,
-                label: node.title || node.name,
-                title: `Name: ${node.title}\nType: ${node.node_type}\nStatus: ${node.status.toUpperCase()}`,
-                color: { background: statusColors[node.status] || "#efefef", border: "#BBB" },
-                font: { size: 40, face: 'Arial Narrow' },
+                label: node.title.replaceAll(' - ', '\n'),
+                title: titleElement,
+                color: { background: color, border: "#BBB" },
+                font: { size: 80, face: 'Arial Narrow' },
                 raw: node 
             });
 
             if (node.children) {
                 node.children.forEach(child => {
-                    edgesArray.push({ from: node.urn, to: child.urn, arrows: 'to', color: { color: '#999' } });
+                    edgesArray.push({ from: node.urn, to: child.urn, arrows: 'to', color: { color: '#AAA' }, scaleFactor: 20});
                     parsePipelineData(child, nodesArray, edgesArray);
                 });
             }
@@ -186,21 +208,14 @@
                 const response = await fetch(`/nodes?last_index=${lastLogIndex}`);
                 const rawData = await response.json();
                 
-                // 1. Sync Timer
-                if (rawData.process_started) {
-                    serverStartTime = new Date(rawData.process_started).getTime();
-                }
+                if (rawData.process_started) serverStartTime = new Date(rawData.process_started).getTime();
 
-                // 2. Handle Logs
                 if (rawData.logs && rawData.logs.length > 0) {
                     const logContent = document.getElementById('log-content');
                     const panel = document.getElementById('console-panel');
-
                     rawData.logs.forEach(log => {
                         const line = document.createElement('div');
                         line.className = 'log-line';
-                        
-                        // Pick colors based on module names in your logs
                         let msgColor = "#d4d4d4";
                         if (log.msg.includes("OpenSiteDownloader")) msgColor = "#d88bf0";
                         if (log.msg.includes("OpenSiteSpatial")) msgColor = "#ce9178";
@@ -208,18 +223,16 @@
                         if (log.msg.includes("[postprocess]")) msgColor = "#2d9c33";
                         if (log.msg.includes("OpenSiteOutput")) msgColor = "#6078e0";
                         if (log.msg.includes("OpenSitePostGIS")) msgColor = "#f5b547";
+                        if (log.msg.includes("ERROR")) msgColor = "#de0d0d";
 
                         line.innerHTML = `<span class="log-ts">${log.time}</span><span style="color:${msgColor}">${log.msg}</span>`;
                         logContent.appendChild(line);
                     });
-
                     lastLogIndex = rawData.next_index;
-                    panel.scrollTop = panel.scrollHeight; // Auto-scroll
+                    if (window.getComputedStyle(panel).display !== 'none') panel.scrollTop = panel.scrollHeight;
                 }
 
-                // 3. Update Graph
-                const tempNodes = [];
-                const tempEdges = [];
+                const tempNodes = [], tempEdges = [];
                 if (rawData.children && rawData.children.length > 0) {
                     rawData.children.forEach(branch => parsePipelineData(branch, tempNodes, tempEdges));
                 } else if (rawData.name) {
@@ -228,20 +241,36 @@
 
                 nodes.update(tempNodes);
                 edges.update(tempEdges);
+
+                const allNodes = nodes.get();
+                const counts = { processed: 0, processing: 0, unprocessed: 0, failed: 0 };
+                allNodes.forEach(n => { if(counts.hasOwnProperty(n.raw.status)) counts[n.raw.status]++; });
+                
+                document.getElementById('count-processed').innerText = `(${counts.processed})`;
+                document.getElementById('count-processing').innerText = `(${counts.processing})`;
+                document.getElementById('count-unprocessed').innerText = `(${counts.unprocessed})`;
+                document.getElementById('count-failed').innerText = `(${counts.failed})`;
+
                 document.getElementById('last-sync').innerText = "Last Sync: " + new Date().toLocaleTimeString();
             } catch (error) { console.error("API Error:", error); }
         }
 
         const options = {
-            nodes: { shape: 'dot', size: 300 },
-            edges: { smooth: false, width: 2, color: { 
-                color: '#D3D3D3', 
-                highlight: '#848484', 
-                hover: '#848484' 
-            }, arrows: { to: { enabled: true, scaleFactor: 10 } } },
+            nodes: { shape: 'dot', size: 300, font: { 
+                    multi: true
+                },
+                widthConstraint: {
+                    maximum: 900
+                } 
+            },
+            edges: { smooth: false, width: 2, color: { color: '#D3D3D3', highlight: '#848484', hover: '#848484' }, arrows: { to: { enabled: true, scaleFactor: 20 } } },
             layout: { hierarchical: { enabled: true, direction: "UD", sortMethod: "directed", levelSeparation: 3000, nodeSpacing: 900, treeSpacing: 800 } },
             physics: { enabled: false },
-            interaction: { dragNodes: true, hover: true }
+            interaction: { 
+                dragNodes: true, 
+                hover: true,
+                tooltipDelay: 100 // Makes it feel snappier
+            }
         };
 
         const network = new vis.Network(container, { nodes, edges }, options);
@@ -261,7 +290,6 @@
         setInterval(updateGraph, 5000);
         setInterval(pulseProcessingNodes, 500);
         setInterval(updateGlobalTimer, 1000);
-
     </script>
 </body>
 </html>

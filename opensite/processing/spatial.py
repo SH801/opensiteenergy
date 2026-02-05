@@ -142,6 +142,46 @@ class OpenSiteSpatial(ProcessBase):
             self.log.error(f"[create_processing_grid] Unexpected error: {e}")
             return False
 
+    def create_processing_grid_buffered_edges(self):
+        """
+        Creates buffered edges from processing grid
+        """
+
+        if not self.postgis.table_exists(OpenSiteConstants.OPENSITE_GRIDPROCESSING):
+            self.create_processing_grid()
+
+        if self.postgis.table_exists(OpenSiteConstants.OPENSITE_GRIDBUFFEDGES):
+            self.log.info("Buffered grid already exists")
+            return True
+
+        self.log.info(f"[create_processing_grid_buffered_edges] Creating buffered edges from processing grid")
+
+        dbparams = {
+            "crs": sql.Literal(self.get_crs_default()),
+            "grid": sql.Identifier(OpenSiteConstants.OPENSITE_GRIDPROCESSING),
+            "buffered_edges": sql.Identifier(OpenSiteConstants.OPENSITE_GRIDBUFFEDGES),
+            "buffered_edges_index": sql.Identifier(f"{OpenSiteConstants.OPENSITE_GRIDBUFFEDGES}_idx"),
+        }
+
+        query_buffered_edges_create = sql.SQL("""
+        CREATE TABLE {buffered_edges} AS SELECT ST_Buffer(ST_Boundary(geom), 0.01)::geometry(Polygon, {crs}) as geom FROM {grid};
+        CREATE INDEX {buffered_edges_index} ON {buffered_edges} USING GIST (geom);
+        """).format(**dbparams)
+
+        try:
+            self.postgis.execute_query(query_buffered_edges_create)
+
+            self.log.info(f"[create_processing_grid_buffered_edges] Finished creating buffered edges")
+
+            return True
+        except Error as e:
+            self.log.error(f"[create_processing_grid_buffered_edges] PostGIS Error during buffered edge creation: {e}")
+            return False
+        except Exception as e:
+            self.log.error(f"[create_processing_grid_buffered_edges] Unexpected error: {e}")
+            return False
+
+
     def create_output_grid(self):
         """
         Creates output grid to be used when creating mbtiles to improve performance and visual quality of mbtiles
@@ -371,6 +411,7 @@ class OpenSiteSpatial(ProcessBase):
                     (gridsquares_index == gridsquares_count) or \
                     (current_time - last_log_time > self.PROCESSING_INTERVAL_TIME):
                     self.log.info(f"[preprocess] [{self.node.name}] Processing grid square {gridsquares_index}/{gridsquares_count}")
+                    last_log_time = time.time()
 
                 dbparams['gridsquare_id'] = sql.Literal(gridsquare_id)
                 
@@ -534,45 +575,84 @@ class OpenSiteSpatial(ProcessBase):
         ie. if postprocessing is needed on multiple children, insert amalgamate as single child 
         """
 
-        # Temporarily convert output-focused name to normal name for registry listing
         name_elements = self.parse_output_node_name(self.node.name)
         self.node.name = name_elements['name']
+        output_temp = f"{self.node.output}_temp"
+        vertex_limit = 500
 
         dbparams = {
+            "crs": sql.Literal(self.get_crs_default()),
             "input": sql.Identifier(self.node.input),
             "output": sql.Identifier(self.node.output),
-            "output_index": sql.Identifier(f"{self.node.output}_idx"),
+            "buffered_edges": sql.Identifier(OpenSiteConstants.OPENSITE_GRIDBUFFEDGES),
         }
 
-        query_output_st_union = sql.SQL("CREATE TABLE {output} AS SELECT (ST_Dump(ST_Union(geom))).geom geom FROM {input}").format(**dbparams)
-        query_output_create_index = sql.SQL("CREATE INDEX {output_index} ON {output} USING GIST (geom)").format(**dbparams)
+        if self.postgis.table_exists(output_temp): self.postgis.drop_table(output_temp)
+
+        # ***** DELETE TABLE DURING TESTING *****
+        # if self.postgis.table_exists(self.node.output):
+        #     if 'residential-buildings-os----postprocess' in self.node.name:
+        #         self.postgis.drop_table(self.node.output)
 
         if self.postgis.table_exists(self.node.output):
             self.log.info(f"[postprocess] [{self.node.output}] already exists, skipping postprocess")
             return True
 
-        self.log.info(f"[postprocess] Starting ST_Union on {self.node.name} {self.node.input} -> {self.node.output}")
-
         try:
-            self.postgis.execute_query(query_output_st_union)
-            self.postgis.execute_query(query_output_create_index)
-            self.postgis.add_table_comment(self.node.output, self.node.name)
+            
+            self.log.info("[postprocess] Performing surgical union using persistent edge mask...")
+            
+            # 3. Separate, Weld, and Recombine
+            self.postgis.execute_query(sql.SQL("""
+            CREATE TABLE {output} AS
+            WITH 
+            indexed_input AS (
+                -- Create the unique key that the 'id' field lacks
+                SELECT row_number() OVER () as row_id, * FROM {input}
+            ),
+            seam_candidates AS (
+                -- Only polygons touching the grid boundaries
+                SELECT a.* FROM indexed_input a
+                JOIN {buffered_edges} b ON ST_Intersects(a.geom, b.geom)
+            ),
+            islands AS (
+                -- Everything NOT touching a boundary
+                SELECT a.* FROM indexed_input a
+                LEFT JOIN seam_candidates b ON a.row_id = b.row_id
+                WHERE b.row_id IS NULL
+            ),
+            unioned_seams AS (
+                -- Weld the split pieces
+                SELECT (ST_Dump(
+                    ST_UnaryUnion(
+                        ST_Collect(
+                            ST_MakeValid(ST_SnapToGrid(geom, 0.001))
+                        )
+                    )
+                )).geom
+                FROM seam_candidates
+            )
+            -- Combine the welded seams with the preserved islands
+            SELECT geom FROM unioned_seams
+            UNION ALL
+            SELECT geom FROM islands;
+            """).format(**dbparams))
 
-            # Register new table manually as output uses variable ()
+            self.log.info("[postprocess] Success. Seam healing bypass completed.")
+
+            self.postgis.execute_query(sql.SQL("CREATE INDEX ON {output} USING GIST (geom)").format(**dbparams))                
+            self.postgis.add_table_comment(self.node.output, self.node.name)
             self.postgis.register_node(self.node, None, name_elements['branch'])
+            
             if self.postgis.set_table_completed(self.node.output):
                 self.log.info(f"[postprocess] [{self.node.name}] COMPLETED")
                 return True
             else:
-                # This catches the bug where the node was never registered initially
                 self.log.error(f"[postprocess] Postprocess completed but registry record for {self.node.output} was not found.")
                 return False
 
-        except Error as e:
-            self.log.error(f"[postprocess] PostGIS Error during ST_Union: {e}")
-            return False
         except Exception as e:
-            self.log.error(f"[postprocess] Unexpected error: {e}")
+            self.log.error(f"[postprocess] Error during Loop Union: {e}")
             return False
 
     def clip(self):
@@ -600,8 +680,8 @@ class OpenSiteSpatial(ProcessBase):
 
             if area in OpenSiteConstants.OSM_NAME_CONVERT: area = OpenSiteConstants.OSM_NAME_CONVERT[area]
 
-            # Run get_area_bounds as check to see if area exists in boundaries table
-            if not self.postgis.get_area_bounds(area):
+            # Run get_areas_bounds as check to see if area exists in boundaries table
+            if not self.postgis.get_areas_bounds([area]):
                 self.log.error(f"[clip] Unable to find clipping area '{area}' in boundaries database, unable to proceed")
                 return False
 

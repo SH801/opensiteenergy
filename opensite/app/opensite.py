@@ -48,6 +48,7 @@ class OpenSiteApplication:
         spatial = OpenSiteSpatial(None)
         spatial.create_processing_grid()
         spatial.create_output_grid()
+        spatial.create_processing_grid_buffered_edges()
 
     def delete_folder(self, folder_path):
         """Deletes the specified directory and all its contents."""

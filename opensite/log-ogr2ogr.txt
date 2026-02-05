@@ -1,9 +1,161 @@
-Warning 1: Value of field 'name' has 89 characters, whereas maximum allowed is 80.
-Warning 1: Value of field 'name' has 83 characters, whereas maximum allowed is 80.
-Warning 1: Value of field 'name' has 97 characters, whereas maximum allowed is 80.
-Warning 1: Value of field 'name' has 82 characters, whereas maximum allowed is 80.
-Warning 1: Value of field 'name' has 82 characters, whereas maximum allowed is 80.
-Warning 1: Value of field 'name' has 81 characters, whereas maximum allowed is 80.
-Warning 1: Value of field 'name' has 81 characters, whereas maximum allowed is 80.
-Warning 1: Value of field 'name' has 89 characters, whereas maximum allowed is 80.
-Warning 1: Value of field 'name' has 86 characters, whereas maximum allowed is 80.
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--all-layers--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--all-layers--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--aviation-and-exclusion-areas--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--aviation-and-exclusion-areas--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--civilian-airports--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--civilian-airports--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--danger-areas--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--danger-areas--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--mod-training-areas--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--mod-training-areas--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--ecology-and-wildlife--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--ecology-and-wildlife--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--ancient-woodlands--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--ancient-woodlands--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--hedgerows--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--hedgerows--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--local-nature-reserves--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--local-nature-reserves--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--national-nature-reserves--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--national-nature-reserves--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--osm-nature-reserves--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--osm-nature-reserves--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--ramsar-sites--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--ramsar-sites--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--sites-of-special-scientific-interest--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--sites-of-special-scientific-interest--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--special-areas-of-conservation--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--special-areas-of-conservation--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--special-protection-areas--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--special-protection-areas--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--wild-land-areas--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--wild-land-areas--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--environmental-data--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--environmental-data--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--inadequate-wind-speeds--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--inadequate-wind-speeds--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--heritage-impacts--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--heritage-impacts--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--conservation-areas--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--conservation-areas--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--listed-buildings--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--listed-buildings--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--registered-historic-battlefields--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--registered-historic-battlefields--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--registered-parks-and-gardens--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--registered-parks-and-gardens--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--scheduled-ancient-monuments--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--scheduled-ancient-monuments--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--world-heritage-sites--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--world-heritage-sites--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--landscape-and-visual-impacts--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--landscape-and-visual-impacts--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--areas-of-outstanding-natural-beauty--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--areas-of-outstanding-natural-beauty--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--heritage-coasts--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--heritage-coasts--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--national-parks--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--national-parks--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--other-technical-constraints--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--other-technical-constraints--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--bridleways--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--bridleways--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--inland-waters--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--inland-waters--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--pipelines--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--pipelines--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--power-lines--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--power-lines--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--public-footpaths--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--public-footpaths--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--public-roads-a-and-b-roads-and-motorways--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--public-roads-a-and-b-roads-and-motorways--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--railway-lines--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--railway-lines--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--separation-distance-from-residential-properties--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--separation-distance-from-residential-properties--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--residential-buildings-os--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--residential-buildings-os--clip--east-sussex--surrey.gpkg' may only be partially supported
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--residential-buildings-osm--clip--east-sussex--surrey.gpkg' may only be partially supported
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
+Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--residential-buildings-osm--clip--east-sussex--surrey.gpkg' may only be partially supported

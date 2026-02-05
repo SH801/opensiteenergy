@@ -1,1 +1,1 @@
-./build.sh '--clip=Surrey;East Sussex' --preview
+./build.sh solar '--clip=Surrey;East Sussex'

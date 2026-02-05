@@ -1157,8 +1157,8 @@ class OpenSiteGraph(Graph):
             suffix, clip = '', None
             bounds = self.db.get_table_bounds(OpenSiteConstants.OPENSITE_CLIPPINGMASTER, OpenSiteConstants.CRS_DEFAULT, OpenSiteConstants.CRS_OUTPUT)
             if 'clip' in branch.custom_properties['yml']:
-                clip = ";".join(branch.custom_properties['yml']['clip'])
-                title += f" clipped to '{clip}'"
+                clip = branch.custom_properties['yml']['clip']
+                title += f" clipped to '{';'.join(clip)}'"
                 suffix = self.get_suffix_clip(branch.custom_properties['yml']['clip'])
                 
             main_child = branch.children[0]

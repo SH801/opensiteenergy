@@ -214,6 +214,7 @@ class OpenSiteConstants:
     OPENSITE_CLIPPINGMASTER     = DATABASE_BASE + 'clipping_master'
     OPENSITE_CLIPPINGTEMP       = DATABASE_BASE + 'clipping_temp'
     OPENSITE_GRIDPROCESSING     = DATABASE_BASE + 'grid_processing'
+    OPENSITE_GRIDBUFFEDGES      = OPENSITE_GRIDPROCESSING + '_buffered_edges'
     OPENSITE_GRIDOUTPUT         = DATABASE_BASE + 'grid_output'
     OPENSITE_OSMBOUNDARIES      = DATABASE_BASE + OSM_BOUNDARIES.replace('-', '_')
 
