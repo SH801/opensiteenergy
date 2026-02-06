@@ -600,7 +600,7 @@ class OpenSiteSpatial(ProcessBase):
 
         try:
             
-            self.log.info("[postprocess] Performing surgical union using persistent edge mask...")
+            self.log.info(f"[postprocess] [{self.node.name}] Performing surgical union using persistent edge mask...")
             
             # 3. Separate, Weld, and Recombine
             self.postgis.execute_query(sql.SQL("""

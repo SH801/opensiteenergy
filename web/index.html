@@ -14,6 +14,15 @@
             border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 260px;
         }
 
+        #processing-monitor {
+            position: absolute; bottom: 20px; left: 0px; z-index: 10;
+            background: rgba(255, 255, 255, 0.9); padding: 15px;
+            border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 260px;
+            margin:20px; padding: 15px; 
+            width:calc(100vw - 70px);
+
+        }
+
         #timer-container {
             margin-bottom: 15px; padding: 12px; background: #2c3e50; 
             color: white; border-radius: 6px; text-align: center;
@@ -84,10 +93,18 @@
         </div>
         <button onclick="network.fit()">Center View</button>
         <button class="btn-console" onclick="toggleConsole()">Toggle Console Logs</button>
+
     </div>
 
     <div id="console-panel">
         <div id="log-content"></div>
+    </div>
+
+    <div id="processing-monitor">
+        <h4 style="margin-top: 0; color: #3498db;">Active Processes</h4>
+        <div id="active-node-list">
+            <p style="color: #888; font-style: italic;">No active nodes...</p>
+        </div>
     </div>
 
     <div id="property-panel">
@@ -203,6 +220,64 @@
             }
         }
 
+        function getActiveNodeTimers(nodes) {
+            const now = new Date();
+
+            return nodes
+                .filter(node => node.raw.status === 'processing')
+                .map(node => {
+                    const startEntry = [...node.raw.log].reverse().find(entry => {
+                        return entry.hasOwnProperty('started');
+                    });
+                    let elapsedStr = "Starting...";
+                    let seconds = 0;
+
+                    if (startEntry) {
+                        const timestampValue = startEntry.started; 
+                        const startTime = new Date(timestampValue);
+                        const diff = Math.floor((now - startTime) / 1000); 
+                        const h = Math.floor(diff / 3600);
+                        const m = Math.floor((diff % 3600) / 60);
+                        const s = diff % 60;
+                        
+                        // Format as HH:MM:SS
+                        elapsedStr = [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
+                        seconds = diff;
+                    }
+
+                    return {
+                        id: node.raw.urn,
+                        name: node.raw.name,
+                        elapsed: elapsedStr,
+                        rawSeconds: seconds
+                    };
+                })
+                .sort((a, b) => b.rawSeconds - a.rawSeconds); // Sort longest running first
+        }
+
+        function updateMonitorUI(nodes) {
+            const container = document.getElementById('active-node-list');
+            const activeNodes = getActiveNodeTimers(nodes);
+
+            if (activeNodes.length === 0) {
+                container.innerHTML = '<p style="color: #888; font-style: italic;">No active nodes...</p>';
+                return;
+            }
+
+            container.innerHTML = activeNodes.map(node => `
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding: 8px 0;">
+                    <div>
+                        <span style="font-weight: bold;">${node.name}</span>
+                        <br/>
+                        <small style="color: #aaa;">ID: ${node.id}</small>
+                    </div>
+                    <div style="font-family: monospace; color: #2ecc71; font-size: 1.2em;">
+                        ${node.elapsed}
+                    </div>
+                </div>
+            `).join('');
+        }
+
         async function updateGraph() {
             try {
                 const response = await fetch(`/nodes?last_index=${lastLogIndex}`);
@@ -243,8 +318,10 @@
                 edges.update(tempEdges);
 
                 const allNodes = nodes.get();
+
                 const counts = { processed: 0, processing: 0, unprocessed: 0, failed: 0 };
                 allNodes.forEach(n => { if(counts.hasOwnProperty(n.raw.status)) counts[n.raw.status]++; });
+                updateMonitorUI(allNodes);
                 
                 document.getElementById('count-processed').innerText = `(${counts.processed})`;
                 document.getElementById('count-processing').innerText = `(${counts.processing})`;

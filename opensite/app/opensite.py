@@ -143,7 +143,11 @@ class OpenSiteApplication:
         return True
 
     def early_check_area(self, areas):
-        """If boundaries table exist, check area is valid"""
+        """
+        If boundaries table exist, check area is valid
+        Returns True if OSM boundaries table doesn't exist yet - 
+        a further check will be run once it has been created 
+        """
 
         postgis = OpenSitePostGIS()
         if postgis.table_exists(OpenSiteConstants.OPENSITE_OSMBOUNDARIES):
@@ -151,7 +155,7 @@ class OpenSiteApplication:
                 country = postgis.get_country_from_area(area)
                 if country is None: return False
             return True
-        return False
+        return True
 
     def run(self):
         """

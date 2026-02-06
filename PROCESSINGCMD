@@ -1,1 +1,1 @@
-./build.sh solar '--clip=Surrey;East Sussex'
+./build.sh solar '--clip=Surrey;East Sussex' --preview --purgeall
