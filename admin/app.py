@@ -58,7 +58,7 @@ from os.path import isfile, isdir, basename, join
 load_dotenv("../.env")
 
 WORKING_FOLDER                      = str(Path(__file__).absolute().parent) + '/'
-BUILD_FOLDER                        = join(WORKING_FOLDER, "..", 'build-cli')
+BUILD_FOLDER                        = join(WORKING_FOLDER, "..", 'build')
 if os.environ.get("BUILD_FOLDER") is not None: BUILD_FOLDER = os.environ.get('BUILD_FOLDER')
 
 POSTGRES_HOST                       = os.environ.get("POSTGRES_HOST")
