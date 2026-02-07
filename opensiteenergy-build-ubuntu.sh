@@ -165,10 +165,9 @@ sudo apt update -y | tee -a /usr/src/opensiteenergy/log.txt
 sudo apt install curl -y | tee -a /usr/src/opensiteenergy/log.txt
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install netcat-traditional nodejs -y | tee -a /usr/src/opensiteenergy/log.txt
-sudo apt install netcat nodejs -y | tee -a /usr/src/opensiteenergy/log.txt
+# sudo apt install netcat nodejs -y | tee -a /usr/src/opensiteenergy/log.txt
 sudo apt install nodejs -y | tee -a /usr/src/opensiteenergy/log.txt
-sudo apt install npm -y | tee -a /usr/src/opensiteenergy/log.txt
-npm i frontail -g 2>&1 | tee -a /usr/src/opensiteenergy/log.txt
+sudo npm i frontail -g 2>&1 | tee -a /usr/src/opensiteenergy/log.txt
 
 echo "[Unit]
 Description=frontail.service
