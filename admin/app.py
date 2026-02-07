@@ -137,24 +137,24 @@ def isProcessing():
 
 def startOpenWindEnergy():
     """
-    Starts Open Wind Energy service using systemd openwindenergy-servicesmanager
+    Starts Open Site Energy service using systemd opensiteenergy-servicesmanager
     """
 
-    if isfile('/usr/src/openwindenergy/OPENWINDENERGY-START'): return
-    with open('/usr/src/openwindenergy/OPENWINDENERGY-START', 'w') as file: file.write("OPENWINDENERGY-START")
+    if isfile('/usr/src/opensiteenergy/OPENWINDENERGY-START'): return
+    with open('/usr/src/opensiteenergy/OPENWINDENERGY-START', 'w') as file: file.write("OPENWINDENERGY-START")
     while True:
-        if not isfile('/usr/src/openwindenergy/OPENWINDENERGY-START'): break
+        if not isfile('/usr/src/opensiteenergy/OPENWINDENERGY-START'): break
         time.sleep(0.5)
 
 def stopOpenWindEnergy():
     """
-    Stops Open Wind Energy service using systemd openwindenergy-servicesmanager
+    Stops Open Site Energy service using systemd opensiteenergy-servicesmanager
     """
 
-    if isfile('/usr/src/openwindenergy/OPENWINDENERGY-STOP'): return
-    with open('/usr/src/openwindenergy/OPENWINDENERGY-STOP', 'w') as file: file.write("OPENWINDENERGY-STOP")
+    if isfile('/usr/src/opensiteenergy/OPENWINDENERGY-STOP'): return
+    with open('/usr/src/opensiteenergy/OPENWINDENERGY-STOP', 'w') as file: file.write("OPENWINDENERGY-STOP")
     while True:
-        if not isfile('/usr/src/openwindenergy/OPENWINDENERGY-STOP'): break
+        if not isfile('/usr/src/opensiteenergy/OPENWINDENERGY-STOP'): break
         time.sleep(0.5)
 
 def setProcessing(processing_state, command_line=''):
@@ -416,7 +416,7 @@ def download(zip_suffix, filter):
             output_file = join(output_files_folder, output_file) 
             zf.write(output_file, arcname=basename(output_file))
     memory_file.seek(0)
-    return send_file(memory_file, download_name=('openwindenergy-' + zip_suffix + '.zip'), as_attachment=True)
+    return send_file(memory_file, download_name=('opensiteenergy-' + zip_suffix + '.zip'), as_attachment=True)
 
 @app.route("/downloadall") 
 def downloadall():
@@ -490,7 +490,7 @@ def downloadqgis():
             output_file = join(output_files_folder, output_file) 
             zf.write(output_file, arcname=("output/" + basename(output_file)))
     memory_file.seek(0)
-    return send_file(memory_file, download_name=('openwindenergy-qgis.zip'), as_attachment=True)
+    return send_file(memory_file, download_name=('opensiteenergy-qgis.zip'), as_attachment=True)
 
 @app.route("/serverlogs")
 def serverlogs():
@@ -615,7 +615,7 @@ def processdomain():
     if domain_ip != visible_ip:
         return render_template("setdomain.html", error=domain) 
 
-    with open('/usr/src/openwindenergy/DOMAIN', 'w') as file: file.write("DOMAIN=" + domain)
+    with open('/usr/src/opensiteenergy/DOMAIN', 'w') as file: file.write("DOMAIN=" + domain)
 
     return redirect('http://' + visible_ip + '/redirectdomain?id=' + str(uuid.uuid4()) + '&domain=' + domain)
 
@@ -631,9 +631,9 @@ def redirectdomain():
 
     if not isLoggedIn(): return redirect(url_for('login'))
 
-    # Give openwindenergy-servicesmanager.sh enough time to remove previous log-certbot.txt
+    # Give opensiteenergy-servicesmanager.sh enough time to remove previous log-certbot.txt
     # Otherwise previously successful attempt will incorrectly appear as current success 
-    # openwindenergy-servicesmanager runs every 1s
+    # opensiteenergy-servicesmanager runs every 1s
     time.sleep(4)
 
     certbot_result, certbot_success = '', False

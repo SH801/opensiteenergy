@@ -128,9 +128,9 @@ pip install flask | tee -a /usr/src/opensiteenergy/log.txt
 pip install validators | tee -a /usr/src/opensiteenergy/log.txt
 cp /usr/src/opensiteenergy/.env-template /usr/src/opensiteenergy/.env
 echo 'SERVER_BUILD=True' >> /usr/src/opensiteenergy/.env
-mkdir /usr/src/opensiteenergy/build-cli
-mkdir /usr/src/opensiteenergy/build-cli/output
-mkdir /usr/src/opensiteenergy/build-cli/tileserver
+mkdir /usr/src/opensiteenergy/build
+mkdir /usr/src/opensiteenergy/build/output
+mkdir /usr/src/opensiteenergy/build/tileserver
 echo "./opensiteenergy-build-ubuntu.sh" >> /usr/src/opensiteenergy/PROCESSING
 sudo chown -R www-data:www-data /usr/src/opensiteenergy
 sudo sed -i "s/.*TILESERVER_URL.*/    TILESERVER_URL\=\/tiles/" /usr/src/opensiteenergy/.env
