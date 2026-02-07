@@ -17,4 +17,5 @@ gdal
 python-dotenv
 uvicorn
 fastapi
+pyogrio
 #pip install --no-deps git+https://github.com/hotosm/osm-export-tool-python.git

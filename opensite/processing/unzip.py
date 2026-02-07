@@ -47,7 +47,7 @@ class OpenSiteUnzipper(ProcessBase):
         self.ensure_output_dir(output_file)
         
         # 3. Use output_file name as the work directory
-        work_dir = output_file
+        work_dir = output_file.parent / f"{output_file.name}-tmp"
         
         try:
             # Clean up potential debris from previous failed runs
@@ -63,24 +63,40 @@ class OpenSiteUnzipper(ProcessBase):
                 self.log.info(f"Extracting into directory: {work_dir.name}/")
                 zip_ref.extractall(work_dir)
 
-            # 4. Intelligent Seeking
-            matches = [
-                p for p in work_dir.rglob("*") 
-                if p.suffix.lower() == target_ext.lower()
-            ]
-            
-            if not matches:
-                self.log.error(f"Target extension {target_ext} not found in {work_dir}")
-                return False
+            matches = []
+            for p in work_dir.rglob("*"):
+                if p.suffix.lower() == target_ext.lower():
+                    if target_ext.lower() == ".shp":
+                        # Pull the SHP and all its siblings (.shx, .dbf, .prj, etc.)
+                        # p.stem is the filename without the extension
+                        siblings = list(p.parent.glob(f"{p.stem}.*"))
+                        matches.extend(siblings)
+                    else:
+                        # For GPKG, GeoJSON, etc., just take the single file
+                        matches.append(p)
 
-            source_file = max(matches, key=lambda p: p.stat().st_size)
+            # 5. The Switcharoo (Renaming everything to match the output_file)
+            if target_ext.lower() == ".shp":
+                # Get the base name we want (e.g., "amalgamated" if output_file is "amalgamated.shp")
+                target_stem = output_file.stem 
+                
+                for match in matches:
+                    # Construct the new filename using the target stem + the original extension
+                    # e.g., 'original.dbf' becomes 'amalgamated.dbf'
+                    new_filename = f"{target_stem}{match.suffix.lower()}"
+                    dest_path = output_file.parent / new_filename
+                    
+                    # Move and rename simultaneously
+                    shutil.move(str(match), str(dest_path))
+                
+                self.log.info(f"Successfully moved and renamed Shapefile set to {target_stem}.*")
             
-            # 5. The Switcharoo
-            temp_final = output_file.parent / f"{output_file.name}.tmp_final"
-            shutil.move(str(source_file), str(temp_final))
-
+            else:
+                # Standard logic for single-file formats (GPKG, GeoJSON, etc.)
+                source_file = max(matches, key=lambda p: p.stat().st_size)
+                shutil.move(str(source_file), str(output_file))
+                
             shutil.rmtree(work_dir)
-            temp_final.rename(output_file)
             
             self.log.info(f"Successfully finalized: {output_file.name}")
             return True

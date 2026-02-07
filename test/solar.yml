@@ -15,87 +15,93 @@ areas:
   - uk
 
 structure:
-  aviation-and-exclusion-areas:
-    - civilian-airports--uk
-    - danger-areas--uk
-    - mod-training-areas--uk
-  ecology-and-wildlife:
-    - ancient-woodlands--england
-    - ancient-woodlands--northern-ireland
-    - ancient-woodlands--scotland
-    - ancient-woodlands--wales
-    - hedgerows--uk
-    - local-nature-reserves--england
-    - local-nature-reserves--scotland
-    - local-nature-reserves--wales
-    - national-nature-reserves--england
-    - national-nature-reserves--northern-ireland
-    - national-nature-reserves--scotland
-    - national-nature-reserves--wales
-    - osm-nature-reserves--uk
-    - ramsar-sites--england
-    - ramsar-sites--northern-ireland
-    - ramsar-sites--scotland
-    - ramsar-sites--wales
-    - sites-of-special-scientific-interest--england
-    - sites-of-special-scientific-interest--northern-ireland
-    - sites-of-special-scientific-interest--scotland
-    - sites-of-special-scientific-interest--wales
-    - special-areas-of-conservation--england
-    - special-areas-of-conservation--northern-ireland
-    - special-areas-of-conservation--scotland
-    - special-areas-of-conservation--wales
-    - special-protection-areas--england
-    - special-protection-areas--northern-ireland
-    - special-protection-areas--scotland
-    - special-protection-areas--wales
-    - wild-land-areas--scotland
-  environmental-data:
-    - inadequate-wind-speeds--uk
-  heritage-impacts:
-    - conservation-areas--england
-    - conservation-areas--scotland
-    - conservation-areas--wales
-    - listed-buildings--england
-    - listed-buildings--northern-ireland
-    - listed-buildings--scotland
-    - listed-buildings--wales
-    - registered-historic-battlefields--england
-    - registered-historic-battlefields--scotland
-    - registered-parks-and-gardens--england
-    - registered-parks-and-gardens--northern-ireland
-    - registered-parks-and-gardens--scotland
-    - registered-parks-and-gardens--wales
-    - scheduled-ancient-monuments--england
-    - scheduled-ancient-monuments--northern-ireland
-    - scheduled-ancient-monuments--scotland
-    - scheduled-ancient-monuments--wales
-    - world-heritage-sites--england
-    - world-heritage-sites--northern-ireland
-    - world-heritage-sites--scotland
-    - world-heritage-sites--wales
-  landscape-and-visual-impacts:
-    - areas-of-outstanding-natural-beauty--england
-    - areas-of-outstanding-natural-beauty--northern-ireland
-    - areas-of-outstanding-natural-beauty--scotland
-    - areas-of-outstanding-natural-beauty--wales
-    - heritage-coasts--england
-    - heritage-coasts--scotland
-    - heritage-coasts--wales
-    - national-parks--england
-    - national-parks--scotland
-    - national-parks--wales
-  other-technical-constraints: 
-    - bridleways--uk
-    - inland-waters--uk
-    - pipelines--uk
-    - power-lines--uk
-    - public-footpaths--uk
-    - public-roads-a-and-b-roads-and-motorways--uk
-    - railway-lines--uk
-  separation-distance-from-residential-properties:
-    - residential-buildings-os--gb
-    - residential-buildings-osm--uk
+  agricultural-land-grade-1-2:
+    - agricultural-land-classification-1-2--england
+    - agricultural-land-classification-1-2--wales
+    - agricultural-land-classification-1-2--scotland
+    - agricultural-land-classification-1-2--northern-ireland
+  # aviation-and-exclusion-areas:
+  #   - civilian-airports--uk
+  #   - danger-areas--uk
+  #   - mod-training-areas--uk
+  # ecology-and-wildlife:
+  #   - ancient-woodlands--england
+  #   - ancient-woodlands--northern-ireland
+  #   - ancient-woodlands--scotland
+  #   - ancient-woodlands--wales
+  #   - hedgerows--uk
+  #   - local-nature-reserves--england
+  #   - local-nature-reserves--scotland
+  #   - local-nature-reserves--wales
+  #   - national-nature-reserves--england
+  #   - national-nature-reserves--northern-ireland
+  #   - national-nature-reserves--scotland
+  #   - national-nature-reserves--wales
+  #   - osm-nature-reserves--uk
+  #   - ramsar-sites--england
+  #   - ramsar-sites--northern-ireland
+  #   - ramsar-sites--scotland
+  #   - ramsar-sites--wales
+  #   - sites-of-special-scientific-interest--england
+  #   - sites-of-special-scientific-interest--northern-ireland
+  #   - sites-of-special-scientific-interest--scotland
+  #   - sites-of-special-scientific-interest--wales
+  #   - special-areas-of-conservation--england
+  #   - special-areas-of-conservation--northern-ireland
+  #   - special-areas-of-conservation--scotland
+  #   - special-areas-of-conservation--wales
+  #   - special-protection-areas--england
+  #   - special-protection-areas--northern-ireland
+  #   - special-protection-areas--scotland
+  #   - special-protection-areas--wales
+  #   - wild-land-areas--scotland
+  # heritage-impacts:
+  #   - conservation-areas--england
+  #   - conservation-areas--scotland
+  #   - conservation-areas--wales
+  #   - listed-buildings--england
+  #   - listed-buildings--northern-ireland
+  #   - listed-buildings--scotland
+  #   - listed-buildings--wales
+  #   - registered-historic-battlefields--england
+  #   - registered-historic-battlefields--scotland
+  #   - registered-parks-and-gardens--england
+  #   - registered-parks-and-gardens--northern-ireland
+  #   - registered-parks-and-gardens--scotland
+  #   - registered-parks-and-gardens--wales
+  #   - scheduled-ancient-monuments--england
+  #   - scheduled-ancient-monuments--northern-ireland
+  #   - scheduled-ancient-monuments--scotland
+  #   - scheduled-ancient-monuments--wales
+  #   - world-heritage-sites--england
+  #   - world-heritage-sites--northern-ireland
+  #   - world-heritage-sites--scotland
+  #   - world-heritage-sites--wales
+  # landscape-and-visual-impacts:
+  #   - areas-of-outstanding-natural-beauty--england
+  #   - areas-of-outstanding-natural-beauty--northern-ireland
+  #   - areas-of-outstanding-natural-beauty--scotland
+  #   - areas-of-outstanding-natural-beauty--wales
+  #   - heritage-coasts--england
+  #   - heritage-coasts--scotland
+  #   - heritage-coasts--wales
+  #   - national-parks--england
+  #   - national-parks--scotland
+  #   - national-parks--wales
+  # other-technical-constraints: 
+  #   - bridleways--uk
+  #   - inland-waters--uk
+  #   - pipelines--uk
+  #   - power-lines--uk
+  #   - public-footpaths--uk
+  #   - public-roads-a-and-b-roads-and-motorways--uk
+  #   - railway-lines--uk
+  # separation-distance-from-residential-properties:
+  #   - residential-buildings-os--gb
+  #   - residential-buildings-osm--uk
+  # too-small-land-parcels:
+  #   - too-small-land-parcels--england-wales
+  #   - too-small-land-parcels--scotland
 
 buffers: 
   civilian-airports--uk:
@@ -124,15 +130,15 @@ buffers:
     20
 
 style:
+  agricultural-land-grade-1-2:
+    color:
+      blue
   aviation-and-exclusion-areas:
     color:
       purple
   ecology-and-wildlife:
     color:
       darkgreen
-  environmental-data:
-    color:
-      blue
   heritage-impacts:
     color:
       darkgoldenrod
@@ -145,6 +151,9 @@ style:
   separation-distance-from-residential-properties:
     color:
       darkorange
+  too-small-land-parcels:
+    color:
+      paleturquoise
 
 
 

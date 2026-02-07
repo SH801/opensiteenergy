@@ -74,7 +74,8 @@ class CKANBase:
                     'package_name': name,
                     'title': pkg_title,
                     'url': f"{self.url}/dataset/{name}", # Added for completeness
-                    'resources': matching_resources
+                    'resources': matching_resources,
+                    'extras': pkg['extras']
                 })
 
         return results

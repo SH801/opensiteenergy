@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import time
+import datetime
 from pathlib import Path
 from psycopg2 import sql, Error
 from opensite.constants import OpenSiteConstants
@@ -578,69 +579,115 @@ class OpenSiteSpatial(ProcessBase):
         name_elements = self.parse_output_node_name(self.node.name)
         self.node.name = name_elements['name']
         output_temp = f"{self.node.output}_temp"
-        vertex_limit = 500
 
+        # Generate scratch table names
+        def scratch(idx): return f"_s_{idx}_{self.node.output}"
+        
+        table_input = scratch(0) # We'll copy input here to add row_id
+        table_seams = scratch(1) # Just the polygons touching edges
+        table_islands = scratch(2) # Polygons safely away from edges
+        table_welded = scratch(3) # The result of the union
+        
         dbparams = {
             "crs": sql.Literal(self.get_crs_default()),
             "input": sql.Identifier(self.node.input),
             "output": sql.Identifier(self.node.output),
             "buffered_edges": sql.Identifier(OpenSiteConstants.OPENSITE_GRIDBUFFEDGES),
+            "table_input": sql.Identifier(table_input),
+            "table_seams": sql.Identifier(table_seams),
+            "table_islands": sql.Identifier(table_islands),
+            "table_welded": sql.Identifier(table_welded),
         }
 
         if self.postgis.table_exists(output_temp): self.postgis.drop_table(output_temp)
 
-        # ***** DELETE TABLE DURING TESTING *****
+        # # ***** DELETE TABLE DURING TESTING *****
         # if self.postgis.table_exists(self.node.output):
-        #     if 'residential-buildings-os----postprocess' in self.node.name:
-        #         self.postgis.drop_table(self.node.output)
+        #     self.postgis.drop_table(self.node.output)
 
         if self.postgis.table_exists(self.node.output):
             self.log.info(f"[postprocess] [{self.node.output}] already exists, skipping postprocess")
             return True
 
         try:
-            
-            self.log.info(f"[postprocess] [{self.node.name}] Performing surgical union using persistent edge mask...")
-            
-            # 3. Separate, Weld, and Recombine
+                        
+            all_scratch_tables = [table_input, table_seams, table_islands, table_welded]
+
+            def cleanup():
+                for t in all_scratch_tables:
+                    self.postgis.drop_table(t)
+
+            cleanup()
+            self.postgis.drop_table(self.node.output)
+
+            # --- STEP 1: Materialize Input with Unique IDs ---
+            self.log.info(f"[postprocess] [{self.node.name}] Step 1: Materializing indexed input...")
+            start = datetime.datetime.now()
             self.postgis.execute_query(sql.SQL("""
-            CREATE TABLE {output} AS
-            WITH 
-            indexed_input AS (
-                -- Create the unique key that the 'id' field lacks
-                SELECT row_number() OVER () as row_id, * FROM {input}
-            ),
-            seam_candidates AS (
-                -- Only polygons touching the grid boundaries
-                SELECT a.* FROM indexed_input a
-                JOIN {buffered_edges} b ON ST_Intersects(a.geom, b.geom)
-            ),
-            islands AS (
-                -- Everything NOT touching a boundary
-                SELECT a.* FROM indexed_input a
-                LEFT JOIN seam_candidates b ON a.row_id = b.row_id
-                WHERE b.row_id IS NULL
-            ),
-            unioned_seams AS (
-                -- Weld the split pieces
+                CREATE TABLE {table_input} AS 
+                SELECT row_number() OVER () as row_id, * FROM {input};
+                CREATE INDEX ON {table_input} (row_id);
+                CREATE INDEX ON {table_input} USING GIST (geom);
+            """).format(**dbparams))
+            self.log.info(f"[postprocess] [{self.node.name}] Step 1: COMPLETED in {datetime.datetime.now() - start}")
+
+            # --- STEP 2: Isolate Seam Candidates ---
+            self.log.info(f"[postprocess] [{self.node.name}] Step 2: Extracting seam candidates...")
+            start = datetime.datetime.now()
+            self.postgis.execute_query(sql.SQL("""
+            CREATE TABLE {table_seams} AS
+                SELECT a.row_id, a.geom 
+                FROM {table_input} a
+                JOIN {buffered_edges} b ON ST_Intersects(a.geom, b.geom);
+            CREATE INDEX ON {table_seams} (row_id);
+            """).format(**dbparams))
+            self.log.info(f"[postprocess] [{self.node.name}] Step 2: COMPLETED in {datetime.datetime.now() - start}")
+
+            # --- STEP 3: Isolate Islands ---
+            self.log.info(f"[postprocess] [{self.node.name}] Step 3: Isolating islands...")
+            start = datetime.datetime.now()
+            self.postgis.execute_query(sql.SQL("""
+                CREATE TABLE {table_islands} AS
+                SELECT a.* FROM {table_input} a
+                LEFT JOIN {table_seams} b ON a.row_id = b.row_id
+                WHERE b.row_id IS NULL;
+            """).format(**dbparams))
+            self.log.info(f"[postprocess] [{self.node.name}] Step 3: COMPLETED in {datetime.datetime.now() - start}")
+
+            # --- STEP 4: Weld seams ---
+            self.log.info(f"[postprocess] [{self.node.name}] Step 4: Unioning/Welding seam geometries...")
+            start = datetime.datetime.now()
+            # Note: We use ST_Dump to ensure we don't end up with a single MultiPolygon
+            self.postgis.execute_query(sql.SQL("""
+            CREATE TABLE {table_welded} AS
                 SELECT (ST_Dump(
-                    ST_UnaryUnion(
-                        ST_Collect(
-                            ST_MakeValid(ST_SnapToGrid(geom, 0.001))
-                        )
-                    )
+                    ST_Union(ST_MakeValid(geom))
                 )).geom
-                FROM seam_candidates
-            )
-            -- Combine the welded seams with the preserved islands
-            SELECT geom FROM unioned_seams
-            UNION ALL
-            SELECT geom FROM islands;
+            FROM {table_seams};
+            """).format(**dbparams))
+            self.log.info(f"[postprocess] [{self.node.name}] Step 4: COMPLETED in {datetime.datetime.now() - start}")
+
+# CREATE TABLE {table_welded} AS
+#     SELECT (ST_Dump(
+#         ST_MemUnion(
+#             ST_SnapToGrid(ST_MakeValid(geom), 1.0)
+#         )
+#     )).geom
+#     FROM {table_seams};
+
+            # --- STEP 5: Final assembly ---
+            self.log.info(f"[postprocess] [{self.node.name}] Step 5: Finalizing output...")
+            self.postgis.execute_query(sql.SQL("""
+                CREATE TABLE {output} AS
+                SELECT geom FROM {table_welded}
+                UNION ALL
+                SELECT geom FROM {table_islands};
+                CREATE INDEX ON {output} USING GIST (geom);
             """).format(**dbparams))
 
-            self.log.info("[postprocess] Success. Seam healing bypass completed.")
+            cleanup()
+            self.log.info(f"[postprocess] [{self.node.name}] Success.")
 
-            self.postgis.execute_query(sql.SQL("CREATE INDEX ON {output} USING GIST (geom)").format(**dbparams))                
             self.postgis.add_table_comment(self.node.output, self.node.name)
             self.postgis.register_node(self.node, None, name_elements['branch'])
             
@@ -648,11 +695,11 @@ class OpenSiteSpatial(ProcessBase):
                 self.log.info(f"[postprocess] [{self.node.name}] COMPLETED")
                 return True
             else:
-                self.log.error(f"[postprocess] Postprocess completed but registry record for {self.node.output} was not found.")
+                self.log.error(f"[postprocess] [{self.node.name}] Postprocess completed but registry record for {self.node.output} was not found.")
                 return False
 
         except Exception as e:
-            self.log.error(f"[postprocess] Error during Loop Union: {e}")
+            self.log.error(f"[postprocess] [{self.node.name}] Error during Loop Union: {e}")
             return False
 
     def clip(self):

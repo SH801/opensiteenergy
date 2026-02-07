@@ -2,9 +2,11 @@ import os
 import subprocess
 import json
 import logging
+import pyogrio
 import sqlite3
 import tempfile
 from pathlib import Path
+from pyproj import CRS
 from opensite.processing.base import ProcessBase
 from opensite.constants import OpenSiteConstants
 from opensite.logging.opensite import OpenSiteLogger
@@ -25,6 +27,13 @@ class OpenSiteImporter(ProcessBase):
 
         if file_path.endswith('.gpkg'): 
             return self.get_gpkg_projection(file_path)
+
+        if file_path.endswith('.shp'):
+            meta = pyogrio.read_info(file_path)
+            crs = CRS.from_user_input(meta['crs'])
+            epsg_code = crs.to_epsg(min_confidence=0)
+            if epsg_code: return f"EPSG:{epsg_code}"
+            return None
 
         if file_path.endswith('.geojson'): 
             
@@ -168,6 +177,7 @@ class OpenSiteImporter(ProcessBase):
             "-makevalid",
             "-overwrite",
             "-lco", "GEOMETRY_NAME=geom",
+            "-lco", "PRECISION=NO",
             "-nln", self.node.output,
             "-nlt", "PROMOTE_TO_MULTI",
             "-s_srs", input_projection, 
@@ -179,9 +189,18 @@ class OpenSiteImporter(ProcessBase):
 
         # Historic England Conservation Areas includes 'no data' polygons so remove as too restrictive
         if self.node.name == 'conservation-areas--england': sql_where_clause = "Name NOT LIKE 'No data%'"
+        else:
+            if 'filter' in self.node.custom_properties:
+                sql_where_clause = ''
+                filter = self.node.custom_properties['filter']
+                total = len(filter['values'])
+                for i, item in enumerate(filter['values']):
+                    sql_where_clause += f"{filter['field']}='{item}'"
+                    if i != total - 1:
+                        sql_where_clause += " OR "
 
         if sql_where_clause is not None:
-            for extraitem in ["-dialect", "sqlite", "-sql", "SELECT * FROM '" + self.node.name + "' WHERE " + sql_where_clause]:
+            for extraitem in ["-dialect", "sqlite", "-where", sql_where_clause]:
                 cmd.append(extraitem)
 
         for extraconfig in ["--config", "OGR_PG_ENABLE_METADATA", "NO"]: cmd.append(extraconfig)
@@ -201,8 +220,6 @@ class OpenSiteImporter(ProcessBase):
         else:
             # For GeoJSON or other single-layer files, just set the table name
             self.log.info(f"Importing file {os.path.basename(input_file)} to table '{self.node.output}'")
-
-        self.log.info(f"Executing PostGIS import for node: {self.node.name}")
 
         try:
             # Execute shell command

@@ -46,7 +46,7 @@ class OpenSiteDownloader(DownloadBase):
             return handler.get(node.input, target_file, subfolder, force)
 
         # Fallback for anything else
-        self.log.warning(f"Format '{current_format}' not explicitly handled. Falling back to default.")
+        self.log.info(f"Format '{current_format}' not explicitly handled. Falling back to default.")
         return self.get_url(node.input, target_file, subfolder, force)
 
     def get_remote_size(self, node) -> int:

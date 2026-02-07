@@ -56,6 +56,7 @@ class OpenSiteConstants:
                                     'GeoJSON', 
                                     'WFS', 
                                     'KML',
+                                    'SHP',
                                     OSM_YML_FORMAT, 
                                     SITES_YML_FORMAT, 
                                 ]
@@ -78,6 +79,7 @@ class OpenSiteConstants:
                                     'GeoJSON': 'geojson', 
                                     'WFS': 'gpkg', 
                                     'KML': 'geojson',
+                                    'SHP': 'shp',
                                     OSM_YML_FORMAT: 'yml', 
                                     SITES_YML_FORMAT: 'yml', 
                                 }

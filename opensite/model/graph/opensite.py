@@ -455,7 +455,6 @@ class OpenSiteGraph(Graph):
         self.log.info("Synchronizing node titles with CKAN metadata...")
 
         model = ckan.query()
-        ckan_base = ckan.url
 
         # Build a unified lookup map for both Groups and Datasets
         ckan_lookup = {}
@@ -476,7 +475,8 @@ class OpenSiteGraph(Graph):
                     ckan_lookup[package_name] = {
                         'title': dataset.get('title').strip(), 
                         'input': priority_resource.get('url').strip(),
-                        'format': priority_resource.get('format').strip()
+                        'format': priority_resource.get('format').strip(),
+                        'extras': dataset.get('extras')
                     }
                 
         # Recursive walker (unchanged logic, now with better data)
@@ -487,6 +487,11 @@ class OpenSiteGraph(Graph):
                 node.title = meta['title']
                 if 'input' in meta: node.input = meta['input']
                 if 'format' in meta: node.format = meta['format'] 
+                # Add any filters from ckan extras
+                if ('extras' in meta) and (len(meta['extras']) > 0): 
+                    for item in meta['extras']:
+                        if item['key'].startswith('FILTER:'):
+                            node.custom_properties['filter'] = {'field': item['key'][len('FILTER:'):], 'values': item['value'].split(';')}
                 matches += 1
             
             if hasattr(node, 'children'):
@@ -1015,8 +1020,8 @@ class OpenSiteGraph(Graph):
                 # Clone for the output branch
                 # NOTE: We do NOT set am_node as a child. This keeps the branches visually disconnected.
                 cloned_am = self.create_node(
-                    name=branch_code + "--" + am_node.name,
-                    title=branch_code + " - " + am_node.title,
+                    name=f"{branch_code}--{am_node.name}",
+                    title=f"{branch_code} - {am_node.title}",
                     action=am_node.action,
                     input=am_node.input,
                     output=am_node.output,
