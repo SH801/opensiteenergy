@@ -8,7 +8,7 @@ import logging
 import multiprocessing
 import time
 import webbrowser
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from typing import List
@@ -32,6 +32,7 @@ class OpenSiteQueue:
 
     DOWNLOAD_RETRY_INTERVAL         = 30
     DOWNLOAD_RETRY_TOTALATTEMPTS    = 10
+    SHUTDOWN_TIME_DELAY             = 10
 
     def __init__(self, graph, max_workers=None, log_level=logging.DEBUG, overwrite=False):
         self.graph = graph
@@ -39,10 +40,12 @@ class OpenSiteQueue:
         self.terminal_status = self.graph.get_terminal_status()
         self.log_level = log_level
         self.overwrite = overwrite
-        self.logger = OpenSiteLogger("OpenSiteQueue", self.log_level)
+        self.log = OpenSiteLogger("OpenSiteQueue", self.log_level)
         self.server_thread = None
         self.stop_event = None
         self.process_started = None
+        self.shutdowntime = None
+        self.shutdownstatus = None
 
         # Resource Scaling
         self.cpus = os.cpu_count() or 1
@@ -103,13 +106,28 @@ class OpenSiteQueue:
 
         self.server_thread = threading.Thread(target=run_server, daemon=True)
         self.server_thread.start()
-        self.logger.info(f"[*] FastAPI started on http://{host}:{port}")
-        self.logger.info(f"[*] API Docs available at http://{host}:{port}/docs")
+        self.log.info(f"[*] FastAPI started on http://{host}:{port}")
+        self.log.info(f"[*] API Docs available at http://{host}:{port}/docs")
 
     def shutdown(self):
         """Clean exit point for the application."""
 
         if self.stop_event: self.stop_event.set()
+
+    def set_shutdown(self, status):
+        """Triggers shutdown using SHUTDOWN_TIME_DELAY"""
+
+        self.log.info(f"Setting shutdown in {self.SHUTDOWN_TIME_DELAY} seconds")
+        self.shutdowntime = (datetime.now(timezone.utc) + timedelta(seconds=self.SHUTDOWN_TIME_DELAY)).isoformat()
+        self.shutdownstatus = status
+
+    def check_shutdown(self):
+        """Checks whether to shutdown"""
+
+        if not self.shutdowntime: return False
+
+        shutdown_time = datetime.fromisoformat(self.shutdowntime)
+        return datetime.now(timezone.utc) >= shutdown_time
 
     def _fetch_filesizes_parallel(self, nodes: List[Node]):
         """Helper to fetch remote sizes for a list of nodes in parallel."""
@@ -123,11 +141,11 @@ class OpenSiteQueue:
             return
 
         def fetch_task(node):
-            self.logger.info(f"Getting file size: {node.input}")
+            self.log.info(f"Getting file size: {node.input}")
             downloader = OpenSiteDownloader()
             # This calls the logic we just fixed with 'identity' headers
             node._remote_size = downloader.get_remote_size(node)
-            self.logger.info(f"File size {node._remote_size}: {node.input}")
+            self.log.info(f"File size {node._remote_size}: {node.input}")
 
         # Max 20 threads is usually a sweet spot for network I/O 
         # without triggering rate limits on most servers
@@ -136,7 +154,7 @@ class OpenSiteQueue:
             list(executor.map(fetch_task, nodes_to_check))
         
         # Now the code only reaches this line once all threads are done
-        self.logger.info("All file sizes fetched.")
+        self.log.info("All file sizes fetched.")
 
     def _fetch_db_sizes(self, nodes: List[Node]):
         """Fetch database table sizes for all preprocess nodes in one batch query."""
@@ -156,7 +174,7 @@ class OpenSiteQueue:
         if not table_names:
             return
 
-        self.logger.info(f"Fetching database sizes for {len(table_names)} tables...")
+        self.log.info(f"Fetching database sizes for {len(table_names)} tables...")
 
         # Single query to get sizes for all tables in the list
         query = """
@@ -178,12 +196,12 @@ class OpenSiteQueue:
                 for node in nodes_to_check:
                     node._db_table_size = size_map.get(node.table_name, 0)
                     if node._db_table_size > 0:
-                        self.logger.info(f"Table {node.table_name} size: {node._db_table_size} bytes")
+                        self.log.info(f"Table {node.table_name} size: {node._db_table_size} bytes")
                     
         finally:
             self.postgis.pool.putconn(conn)
 
-        self.logger.info("All database table sizes fetched.")
+        self.log.info("All database table sizes fetched.")
         
     def set_node_status(self, node, status):
         """
@@ -378,6 +396,11 @@ class OpenSiteQueue:
 
             while True:
 
+                # Check whether look is due to be shutdown
+                if self.check_shutdown():
+                    self.shutdown()
+                    return self.shutdownstatus
+
                 # 1. Get nodes that are ready to run (Dependencies met)
                 ready_nodes = self.get_runnable_nodes(actions=None, checksizes=False)
                 
@@ -427,17 +450,16 @@ class OpenSiteQueue:
                     unfinished = [n for n in self.graph.find_nodes_by_props() 
                                  if n.get('status') not in ['processed', 'failed']]
                     
-                    if not unfinished:
-                        self.graph.log.info(f"{Fore.GREEN}{'='*60}{Style.RESET_ALL}")
-                        self.graph.log.info(f"{Fore.GREEN}{'*'*19} PROCESSING COMPLETE {'*'*20}{Style.RESET_ALL}")
-                        self.graph.log.info(f"{Fore.GREEN}{'='*60}{Style.RESET_ALL}")
-                        self.shutdown()
-                        return True
-                    else:
-                        if unfinishednodes == len(unfinished):
-                            self.graph.log.warning(f"Queue stalled. {len(unfinished)} nodes unfinished")
-                            self.shutdown()
-                            return False
+                    if not self.shutdowntime:
+                        if not unfinished:
+                            self.graph.log.info(f"{Fore.GREEN}{'='*60}{Style.RESET_ALL}")
+                            self.graph.log.info(f"{Fore.GREEN}{'*'*19} PROCESSING COMPLETE {'*'*20}{Style.RESET_ALL}")
+                            self.graph.log.info(f"{Fore.GREEN}{'='*60}{Style.RESET_ALL}")
+                            self.set_shutdown(True)
+                        else:
+                            if unfinishednodes == len(unfinished):
+                                self.graph.log.warning(f"Queue stalled. {len(unfinished)} nodes unfinished")
+                                self.set_shutdown(False)
 
                         unfinishednodes = len(unfinished)
 

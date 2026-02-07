@@ -45,6 +45,9 @@ class OpenSiteConstants:
     # Format text used by CKAN to indicate Open Site Energy YML file
     SITES_YML_FORMAT            = "Open Site Energy YML"
 
+    # Format text used by CKAN to indicate Open Library YML file
+    OPENLIBRARY_YML_FORMAT      = "Open Library YML"
+
     # 'User-Agent' to use when downloading datasets via WFS
     WFS_USER_AGENT              = "openwindenergy/*"
 
@@ -58,6 +61,7 @@ class OpenSiteConstants:
                                     'KML',
                                     'SHP',
                                     OSM_YML_FORMAT, 
+                                    OPENLIBRARY_YML_FORMAT,
                                     SITES_YML_FORMAT, 
                                 ]
 
@@ -81,6 +85,7 @@ class OpenSiteConstants:
                                     'KML': 'geojson',
                                     'SHP': 'shp',
                                     OSM_YML_FORMAT: 'yml', 
+                                    OPENLIBRARY_YML_FORMAT: 'yml',
                                     SITES_YML_FORMAT: 'yml', 
                                 }
 
@@ -113,8 +118,11 @@ class OpenSiteConstants:
     BUILD_ROOT                  = Path(os.getenv("BUILD_FOLDER", "build"))
     
     # Sub-directories
+    OSM_SUBFOLDER               = "osm"
+    OPENLIBRARY_SUBFOLDER       = "openlibrary"
     DOWNLOAD_FOLDER             = BUILD_ROOT / "downloads"
-    OSM_DOWNLOAD_FOLDER         = DOWNLOAD_FOLDER / "osm"
+    OSM_DOWNLOAD_FOLDER         = DOWNLOAD_FOLDER / OSM_SUBFOLDER
+    OPENLIBRARY_DOWNLOAD_FOLDER = DOWNLOAD_FOLDER / OPENLIBRARY_SUBFOLDER
     CACHE_FOLDER                = BUILD_ROOT / "cache"
     LOG_FOLDER                  = BUILD_ROOT / "logs"
     OUTPUT_FOLDER               = BUILD_ROOT / "output"
@@ -238,6 +246,7 @@ class OpenSiteConstants:
                                     BUILD_ROOT,
                                     DOWNLOAD_FOLDER,
                                     OSM_DOWNLOAD_FOLDER,
+                                    OPENLIBRARY_DOWNLOAD_FOLDER,
                                     CACHE_FOLDER,
                                     LOG_FOLDER,
                                     OUTPUT_FOLDER,

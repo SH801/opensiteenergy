@@ -537,6 +537,9 @@ class OpenSiteGraph(Graph):
         # Generate osm-export-tool nodes
         self.add_osmexporttool()
 
+        # Generate OpenLibrary nodes
+        self.add_openlibrary()
+
         # Generate buffer nodes
         self.add_buffers()
 
@@ -863,13 +866,53 @@ class OpenSiteGraph(Graph):
                 if runner_parent:
                     runner_parent.action = 'import'
                     # Change location to /osm as import is non-OSM-specific
-                    runner_parent.input = f"osm/{run_output}"
+                    runner_parent.input = f"{OpenSiteConstants.OSM_SUBFOLDER}/{run_output}"
                     if not hasattr(runner_parent, 'custom_properties') or runner_parent.custom_properties is None:
                         runner_parent.custom_properties = {}
                     runner_parent.custom_properties['osm'] = osm_url
                     runner_parent.custom_properties['yml'] = node.output
 
         self.log.debug("OSM Tree complete: Runner is now parent to both Downloader and Concatenator.")
+
+    def add_openlibrary(self):
+        """
+        Builds Open Library nodes by changing type of 'download' to 'run' and modifying paths
+        """
+        self.log.info("Setting up Open Library nodes")
+
+        # Query for the base Open Library YML nodes
+        yml_node_dicts = self.find_nodes_by_props({
+            'format': OpenSiteConstants.OPENLIBRARY_YML_FORMAT, 
+            'node_type': 'download'
+        })
+        
+        if not yml_node_dicts:
+            return
+
+        # Group by URL
+        groups = {}
+        for d in yml_node_dicts:
+            node = self.find_node_by_urn(d['urn'])
+            if node.input not in groups:
+                groups[node.input] = []
+            groups[node.input].append(node)
+
+        # 3. Process each unique url group
+        for osm_url, group_nodes in groups.items():
+            for node in group_nodes:
+                title_elements = node.title.split(' - ')
+                title_elements[0] = 'Run Open Library'
+                node.title = ' - '.join(title_elements)
+                node.action = 'run'
+                node.node_type = 'openlibrary-runner'
+                node.output = f"{str(Path(node.output).stem)}.gpkg"
+
+                # Change input of runner's parent
+                runner_parent = self.find_parent(node.urn)
+                if runner_parent:
+                    runner_parent.input = f"{OpenSiteConstants.OPENLIBRARY_SUBFOLDER}/{node.output}"
+                    
+        self.log.debug("Setting up Open Library nodes complete")
 
     def add_buffers(self):
         """
@@ -1206,7 +1249,7 @@ class OpenSiteGraph(Graph):
 
                 if child.action != 'amalgamate': continue
 
-                if 'color' not in child.style:
+                if (not getattr(child, 'style', None)) or ('color' not in child.style):
                     self.log.error(f"Colour missing for dataset {child.name}")
                     color = defaultcolor
                 else:
@@ -1290,7 +1333,7 @@ class OpenSiteGraph(Graph):
                 format="OSM",
                 input=osm_default,
                 action="download",
-                output=f"osm/{os.path.basename(osm_default)}",
+                output=f"{OpenSiteConstants.OSM_SUBFOLDER}/{os.path.basename(osm_default)}",
                 custom_properties={"osm": osm_default}
             )
 
@@ -1309,7 +1352,7 @@ class OpenSiteGraph(Graph):
                 name=OpenSiteConstants.OSM_BOUNDARIES,
                 title="Import OSM clipping boundaries",
                 node_type="source",
-                input=f"osm/{OpenSiteConstants.OSM_BOUNDARIES}.gpkg",
+                input=f"{OpenSiteConstants.OSM_SUBFOLDER}/{OpenSiteConstants.OSM_BOUNDARIES}.gpkg",
                 action="import",
                 output=OpenSiteConstants.OPENSITE_OSMBOUNDARIES,
                 custom_properties={"osm": osm_default},
@@ -1345,7 +1388,7 @@ class OpenSiteGraph(Graph):
                 format="OSM",
                 input=osm_default,
                 action="download",
-                output=f"osm/{os.path.basename(osm_default)}",
+                output=f"{OpenSiteConstants.OSM_SUBFOLDER}/{os.path.basename(osm_default)}",
                 custom_properties={"osm": osm_default}
             )
 

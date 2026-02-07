@@ -7,7 +7,7 @@ from opensite.logging.opensite import OpenSiteLogger
 
 class OpenSiteCLI(BaseCLI):
     def __init__(self, config_path: str = "defaults.yml", log_level=logging.INFO):
-        super().__init__(description="OpenSite Project Processor", log_level=log_level)
+        super().__init__(description="OpenSiteEnergy Project Processor", log_level=log_level)
         self.log = OpenSiteLogger("OpenSiteCLI", log_level)
         self.config_path = config_path
         self.defaults = {}

@@ -15,11 +15,11 @@ areas:
   - uk
 
 structure:
-  agricultural-land-grade-1-2:
-    - agricultural-land-classification-1-2--england
-    - agricultural-land-classification-1-2--wales
-    - agricultural-land-classification-1-2--scotland
-    - agricultural-land-classification-1-2--northern-ireland
+  # agricultural-land-grade-1-2:
+  #   - agricultural-land-classification-1-2--england
+  #   - agricultural-land-classification-1-2--wales
+  #   - agricultural-land-classification-1-2--scotland
+  #   - agricultural-land-classification-1-2--northern-ireland
   # aviation-and-exclusion-areas:
   #   - civilian-airports--uk
   #   - danger-areas--uk
@@ -99,9 +99,12 @@ structure:
   # separation-distance-from-residential-properties:
   #   - residential-buildings-os--gb
   #   - residential-buildings-osm--uk
-  # too-small-land-parcels:
-  #   - too-small-land-parcels--england-wales
-  #   - too-small-land-parcels--scotland
+  # test:
+  #   - solar-slope-too-steep--uk
+  land-properties:
+    - solar-slope-too-steep--uk
+    - solar-land-parcels-too-small--england-wales
+    - solar-land-parcels-too-small--scotland
 
 buffers: 
   civilian-airports--uk:
@@ -151,9 +154,9 @@ style:
   separation-distance-from-residential-properties:
     color:
       darkorange
-  too-small-land-parcels:
+  land-properties:
     color:
-      paleturquoise
+      gold
 
 
 

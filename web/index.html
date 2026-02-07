@@ -41,7 +41,7 @@
         #console-panel {
             position: fixed; bottom: 0; left: 0; width: 100%; height: 400px;
             background: #121212; color: #d4d4d4; font-family: 'Consolas', monospace;
-            padding: 10px; overflow-y: auto; display: none; z-index: 1500;
+            padding: 10px; overflow-x: hidden; overflow-y: auto; display: none; z-index: 1500;
             border-top: 3px solid #333; box-sizing: border-box;
         }
         .log-line { font-size: 0.8rem; margin-bottom: 2px; border-bottom: 1px solid #1e1e1e; white-space: pre-wrap; }
@@ -301,6 +301,7 @@
                         if (log.msg.includes("[postprocess]")) msgColor = "#2d9c33";
                         if (log.msg.includes("OpenSiteOutput")) msgColor = "#6078e0";
                         if (log.msg.includes("OpenSitePostGIS")) msgColor = "#f5b547";
+                        if (log.msg.includes("OpenSiteRunner")) msgColor = "#5e5adb";
                         if (log.msg.includes("ERROR")) msgColor = "#de0d0d";
 
                         line.innerHTML = `<span class="log-ts">${log.time}</span><span style="color:${msgColor}">${log.msg}</span>`;

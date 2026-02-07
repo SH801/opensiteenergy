@@ -1,13 +1,1 @@
-ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
-Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--all-layers.gpkg' may only be partially supported
-ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
-ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
-Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--all-layers.gpkg' may only be partially supported
-Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--agricultural-land-grade-1-2.gpkg' may only be partially supported
-ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
-ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
-Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--agricultural-land-grade-1-2.gpkg' may only be partially supported
-Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--agricultural-land-classification-1-2.gpkg' may only be partially supported
-ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
-ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db
-Warning 1: This version of GeoPackage user_version=0x000028A0 (10400, v1.4.0) on '/Users/stefanhaselwimmer/Projects/OpenLibraries/opensite/build/output/layers/solar--agricultural-land-classification-1-2.gpkg' may only be partially supported
+Warning 6: driver GML does not support open option GML_SKIP_RESOLVE_ELEMS
