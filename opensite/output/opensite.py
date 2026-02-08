@@ -4,6 +4,7 @@ from pathlib import Path
 from opensite.output.base import OutputBase
 from opensite.constants import OpenSiteConstants
 from opensite.logging.opensite import OpenSiteLogger
+from opensite.postgis.opensite import OpenSitePostGIS
 from opensite.output.geojson import OpenSiteOutputGeoJSON
 from opensite.output.gpkg import OpenSiteOutputGPKG
 from opensite.output.mbtiles import OpenSiteOutputMbtiles
@@ -24,6 +25,24 @@ class OpenSiteOutput(OutputBase):
         """
 
         outputObject = None
+        full_path = Path(self.base_path / self.node.output).resolve()
+
+        # We always export some formats, regardless of whether existing output file is correct
+        if self.node.format not in ['json', 'qgis', 'web']:
+
+            postgis = OpenSitePostGIS(self.log_level)
+            input = self.node.input
+
+            # For file conversions, input will be file not database
+            if not input.startswith(OpenSiteConstants.DATABASE_GENERAL_PREFIX):
+                input = str(Path(self.base_path / self.node.input).resolve())
+
+            # If not overwriting, file exists and there is 'last exported' entry for input table and output path, then do nothing 
+            if postgis.check_export_exists(input, str(full_path)):
+                if not self.overwrite:
+                    if full_path.exists():
+                        self.log.info(f"{self.node.output} already exists and was exported from {self.node.input} so skipping export")
+                        return True
 
         if self.node.format == 'geojson':
             outputObject = OpenSiteOutputGeoJSON(self.node, self.log_level, self.overwrite, self.shared_lock, self.shared_metadata)
@@ -46,7 +65,15 @@ class OpenSiteOutput(OutputBase):
         if self.node.format == 'web':
             outputObject = OpenSiteOutputWeb(self.node, self.log_level, self.overwrite, self.shared_lock, self.shared_metadata)
 
-        if outputObject: return outputObject.run()
+        if outputObject:
+
+            run_status = outputObject.run()
+
+            # If export was successful, add to export log table
+            if run_status:
+                postgis.update_export_log(str(input), str(full_path))
+
+            return run_status
 
         return False
     

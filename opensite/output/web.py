@@ -154,16 +154,6 @@ class OpenSiteOutputWeb(OutputBase):
                     # Temporary workaround as setting 'fill-outline-color'='#FFFFFF00' on individual style breaks WMTS
                     opensite_layer['paint']['fill-outline-color'] = "#FFFFFF00"
                     opensite_layer['layout'] = {'visibility': 'visible'}
-
-                    # if dataset['defaultactive']: 
-                    #      opensite_layer['layout'] = {'visibility': 'visible'}
-                    # else: 
-                    #      opensite_layer['layout'] = {'visibility': 'none'}
-
-                    # # Hide first dataset
-                    # if firstdataset: 
-                    #      opensite_layer['layout'] = {'visibility': 'none'}
-
                     opensite_style_json['layers'].append(opensite_layer)
                     opensite_style_json['sources'][dataset['dataset']] = style_json['sources'][dataset['dataset']]
 

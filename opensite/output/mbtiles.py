@@ -41,10 +41,6 @@ class OpenSiteOutputMbtiles(OutputBase):
 
         if tmp_output_path.exists(): tmp_output_path.unlink()
 
-        if (not self.overwrite) and final_output_path.exists():
-            self.log.info(f"{self.node.output} already exists, skipping export")
-            return True
-
         query_s1_gridify = sql.SQL("""
         CREATE TABLE {scratch1} AS 
             SELECT (ST_Dump(ST_Intersection(layer.geom, grid.geom))).geom geom FROM {input} layer, {grid} grid

@@ -221,6 +221,7 @@ class OpenSiteConstants:
     DATABASE_BASE               = f"_{DATABASE_GENERAL_PREFIX}" 
     OPENSITE_REGISTRY           = DATABASE_BASE + 'registry'
     OPENSITE_BRANCH             = DATABASE_BASE + 'branch'
+    OPENSITE_OUTPUTS            = DATABASE_BASE + 'outputs'
     OPENSITE_CLIPPINGMASTER     = DATABASE_BASE + 'clipping_master'
     OPENSITE_CLIPPINGTEMP       = DATABASE_BASE + 'clipping_temp'
     OPENSITE_GRIDPROCESSING     = DATABASE_BASE + 'grid_processing'

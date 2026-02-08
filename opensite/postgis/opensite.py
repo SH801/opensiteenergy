@@ -11,6 +11,7 @@ class OpenSitePostGIS(PostGISBase):
 
     OPENSITE_REGISTRY       = OpenSiteConstants.OPENSITE_REGISTRY
     OPENSITE_BRANCH         = OpenSiteConstants.OPENSITE_BRANCH
+    OPENSITE_OUTPUTS        = OpenSiteConstants.OPENSITE_OUTPUTS        
     OPENSITE_CLIPPINGMASTER = OpenSiteConstants.OPENSITE_CLIPPINGMASTER
     OPENSITE_GRIDPROCESSING = OpenSiteConstants.OPENSITE_GRIDPROCESSING
     OPENSITE_GRIDBUFFEDGES  = OpenSiteConstants.OPENSITE_GRIDBUFFEDGES
@@ -20,7 +21,7 @@ class OpenSitePostGIS(PostGISBase):
     def __init__(self, log_level=logging.INFO):
         super().__init__(log_level)
         self.log = OpenSiteLogger("OpenSitePostGIS", log_level)
-        self._ensure_registry_exists()
+        self.init_core_tables()
 
     def purge_database(self):
         """Drops all tables with the opensite prefix (both internal and data tables)."""
@@ -56,8 +57,8 @@ class OpenSitePostGIS(PostGISBase):
         
         self.log.info("Database purge complete.")
 
-    def _ensure_registry_exists(self):
-        """Creates the master lookup table if it doesn't exist."""
+    def init_core_tables(self):
+        """Creates the master lookup tables if they don't exist."""
 
         self.log.debug(f"Creating {self.OPENSITE_BRANCH} table")
 
@@ -83,6 +84,21 @@ class OpenSitePostGIS(PostGISBase):
             yml_hash TEXT NOT NULL,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE INDEX IF NOT EXISTS idx_{self.OPENSITE_REGISTRY}_table_completed ON {self.OPENSITE_REGISTRY} (completed);
+        CREATE INDEX IF NOT EXISTS idx_{self.OPENSITE_REGISTRY}_table_id ON {self.OPENSITE_REGISTRY} (table_id);
+        """)
+
+        self.log.debug(f"Creating {self.OPENSITE_OUTPUTS} table")
+
+        # Outputs log that tracks latest output - to ensure we overwrite files if necessary
+        self.execute_query(f"""
+        CREATE TABLE IF NOT EXISTS {self.OPENSITE_OUTPUTS} (
+            input TEXT NOT NULL,
+            output TEXT NOT NULL,
+            exported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_{self.OPENSITE_OUTPUTS}_input ON {self.OPENSITE_OUTPUTS} (input);
+        CREATE INDEX IF NOT EXISTS idx_{self.OPENSITE_OUTPUTS}_output ON {self.OPENSITE_OUTPUTS} (output);
         """)
 
     def sync_registry(self):
@@ -98,7 +114,8 @@ class OpenSitePostGIS(PostGISBase):
         # 2. Get physical tables
         protected_tables = {
             self.OPENSITE_REGISTRY, 
-            self.OPENSITE_BRANCH, 
+            self.OPENSITE_BRANCH,
+            self.OPENSITE_OUTPUTS, 
             self.OPENSITE_CLIPPINGMASTER,
             self.OPENSITE_GRIDPROCESSING,
             self.OPENSITE_GRIDBUFFEDGES,
@@ -382,3 +399,59 @@ class OpenSitePostGIS(PostGISBase):
                     return OpenSiteConstants.OSM_NAME_CONVERT[canonical_country]
 
         return None
+
+    def check_export_exists(self, input, output):
+        """
+        Returns True if an entry exists that matches BOTH table_id and file_path.
+        Used to skip redundant exports.
+        """
+        query = f"""
+            SELECT EXISTS (
+                SELECT 1 FROM {self.OPENSITE_OUTPUTS}
+                WHERE input = %s AND output = %s
+            );
+        """
+        try:
+            results = self.fetch_all(query, (input, output))
+            # fetch_all returns a list of dicts: [{'exists': True}]
+            return results[0]['exists'] if results else False
+        except Exception as e:
+            self.log.error(f"Error checking export existence: {e}")
+            return False
+
+    def update_export_log(self, input, output):
+        """
+        Logs an export and maintains lineage.
+        If output_path was previously used as an input for other tasks, 
+        those links are deleted to force a re-run of downstream dependencies.
+        """
+        try:
+            # 1. Clear any record where:
+            # - This specific input was already mapped to something else (stale output)
+            # - This specific output path was used as an input elsewhere (invalidates downstream)
+            # - This specific output path was already claimed by another table (orphans old source)
+            delete_query = sql.SQL("""
+                DELETE FROM {table} 
+                WHERE ((input = %s) AND (output=%s)) 
+                   OR input = %s 
+            """).format(table=sql.Identifier(self.OPENSITE_OUTPUTS))
+            
+            upsert_query = sql.SQL("""INSERT INTO {table} (input, output, exported_at) VALUES (%s, %s, CURRENT_TIMESTAMP)
+            """).format(table=sql.Identifier(self.OPENSITE_OUTPUTS))
+
+            conn = self.pool.getconn()
+            try:
+                with conn.cursor() as cur:
+                    # Parameter 1: input_id (the table/file we are reading from)
+                    # Parameter 2: output_path (the file we are writing)
+                    # Parameter 3: output_path (check if the NEW file was used as an OLD input)
+                    cur.execute(delete_query, (input, output, output))
+                    cur.execute(upsert_query, (input, output))
+                conn.commit()
+                self.log.info(f"Lineage synchronized: {input} -> {output}")
+            finally:
+                self.pool.putconn(conn)
+            return True
+        except Exception as e:
+            self.log.error(f"Failed to synchronize lineage for {input}: {e}")
+            return False
