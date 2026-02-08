@@ -17,12 +17,28 @@ Process monitor
 <div class="row" style="height:100%;">
 
     {{ body_content | safe }}
-    <!-- <div class="col-lg-12">
-        {% if started_datetime != None %}
-        <span class="text" style="font-size: 0.90em;"><pre>{{ started_datetime }}</pre></span>
-        {% endif %}
-        <iframe width="100%" style="height: calc(100% - 1em);" frameBorder="0" src="/logs"></iframe>
-    </div> -->
+
+    <div class="col-lg-12" style="position:fixed; bottom:10px">
+        <a href="/processingstop" data-toggle="modal" data-target="#stopProcessingModal" class="btn btn-lg btn-danger btn-icon-split">
+            <span class="icon text-white-50">
+                <i class="fa fa-stop-circle"></i>
+            </span>
+            <span class="text">Stop processing</span>
+        </a>
+    </div>
+
+    {% if hide_stop == False %}
+
+        <div class="col-lg-12" >
+            <a href="/processingstop" data-toggle="modal" data-target="#stopProcessingModal" class="btn btn-lg btn-danger btn-icon-split">
+                <span class="icon text-white-50">
+                    <i class="fa fa-stop-circle"></i>
+                </span>
+                <span class="text">Stop processing</span>
+            </a>
+        </div>
+
+    {% endif %}
 
 </div>
 
@@ -45,18 +61,6 @@ Process monitor
         </div>
     </div>
 
-    {% if hide_stop == False %}
-
-        <div class="col-lg-12">
-            <a href="/processingstop" data-toggle="modal" data-target="#stopProcessingModal" class="btn btn-lg btn-danger btn-icon-split">
-                <span class="icon text-white-50">
-                    <i class="fa fa-stop-circle"></i>
-                </span>
-                <span class="text">Stop processing</span>
-            </a>
-        </div>
-
-    {% endif %}
 
 </div> -->
 

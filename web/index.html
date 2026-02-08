@@ -6,8 +6,13 @@
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; background: #ffffff; overflow: hidden; }
-        /* #network-container { width: 100vw; height: 100vh; } */
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            margin: 0; 
+            background: #ffffff; 
+            overflow: hidden; 
+        }
         
         #ui-overlay {
             position: fixed; top: 100px; right: 40px; z-index: 10;
@@ -25,6 +30,7 @@
             font-size: 0.85rem;
         }
 
+    
         #network-container {
             position: absolute; top: 0px;
             height: 100%;
@@ -60,13 +66,8 @@
             overflow-y: auto; 
             display: none; 
             z-index: 1500;
-
-            /* The "Top Line" Accent */
-            border-top: 4px solid #007bff; 
-            
-            /* Shadow cast UPWARDS onto the graph */
-            box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.4);
-            
+            border-top: 4px solid #007bff;             
+            box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.4);            
             display: none;
             flex-direction: column;
         }
@@ -107,16 +108,14 @@
         .count-val { font-weight: bold; margin-left: 4px; color: #2c3e50; }
 
         pre { background: #f8f8f8; padding: 10px; border-radius: 4px; font-size: 0.75rem; white-space: pre-wrap; }
-        button { font-size: 0.9em;cursor: pointer; padding: 8px; border-radius: 9px; border: 1px solid #ccc; background: #fff; width: 100%; margin-top: 10px; }
         button:hover { background: #f0f0f0; }
 
-        /* TOOLTIP: Plenty of space, standard legible font */
         div.vis-network div.vis-tooltip {
             background-color: #2c3e50;
             color: #ffffff;
             font-family: 'Segoe UI', Tahoma, sans-serif;
             font-size: 14px;
-            padding: 0; /* Let the internal div handle padding for the colored border */
+            padding: 0; 
             border-radius: 6px;
             border: 1px solid #1a252f;
             box-shadow: 0 6px 15px rgba(0,0,0,0.4);
@@ -126,13 +125,11 @@
             padding: 10px;
             background-color: rgba(30, 30, 30, 0.95);
             color: white;
-            border-left: 4px solid; /* Color is set dynamically in your JS */
+            border-left: 4px solid; 
             border-radius: 4px;
             font-family: sans-serif;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            text-align: left;
-            
-            /* Force expansion */
+            text-align: left;            
             min-width: 150px;
             max-width: none !important; 
             display: inline-block;
@@ -143,7 +140,7 @@
             margin-bottom: 5px;
             white-space: nowrap; 
             font-size: 1rem;
-        }        
+        }         
 
     </style>
 </head>
