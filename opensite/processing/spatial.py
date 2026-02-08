@@ -305,6 +305,76 @@ class OpenSiteSpatial(ProcessBase):
             self.log.error(f"[buffer] [{self.node.name}] Unexpected error: {e}")
             return False
 
+    def distance(self):
+        """
+        Adds minimum distance exclusion to spatial dataset, ie. if anything is further than 'distance', it's selected 
+        This requires OPENSITE_CLIPPINGMASTER to provide the bounding area for the exclusion
+        """
+            
+        if self.postgis.table_exists(self.node.output):
+            self.log.info(f"[distance] [{self.node.output}] already exists, skipping distance for {self.node.name}")
+            self.node.status = 'processed'
+            return True
+
+        if 'distance' not in self.node.custom_properties:
+            self.log.error(f"[distance] {self.node.name} is missing 'distance' field, distance exclusion failed")
+            self.node.status = 'failed'
+            return False
+         
+        distance = self.node.custom_properties['distance']
+        input_table = self.node.input
+        output_table = self.node.output
+
+        self.log.info(f"[buffer] [{self.node.name}] Adding {distance}m distance exclusion to {input_table} to make {output_table}")
+
+        dbparams = {
+            "input": sql.Identifier(input_table),
+            "clipping_master": sql.Identifier(OpenSiteConstants.OPENSITE_CLIPPINGMASTER),
+            "output": sql.Identifier(output_table),
+            "output_index": sql.Identifier(f"{output_table}_idx"),
+            "distance": sql.Literal(distance),
+        }
+
+        query_distance_create = sql.SQL("""
+        CREATE TABLE {output} AS 
+            WITH exclusion AS (
+                SELECT ST_Union(ST_Buffer(geom, {distance})) as geom 
+                FROM {input}
+            )
+            SELECT 
+                ROW_NUMBER() OVER () as id,
+                sub.geom::geometry(MultiPolygon) as geom
+            FROM (
+                SELECT 
+                    ST_Multi(ST_Difference(cm.geom, ex.geom)) as geom
+                FROM {clipping_master} cm
+                CROSS JOIN exclusion ex
+            ) sub
+            WHERE NOT ST_IsEmpty(sub.geom)
+        """).format(**dbparams)
+        query_distance_create_index = sql.SQL("CREATE INDEX {output_index} ON {output} USING GIST (geom)").format(**dbparams)
+
+        try:
+            self.postgis.execute_query(query_distance_create)
+            self.postgis.execute_query(query_distance_create_index)
+            self.postgis.add_table_comment(self.node.output, self.node.name)
+
+            # Success Gate: Only update registry now
+            if self.postgis.set_table_completed(self.node.output):
+                self.log.info(f"[distance] [{self.node.name}] Finished adding {distance}m distance exclusion to {input_table} to make {output_table}")
+                return True
+            else:
+                # This catches the bug where the node was never registered initially
+                self.log.error(f"[distance] Distance exclusion added but registry record for {self.node.output} was not found.")
+                return False
+
+        except Error as e:
+            self.log.error(f"[distance] [{self.node.name}] PostGIS error during distance exclusion creation: {e}")
+            return False
+        except Exception as e:
+            self.log.error(f"[distance] [{self.node.name}] Unexpected error: {e}")
+            return False
+
     def preprocess(self):
         """
         Preprocess node - dump to produce single geometry type then crop and split into grid squares

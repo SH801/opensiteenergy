@@ -292,6 +292,10 @@ class OpenSiteQueue:
                 spatializer = OpenSiteSpatial(node, log_level, shared_lock, shared_metadata)
                 success = spatializer.buffer()
 
+            if action == 'distance':
+                spatializer = OpenSiteSpatial(node, log_level, shared_lock, shared_metadata)
+                success = spatializer.distance()
+
             if action == 'preprocess':
                 spatializer = OpenSiteSpatial(node, log_level, shared_lock, shared_metadata)
                 success = spatializer.preprocess()

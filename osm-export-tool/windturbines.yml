@@ -5,4 +5,4 @@ wind_turbines:
     - name
     - generator:source
   where:
-    - generator:source = 'wind'
+    - generator:source = 'wind' OR plant:source = 'wind'

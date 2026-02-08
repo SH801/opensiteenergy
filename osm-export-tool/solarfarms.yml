@@ -8,6 +8,6 @@ solar_farms:
     - power
     - plant:source
   where:
-    - power = 'plant' AND plant:source = 'solar'
+    - plant:source = 'solar'
 
 

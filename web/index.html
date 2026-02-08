@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>OpenSiteEnergy Data Pipeline Monitor</title>
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; background: #ffffff; overflow: hidden; }
         /* #network-container { width: 100vw; height: 100vh; } */
@@ -17,18 +18,8 @@
         }
 
         #processing-monitor {
-            position: fixed; 
-            bottom: 20px; 
-            left: 50%;
-            transform: translateX(-50%);    
-            z-index: 10;
-            background: rgba(255, 255, 255, 0.9); 
-            padding: 15px;
-            border-radius: 8px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
             min-width: 260px;
             width: auto;
-            max-width: 90vw;
             max-height: 200px;
             overflow-y: auto;
             font-size: 0.85rem;
@@ -57,12 +48,40 @@
             padding: 10px; overflow-x: hidden; overflow-y: auto; display: none; z-index: 1500;
             border-top: 3px solid #333; box-sizing: border-box;
         }
+
+        .tool-btn-circle {
+            font-size: 0.9em;
+            cursor: pointer;
+            border-radius: 20px;
+            border: 0px solid #ccc;
+            background: #fff;
+            width: 30px;
+            height: 30px;
+            align-content: center;
+            vertical-align: middle;
+            padding: 0px;
+            margin: 0px;
+        }
+
         .log-line { font-size: 0.8rem; margin-bottom: 2px; border-bottom: 1px solid #1e1e1e; white-space: pre-wrap; }
         .log-ts { color: #858585; margin-right: 10px; }
         .btn-console { background: #34495e !important; color: white !important; border: none !important; }
 
         .legend-item { display: flex; align-items: center; margin-bottom: 5px; font-size: 0.85rem; }
-        .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 10px; border: 1px solid #999; }
+
+        .dot { 
+            height: 40px; 
+            width: 40px; 
+            border-radius: 50%; 
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px; 
+            color: white; 
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
         .count-val { font-weight: bold; margin-left: 4px; color: #2c3e50; }
 
         pre { background: #f8f8f8; padding: 10px; border-radius: 4px; font-size: 0.75rem; white-space: pre-wrap; }
@@ -91,24 +110,41 @@
 <body>
 
     <div id="ui-overlay">
-        <h2 style="margin:0 0 10px 0; font-size: 1.1rem;">Data Processing Monitor</h2>
-        
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 style="margin:0; font-size: 1.1rem;">Processing Monitor</h2>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="tool-btn-circle" onclick="network.fit({animation:true, offset:{x:0, y:-150}})" title="Center View">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                </button>
+                <button class="tool-btn-circle" onclick="toggleConsole()" title="Toggle Console">
+                    <i class="fas fa-terminal"></i>
+                </button>
+            </div>
+        </div>
+
         <div id="timer-container">
             <div style="font-size: 0.65rem; text-transform: uppercase; opacity: 0.7; letter-spacing: 1px;margin-bottom:3px;">Elapsed Time</div>
             <div id="timer-val" style="font-size: 1.6rem; font-weight: bold; font-family: 'Courier New', monospace;">00:00</div>
             <div id="total-time" style="font-size: 0.75rem; color: #0b7a39; margin-top: 4px; display: none; font-weight: bold;">Final: <span></span></div>
         </div>
-
-        <div id="last-sync" style="font-size: 0.7rem; color: #888; margin-bottom: 12px;">Waiting for data...</div>
         
         <div class="legend">
-            <div class="legend-item"><span class="dot" style="background: #0b7a39;"></span> Processed <span id="count-processed" class="count-val">(0)</span></div>
-            <div class="legend-item"><span class="dot" style="background: #FFA500;"></span> Processing <span id="count-processing" class="count-val">(0)</span></div>
-            <div class="legend-item"><span class="dot" style="background: #FEE245;"></span> Unprocessed <span id="count-unprocessed" class="count-val">(0)</span></div>
-            <div class="legend-item"><span class="dot" style="background: #ec0a0a;"></span> Failed <span id="count-failed" class="count-val">(0)</span></div>
+            <div class="legend-item"><span id="count-processed" class="dot" style="background: #0b7a39;"></span> Processed</div>
+            <div class="legend-item"><span id="count-processing" class="dot" style="background: #FFA500;"></span> Processing</div>
+            <div class="legend-item"><span id="count-unprocessed" class="dot" style="background: #FEE245;color: black;"></span> Unprocessed</div>
+            <div class="legend-item"><span id="count-failed" class="dot" style="background: #ec0a0a;"></span> Failed</div>
         </div>
-        <button onclick="network.fit()">Center View</button>
-        <button onclick="toggleConsole()">Toggle Console Logs</button>
+
+        <div id="processing-monitor">
+            <h4 style="margin-top: 15px; margin-bottom: 5px;font-size: 0.9rem;width:100%;">Active Processes</h4>
+            <div id="active-node-list">
+                <p style="color: #888; font-style: italic;">No active nodes...</p>
+            </div>
+        </div>
+
+        <div id="last-sync" style="font-size: 0.7rem; color: #888; margin-top: 10px; margin-bottom: 0px;">Waiting for data...</div>
 
     </div>
 
@@ -116,12 +152,6 @@
         <div id="log-content"></div>
     </div>
 
-    <div id="processing-monitor">
-        <h4 style="margin-top: 0; margin-bottom: 5px;font-size: 1.1rem;width:100%;text-align: center;">Active Processes</h4>
-        <div id="active-node-list">
-            <p style="color: #888; font-style: italic;">No active nodes...</p>
-        </div>
-    </div>
 
     <div id="property-panel">
         <button style="width: auto; float: right;" onclick="document.getElementById('property-panel').style.display='none'">×</button>
@@ -155,6 +185,11 @@
             if (isHidden) {
                 setTimeout(() => { panel.scrollTop = panel.scrollHeight; }, 10);
             }
+        }
+
+        function centerGraphWithBuffer() {
+            // 1. Fit the whole graph to the screen first
+            network.fit();
         }
 
         function lerpColor(color1, color2, factor) {
@@ -325,18 +360,18 @@
                 const actualId = target.id;
                 
                 network.focus(actualId, {
-                    scale: 0.4,
+                    scale: 0.2,
                     animation: { duration: 1000, easingFunction: "easeInOutQuad" }
                 });
 
                 network.selectNodes([actualId]);
                 
-                // Open the panel
-                const metadata = { ...target.raw };
-                delete metadata.children;
-                document.getElementById('property-panel').style.display = 'block';
-                document.getElementById('prop-title').innerText = target.label.replace(/\n/g, ' ');
-                document.getElementById('prop-content').innerText = JSON.stringify(metadata, null, 2);
+                // // Open the panel
+                // const metadata = { ...target.raw };
+                // delete metadata.children;
+                // document.getElementById('property-panel').style.display = 'block';
+                // document.getElementById('prop-title').innerText = target.label.replace(/\n/g, ' ');
+                // document.getElementById('prop-content').innerText = JSON.stringify(metadata, null, 2);
             } else {
                 // This will tell us EXACTLY what's wrong in the console
                 console.error("ZOOM FAIL: Requested ID:", nodeId);
@@ -417,10 +452,10 @@
                 allNodes.forEach(n => { if(counts.hasOwnProperty(n.raw.status)) counts[n.raw.status]++; });
                 updateMonitorUI(allNodes);
                 
-                document.getElementById('count-processed').innerText = `(${counts.processed})`;
-                document.getElementById('count-processing').innerText = `(${counts.processing})`;
-                document.getElementById('count-unprocessed').innerText = `(${counts.unprocessed})`;
-                document.getElementById('count-failed').innerText = `(${counts.failed})`;
+                document.getElementById('count-processed').innerText = `${counts.processed}`;
+                document.getElementById('count-processing').innerText = `${counts.processing}`;
+                document.getElementById('count-unprocessed').innerText = `${counts.unprocessed}`;
+                document.getElementById('count-failed').innerText = `${counts.failed}`;
 
                 document.getElementById('last-sync').innerText = "Last Sync: " + new Date().toLocaleTimeString();
             } catch (error) { console.error("API Error:", error); }

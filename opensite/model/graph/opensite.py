@@ -94,7 +94,8 @@ class OpenSiteGraph(Graph):
                 'run', 
                 'import',
                 'preprocess',
-                'buffer', 
+                'buffer',
+                'distance', 
                 'amalgamate',
                 'postprocess',
                 'clip',
@@ -119,7 +120,7 @@ class OpenSiteGraph(Graph):
         all_nodes = self.find_nodes_by_props({})
         return sorted(list(set(node.get('action') for node in all_nodes if node.get('action'))))
 
-    def get_string_buffer(self, buffer):
+    def get_string_buffer_distance(self, buffer):
         """
         Generates buffer string, removing extraneous decimal zeros
         """
@@ -133,9 +134,18 @@ class OpenSiteGraph(Graph):
         Generates buffer suffix
         """
 
-        buffer = self.get_string_buffer(buffer)
+        buffer = self.get_string_buffer_distance(buffer)
         buffer = buffer.replace('.', '-')
         return f"--buffer-{buffer}"
+
+    def get_suffix_distance(self, distance):
+        """
+        Generates distance suffix
+        """
+
+        distance = self.get_string_buffer_distance(distance)
+        distance = distance.replace('.', '-')
+        return f"--distance-{distance}"
 
     def get_suffix_clip(self, clip):
         """
@@ -376,6 +386,7 @@ class OpenSiteGraph(Graph):
         struct_root = self.find_child(branch, "structure")
         style_root = self.find_child(branch, "style")
         buffer_root = self.find_child(branch, "buffers")
+        distance_root = self.find_child(branch, "distance")
 
         if not struct_root:
             # Cleanup if no structure (deletes osm, tip-height nodes etc.)
@@ -410,6 +421,14 @@ class OpenSiteGraph(Graph):
                         dataset_node.database_action = "buffer"
                         # Math resolution uses the branch-specific context
                         dataset_node.custom_properties['buffer'] = self.resolve_math(val, context)
+
+                if distance_root:
+                    distance_node = self.find_child(distance_root, dataset_node.name)
+                    if distance_node:
+                        val = distance_node.custom_properties.get('value')
+                        dataset_node.database_action = "distance"
+                        # Math resolution uses the branch-specific context
+                        dataset_node.custom_properties['distance'] = self.resolve_math(val, context)
 
         # 6. Sibling Cleanup
         # Deletes all original YAML nodes (tip-height, title, style, etc.)
@@ -545,8 +564,8 @@ class OpenSiteGraph(Graph):
         # Generate OpenLibrary nodes
         self.add_openlibrary()
 
-        # Generate buffer nodes
-        self.add_buffers()
+        # Generate buffer and distances nodes
+        self.add_buffers_distances()
 
         # Generate preprocessed nodes
         # During preprocessing, we dump and select single geometry type then slice data into grid squares to reduce memory use 
@@ -921,56 +940,78 @@ class OpenSiteGraph(Graph):
                     
         self.log.debug("Setting up Open Library nodes complete")
 
-    def add_buffers(self):
+    def add_buffers_distances(self):
         """
-        Inserts a buffer node above any node with a 'buffer' custom property.
-        The buffer node consumes the child node's output.
+        Inserts a buffer or distance node above any node with a 'buffer' or 'distance' custom property.
+        The buffer or distance node consumes the child node's output.
         """
 
-        self.log.info("Applying buffer layers...")
+        self.log.info("Applying buffer and distance layers...")
 
         # Identify nodes that need buffering
         # We collect them in a list first to avoid iterator issues during graph mutation
         target_nodes = [
             self.find_node_by_urn(d['urn']) 
             for d in self.find_nodes_by_props({}) 
-            if d.get('custom_properties', {}).get('buffer') is not None
+            if (d.get('custom_properties', {}).get('buffer') is not None) or (d.get('custom_properties', {}).get('distance') is not None)
         ]
 
         for node in target_nodes:
-            buffer = node.custom_properties['buffer']
-            buffer_str = self.get_string_buffer(buffer)
-            
-            # Define the new name and properties
-            new_name = f"{node.name}{self.get_suffix_buffer(buffer)}"
-            
-            buffer_node = self.create_node(
-                name=new_name,
-                title=f"{node.title} - Buffer {buffer_str}m",
-            )
 
-            # 3. Configure the Buffer Node
-            buffer_node.action = 'buffer'
-            buffer_node.node_type = 'process'
+            # Don't do anything if not buffer or distance node
+            if ('buffer' not in node.custom_properties) and ('distance' not in node.custom_properties): continue
+
+            # Only one of 'buffer' or 'distance' can exist for any dataset
+            if 'buffer' in node.custom_properties:
+                buffer = node.custom_properties['buffer']
+                buffer_str = self.get_string_buffer_distance(buffer)
+            
+                # Define the new name and properties
+                new_name = f"{node.name}{self.get_suffix_buffer(buffer)}"
+                
+                buffer_distance_node = self.create_node(
+                    name=new_name,
+                    title=f"{node.title} - Buffer {buffer_str}m",
+                )
+
+                # 3. Configure the buffer node
+                buffer_distance_node.action = 'buffer'
+
+            if 'distance' in node.custom_properties:
+                distance = node.custom_properties['distance']
+                distance_str = self.get_string_buffer_distance(distance)
+            
+                # Define the new name and properties
+                new_name = f"{node.name}{self.get_suffix_distance(distance)}"
+                
+                buffer_distance_node = self.create_node(
+                    name=new_name,
+                    title=f"{node.title} - Distance Exclusion {distance_str}m",
+                )
+
+                # 3. Configure the distance node
+                buffer_distance_node.action = 'distance'
+
+            buffer_distance_node.node_type = 'process'
             
             # Clone properties so we keep lineage (like 'osm' URL)
-            buffer_node.custom_properties = node.custom_properties.copy()
+            buffer_distance_node.custom_properties = node.custom_properties.copy()
             
             # Recalculate output based on the new name
-            buffer_node.output = self.get_output(buffer_node)
+            buffer_distance_node.output = self.get_output(buffer_distance_node)
 
             # SET INPUT: The buffer node processes the output of the original node
-            buffer_node.input = node.output
+            buffer_distance_node.input = node.output
 
             # 4. Splice the buffer node in as the parent
-            self.insert_parent(node, buffer_node)
+            self.insert_parent(node, buffer_distance_node)
 
             # 5. Clean up: Unset the buffer property on the original child
             # so the graph reflects that the buffer has been handled by the parent
-            if 'buffer' in node.custom_properties:
-                node.custom_properties.pop('buffer', None)
+            if 'buffer' in node.custom_properties: node.custom_properties.pop('buffer', None)
+            if 'distance' in node.custom_properties: node.custom_properties.pop('distance', None)
 
-        self.log.debug(f"Successfully wrapped {len(target_nodes)} nodes with buffer processes.")
+        self.log.debug(f"Successfully wrapped {len(target_nodes)} nodes with buffer or distance processes.")
 
     def add_preprocess(self):
         """

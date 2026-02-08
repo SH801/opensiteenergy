@@ -24,7 +24,7 @@ structure:
   #   - civilian-airports--uk
   #   - danger-areas--uk
   #   - mod-training-areas--uk
-  # ecology-and-wildlife:
+  ecology-and-wildlife:
   #   - ancient-woodlands--england
   #   - ancient-woodlands--northern-ireland
   #   - ancient-woodlands--scotland
@@ -55,6 +55,7 @@ structure:
   #   - special-protection-areas--scotland
   #   - special-protection-areas--wales
   #   - wild-land-areas--scotland
+      - woodland--uk
   # heritage-impacts:
   #   - conservation-areas--england
   #   - conservation-areas--scotland
@@ -88,13 +89,14 @@ structure:
   #   - national-parks--england
   #   - national-parks--scotland
   #   - national-parks--wales
-  other-technical-constraints: 
-    # - woodland--uk
-    - wind-turbines--uk
+  electricity-grid:
+    - nearby-substations--uk
     - solar-farms--uk
+    - wind-turbines--uk
     - other-energy-plants--uk
-    # - coastline--uk
-  #   - bridleways--uk
+  other-technical-constraints: 
+    - bridleways--uk
+    - coastline--uk
   #   - inland-waters--uk
   #   - pipelines--uk
   #   - power-lines--uk
@@ -139,16 +141,23 @@ buffers:
   residential-buildings-osm--uk:
     20
 
+distance:
+  nearby-substations--uk:
+    5000
+    
 style:
   agricultural-land-grade-1-2:
     color:
-      blue
+      chocolate
   aviation-and-exclusion-areas:
     color:
       purple
   ecology-and-wildlife:
     color:
       darkgreen
+  electricity-grid:
+    color:
+      yellow
   heritage-impacts:
     color:
       darkgoldenrod

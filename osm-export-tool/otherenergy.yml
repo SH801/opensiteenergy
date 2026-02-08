@@ -7,4 +7,4 @@ other_energy:
     - name
     - power
   where:
-    - power IN ('plant', 'generator') AND plant:source IN ('biogas', 'diesel', 'biomass', 'hydro', 'coal', 'gas', 'oil', 'geothermal', 'nuclear', 'waste', 'battery', 'tidal', 'flywheel')
+    - plant:source IN ('biogas', 'diesel', 'biomass', 'hydro', 'coal', 'gas', 'oil', 'geothermal', 'nuclear', 'waste', 'battery', 'tidal', 'flywheel')

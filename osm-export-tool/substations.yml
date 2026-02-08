@@ -1,0 +1,13 @@
+osm-substations:
+    types:
+      - points
+      - lines
+      - polygons
+    select:
+      - name
+      - operator
+      - voltage
+      - substation
+      - power
+    where:
+      - power = 'substation'
