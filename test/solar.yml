@@ -15,15 +15,15 @@ areas:
   - uk
 
 structure:
-  # agricultural-land-grade-1-2:
-  #   - agricultural-land-classification-1-2--england
-  #   - agricultural-land-classification-1-2--wales
-  #   - agricultural-land-classification-1-2--scotland
-  #   - agricultural-land-classification-1-2--northern-ireland
-  # aviation-and-exclusion-areas:
-  #   - civilian-airports--uk
-  #   - danger-areas--uk
-  #   - mod-training-areas--uk
+  agricultural-land-grade-1-2:
+    - agricultural-land-classification-1-2--england
+    - agricultural-land-classification-1-2--wales
+    - agricultural-land-classification-1-2--scotland
+    - agricultural-land-classification-1-2--northern-ireland
+  aviation-and-exclusion-areas:
+    - civilian-airports--uk
+    - danger-areas--uk
+    - mod-training-areas--uk
   ecology-and-wildlife:
   #   - ancient-woodlands--england
   #   - ancient-woodlands--northern-ireland
@@ -56,28 +56,28 @@ structure:
   #   - special-protection-areas--wales
   #   - wild-land-areas--scotland
       - woodland--uk
-  # heritage-impacts:
-  #   - conservation-areas--england
-  #   - conservation-areas--scotland
-  #   - conservation-areas--wales
-  #   - listed-buildings--england
-  #   - listed-buildings--northern-ireland
-  #   - listed-buildings--scotland
-  #   - listed-buildings--wales
-  #   - registered-historic-battlefields--england
-  #   - registered-historic-battlefields--scotland
-  #   - registered-parks-and-gardens--england
-  #   - registered-parks-and-gardens--northern-ireland
-  #   - registered-parks-and-gardens--scotland
-  #   - registered-parks-and-gardens--wales
-  #   - scheduled-ancient-monuments--england
-  #   - scheduled-ancient-monuments--northern-ireland
-  #   - scheduled-ancient-monuments--scotland
-  #   - scheduled-ancient-monuments--wales
-  #   - world-heritage-sites--england
-  #   - world-heritage-sites--northern-ireland
-  #   - world-heritage-sites--scotland
-  #   - world-heritage-sites--wales
+  heritage-impacts:
+    - conservation-areas--england
+    - conservation-areas--scotland
+    - conservation-areas--wales
+    - listed-buildings--england
+    - listed-buildings--northern-ireland
+    - listed-buildings--scotland
+    - listed-buildings--wales
+    - registered-historic-battlefields--england
+    - registered-historic-battlefields--scotland
+    - registered-parks-and-gardens--england
+    - registered-parks-and-gardens--northern-ireland
+    - registered-parks-and-gardens--scotland
+    - registered-parks-and-gardens--wales
+    - scheduled-ancient-monuments--england
+    - scheduled-ancient-monuments--northern-ireland
+    - scheduled-ancient-monuments--scotland
+    - scheduled-ancient-monuments--wales
+    - world-heritage-sites--england
+    - world-heritage-sites--northern-ireland
+    - world-heritage-sites--scotland
+    - world-heritage-sites--wales
   # landscape-and-visual-impacts:
   #   - areas-of-outstanding-natural-beauty--england
   #   - areas-of-outstanding-natural-beauty--northern-ireland
@@ -97,17 +97,17 @@ structure:
   other-technical-constraints: 
     - bridleways--uk
     - coastline--uk
-  #   - inland-waters--uk
-  #   - pipelines--uk
-  #   - power-lines--uk
-  #   - public-footpaths--uk
-  #   - public-roads-a-and-b-roads-and-motorways--uk
-  #   - railway-lines--uk
+    - inland-waters--uk
+    - pipelines--uk
+    - power-lines--uk
+    - public-footpaths--uk
+    - public-roads-a-and-b-roads-and-motorways--uk
+    - railway-lines--uk
   # separation-distance-from-residential-properties:
   #   - residential-buildings-os--gb
   #   - residential-buildings-osm--uk
-  # land-properties:
-  #   - solar-slope-too-steep--uk
+  land-properties:
+    - solar-slope-too-steep--uk
   #   - solar-land-parcels-too-small--england-wales
   #   - solar-land-parcels-too-small--scotland
 
@@ -122,11 +122,41 @@ buffers:
     500
   listed-buildings--wales: 
     500
+  scheduled-ancient-monuments--england:
+    300
+  scheduled-ancient-monuments--northern-ireland:
+    300
+  scheduled-ancient-monuments--scotland:
+    300
+  scheduled-ancient-monuments--wales:
+    300
+  registered-parks-and-gardens--england:
+    300
+  registered-parks-and-gardens--northern-ireland:
+    300
+  registered-parks-and-gardens--scotland:
+    300
+  registered-parks-and-gardens--wales:
+    300
+  registered-historic-battlefields--england:
+    300
+  registered-historic-battlefields--scotland:
+    300
+  world-heritage-sites--england:
+    300
+  world-heritage-sites--northern-ireland:
+    300
+  world-heritage-sites--scotland:
+    300
+  world-heritage-sites--wales:
+    300
   coastline--uk:
     50
   wind-turbines--uk:
     10
   bridleways--uk:
+    20
+  pipelines--uk:
     20
   power-lines--uk:
     20

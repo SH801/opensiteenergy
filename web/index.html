@@ -27,7 +27,12 @@
 
         #network-container {
             position: absolute; top: 0px;
-            width: 100vw; height: 100vh;
+            height: 100%;
+        }
+
+        .container, .container-fluid, .container-lg, .container-md, .container-sm, .container-xl {
+            padding-left: 0.5rem;
+            padding-right: 0rem;
         }
 
         #timer-container {
@@ -40,13 +45,30 @@
             background: white; border-left: 1px solid #ccc; padding: 20px; 
             overflow-y: auto; z-index: 1000; display: none; box-shadow: -5px 0 15px rgba(0,0,0,0.05);
         }
-        
-        /* --- CONSOLE STYLES --- */
+
         #console-panel {
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 400px;
-            background: #121212; color: #d4d4d4; font-family: 'Consolas', monospace;
-            padding: 10px; overflow-x: hidden; overflow-y: auto; display: none; z-index: 1500;
-            border-top: 3px solid #333; box-sizing: border-box;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 400px;
+            background: #1e1e1e; 
+            font-family: 'Consolas', monospace;
+            z-index: 9999;
+            padding: 10px; 
+            overflow-x: hidden; 
+            overflow-y: auto; 
+            display: none; 
+            z-index: 1500;
+
+            /* The "Top Line" Accent */
+            border-top: 4px solid #007bff; 
+            
+            /* Shadow cast UPWARDS onto the graph */
+            box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.4);
+            
+            display: none;
+            flex-direction: column;
         }
 
         .tool-btn-circle {
@@ -79,7 +101,7 @@
             margin-right: 10px; 
             color: white; 
             font-weight: bold;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
         }
 
         .count-val { font-weight: bold; margin-left: 4px; color: #2c3e50; }
@@ -102,9 +124,27 @@
 
         .tooltip-inner {
             padding: 10px;
-            border-left: 5px solid; /* Color is set inline in JS */
+            background-color: rgba(30, 30, 30, 0.95);
+            color: white;
+            border-left: 4px solid; /* Color is set dynamically in your JS */
             border-radius: 4px;
+            font-family: sans-serif;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            text-align: left;
+            
+            /* Force expansion */
+            min-width: 150px;
+            max-width: none !important; 
+            display: inline-block;
         }
+
+        .tooltip-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            white-space: nowrap; 
+            font-size: 1rem;
+        }        
+
     </style>
 </head>
 <body>
@@ -132,7 +172,7 @@
         
         <div class="legend">
             <div class="legend-item"><span id="count-processed" class="dot" style="background: #0b7a39;"></span> Processed</div>
-            <div class="legend-item"><span id="count-processing" class="dot" style="background: #FFA500;"></span> Processing</div>
+            <div class="legend-item"><span id="count-processing" class="dot" style="background: #FFA500;color: black"></span> Processing</div>
             <div class="legend-item"><span id="count-unprocessed" class="dot" style="background: #FEE245;color: black;"></span> Unprocessed</div>
             <div class="legend-item"><span id="count-failed" class="dot" style="background: #ec0a0a;"></span> Failed</div>
         </div>
@@ -148,9 +188,6 @@
 
     </div>
 
-    <div id="console-panel">
-        <div id="log-content"></div>
-    </div>
 
 
     <div id="property-panel">
@@ -159,7 +196,12 @@
         <pre id="prop-content"></pre>
     </div>
 
-    <div id="network-container"></div>
+    <div id="network-container">
+    </div>
+
+    <div id="console-panel">
+        <div id="log-content"></div>
+    </div>
 
     <script type="text/javascript">
         const nodes = new vis.DataSet([]);
@@ -251,7 +293,7 @@
             }
 
             titleElement.innerHTML = `
-                <div style="font-weight:bold; margin-bottom: 5px;">${node.title || node.name}</div>
+                <div style="font-weight:bold; margin-bottom: 5px;width:auto;">${node.title || node.name}</div>
                 <div style="font-size: 0.8rem; opacity: 0.9;">
                     Type: ${node.node_type}<br>
                     Status: <span style="color:${color}; font-weight:bold;">${node.status.toUpperCase()}</span>
@@ -329,13 +371,11 @@
 
             container.innerHTML = activeNodes.map(node => `
             <a href="#" style="text-decoration:none;" onclick="zoomToNode('${node.id}'); return false;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid #DDD; padding: 4px 0;font-size: 0.9em;">
+                <div style="max-width: 230px;display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid #DDD; padding: 4px 0;font-size: 0.9em;">
                     <div>
-                        <span style="margin-right:20px;">${node.name}</span>
+                        <div style="margin-right:20px;max-width:180px!important;overflow:hidden;">${node.name}</div>
                     </div>
-                    <div style="font-family: monospace;">
-                        ${node.elapsed}
-                    </div>
+                    <div style="font-family: monospace;">${node.elapsed}</div>
                 </div>
             </a>
             `).join('');
@@ -364,14 +404,6 @@
                     animation: { duration: 1000, easingFunction: "easeInOutQuad" }
                 });
 
-                network.selectNodes([actualId]);
-                
-                // // Open the panel
-                // const metadata = { ...target.raw };
-                // delete metadata.children;
-                // document.getElementById('property-panel').style.display = 'block';
-                // document.getElementById('prop-title').innerText = target.label.replace(/\n/g, ' ');
-                // document.getElementById('prop-content').innerText = JSON.stringify(metadata, null, 2);
             } else {
                 // This will tell us EXACTLY what's wrong in the console
                 console.error("ZOOM FAIL: Requested ID:", nodeId);
@@ -462,7 +494,19 @@
         }
 
         const options = {
-            nodes: { shape: 'dot', size: 300, font: { 
+            nodes: { 
+                color: {
+                    highlight: {
+                        background: "inherit", 
+                        border: "inherit"
+                    },
+                    hover: {
+                        background: "#FFFFFF"
+                    }
+                },
+                shape: 'dot', 
+                size: 300, 
+                font: { 
                     multi: true
                 },
                 widthConstraint: {
