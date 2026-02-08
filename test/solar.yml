@@ -25,10 +25,10 @@ structure:
     - danger-areas--uk
     - mod-training-areas--uk
   ecology-and-wildlife:
-  #   - ancient-woodlands--england
-  #   - ancient-woodlands--northern-ireland
-  #   - ancient-woodlands--scotland
-  #   - ancient-woodlands--wales
+    - ancient-woodlands--england
+    - ancient-woodlands--northern-ireland
+    - ancient-woodlands--scotland
+    - ancient-woodlands--wales
   #   - hedgerows--uk
   #   - local-nature-reserves--england
   #   - local-nature-reserves--scotland
@@ -55,29 +55,29 @@ structure:
   #   - special-protection-areas--scotland
   #   - special-protection-areas--wales
   #   - wild-land-areas--scotland
-      - woodland--uk
+      # - woodland--uk
   heritage-impacts:
     - conservation-areas--england
     - conservation-areas--scotland
     - conservation-areas--wales
-    - listed-buildings--england
-    - listed-buildings--northern-ireland
-    - listed-buildings--scotland
-    - listed-buildings--wales
-    - registered-historic-battlefields--england
-    - registered-historic-battlefields--scotland
-    - registered-parks-and-gardens--england
-    - registered-parks-and-gardens--northern-ireland
-    - registered-parks-and-gardens--scotland
-    - registered-parks-and-gardens--wales
-    - scheduled-ancient-monuments--england
-    - scheduled-ancient-monuments--northern-ireland
-    - scheduled-ancient-monuments--scotland
-    - scheduled-ancient-monuments--wales
-    - world-heritage-sites--england
-    - world-heritage-sites--northern-ireland
-    - world-heritage-sites--scotland
-    - world-heritage-sites--wales
+    # - listed-buildings--england
+    # - listed-buildings--northern-ireland
+    # - listed-buildings--scotland
+    # - listed-buildings--wales
+    # - registered-historic-battlefields--england
+    # - registered-historic-battlefields--scotland
+    # - registered-parks-and-gardens--england
+    # - registered-parks-and-gardens--northern-ireland
+    # - registered-parks-and-gardens--scotland
+    # - registered-parks-and-gardens--wales
+    # - scheduled-ancient-monuments--england
+    # - scheduled-ancient-monuments--northern-ireland
+    # - scheduled-ancient-monuments--scotland
+    # - scheduled-ancient-monuments--wales
+    # - world-heritage-sites--england
+    # - world-heritage-sites--northern-ireland
+    # - world-heritage-sites--scotland
+    # - world-heritage-sites--wales
   # landscape-and-visual-impacts:
   #   - areas-of-outstanding-natural-beauty--england
   #   - areas-of-outstanding-natural-beauty--northern-ireland
@@ -100,7 +100,7 @@ structure:
     - inland-waters--uk
     - pipelines--uk
     - power-lines--uk
-    - public-footpaths--uk
+    # - public-footpaths--uk
     - public-roads-a-and-b-roads-and-motorways--uk
     - railway-lines--uk
   # separation-distance-from-residential-properties:
