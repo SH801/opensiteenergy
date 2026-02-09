@@ -89,6 +89,8 @@ class OpenSiteOutputMbtiles(OutputBase):
                 "-o", str(final_output_path) 
             ]
 
+            self.log.info(f"[OpenSiteOutputMbtiles] [{self.node.name}] Running tippecanoe on {tmp_output_path_str} to create {final_output_path.name}")
+
             subprocess.run(cmd, capture_output=True, text=True, check=True)
 
             if tmp_output_path.exists(): os.remove(str(tmp_output_path))

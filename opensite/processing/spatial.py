@@ -766,7 +766,7 @@ class OpenSiteSpatial(ProcessBase):
                             FROM {table_seams} WHERE row_id IN %s
                         """).format(**dbparams), (tuple(ids),))
                     except Exception as e:
-                        self.log.warn(f"[postprocess] [{self.node.name}] Conventional weld failed: {e}. Falling back to Iterative.")
+                        self.log.warning(f"[postprocess] [{self.node.name}] Conventional weld failed: {e}. Falling back to Iterative.")
                         strategy = "ITERATIVE"
                         self.postgis.execute_query(sql.SQL("DROP TABLE IF EXISTS {table_welded}").format(**dbparams))
 

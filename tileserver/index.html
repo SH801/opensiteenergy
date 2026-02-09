@@ -365,7 +365,15 @@ function activateBranch(config, branchcode) {
             const item = document.createElement('div');
             item.className = `layer-item level-${layer.level}`;            
             const isParent = layer.children && layer.children.length > 0;
-            
+            let title = layer.title;
+
+            // If only one child we use title of child as often more informative than section title
+            if (isParent) {
+                if (layer.children.length == 1) {
+                    title = layer.children[0].title;
+                }
+            }
+
             item.innerHTML = `
                 <div class="layer-row">
                     <input type="checkbox" 
@@ -373,7 +381,7 @@ function activateBranch(config, branchcode) {
                         ${layer.defaultactive ? 'checked' : ''} 
                         data-dataset="${layer.dataset}">
                     <label for="${layer.dataset}">
-                        <div class="label-text">${layer.title}</div>
+                        <div class="label-text">${title}</div>
                         <span class="color-dot" style="background-color: ${layer.color}; opacity: ${layer.level === 2 ? 0.5 : 1}"></span>
                     </label>
                 </div>
