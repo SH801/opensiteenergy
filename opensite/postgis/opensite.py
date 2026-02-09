@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import subprocess
+from pathlib import Path
 from psycopg2 import pool, sql, Error
 from opensite.constants import OpenSiteConstants
 from opensite.postgis.base import PostGISBase
@@ -106,9 +107,14 @@ class OpenSitePostGIS(PostGISBase):
         Synchronizes registry, physical tables, and branch metadata.
         """
         self.log.info("Starting registry synchronization...")
-        
+
+        dbparams = {
+            'registry': sql.Identifier(self.OPENSITE_REGISTRY),
+            'branchregistry': sql.Identifier(self.OPENSITE_BRANCH)
+        }
+
         # 1. Get current registry state
-        registry_entries = self.fetch_all(f"SELECT table_id, completed FROM {self.OPENSITE_REGISTRY}")
+        registry_entries = self.fetch_all(sql.SQL("SELECT table_id, completed FROM {registry}").format(**dbparams))
         registry_names = {row['table_id'] for row in registry_entries}
         
         # 2. Get physical tables
@@ -133,41 +139,42 @@ class OpenSitePostGIS(PostGISBase):
         for entry in registry_entries:
             table_id = entry['table_id']
             completed = entry.get('completed')
+            dbparams['table'] = sql.Identifier(table_id)
+            dbparams['table_id_literal'] = sql.Literal(table_id)
 
             if not completed:
                 self.log.debug(f"Removing incomplete registry entry: {table_id}")
-                self.execute_query(f"DELETE FROM {self.OPENSITE_REGISTRY} WHERE table_id = %s", (table_id,))
+                self.execute_query(sql.SQL("DELETE FROM {registry} WHERE table_id = {table_id_literal}").format(**dbparams))
                 registry_names.discard(table_id)
                 continue
 
             if table_id not in physical_tables:
                 self.log.debug(f"Removing orphaned registry entry (no table found): {table_id}")
-                self.execute_query(f"DELETE FROM {self.OPENSITE_REGISTRY} WHERE table_id = %s", (table_id,))
+                self.execute_query(sql.SQL("DELETE FROM {registry} WHERE table_id = {table_id_literal}").format(**dbparams))
                 registry_names.discard(table_id)
 
         # --- Step C: Clean the Database (Untracked Tables) ---
         for table_id in physical_tables:
             if table_id not in registry_names :
+                dbparams['table'] = sql.Identifier(table_id)
                 self.log.warning(f"Dropping untracked table: {table_id}")
-                self.execute_query(f'DROP TABLE IF EXISTS "{table_id}" CASCADE')
+                self.execute_query(sql.SQL("DROP TABLE IF EXISTS {table}").format(**dbparams))
 
         # --- Step D: Clean the Branches ---
         # We look for branch_name in {self.OPENSITE_BRANCH} that no longer has 
         # ANY associated records in {self.OPENSITE_REGISTRY}
         self.log.info("Checking for orphaned branches...")
         
-        orphaned_branches_sql = f"""
-            SELECT b.branch_name 
-            FROM {self.OPENSITE_BRANCH} b
-            LEFT JOIN {self.OPENSITE_REGISTRY} r ON b.branch_name = r.branch_name
-            WHERE r.branch_name IS NULL
-        """
+        orphaned_branches_sql = sql.SQL("""
+        SELECT b.branch_name FROM {branchregistry} b LEFT JOIN {registry} r ON b.branch_name = r.branch_name WHERE r.branch_name IS NULL
+        """).format(**dbparams)
         orphaned_branches = self.fetch_all(orphaned_branches_sql)
         
         for branch in orphaned_branches:
-            b_name = branch['branch_name']
-            self.log.warning(f"Removing orphaned branch metadata: {b_name}")
-            self.execute_query(f"DELETE FROM {self.OPENSITE_BRANCH} WHERE branch_name = %s", (b_name,))
+            branch_name = branch['branch_name']
+            dbparams['branch'] = sql.Literal(branch_name)
+            self.log.warning(f"Removing orphaned branch metadata: {branch_name}")
+            self.execute_query(sql.SQL("DELETE FROM {branchregistry} WHERE branch_name = {branch}").format(**dbparams))
 
         self.log.info("Registry and branch synchronization complete.")
 
@@ -439,7 +446,7 @@ class OpenSitePostGIS(PostGISBase):
 
             self.execute_query(delete_query)
             self.execute_query(insert_query)
-            self.log.info(f"Lineage synchronized: {input} -> {output}")
+            self.log.info(f"Output table synchronized: {str(Path(input).name)} -> {str(Path(output).name)}")
             return True
 
         except Exception as e:

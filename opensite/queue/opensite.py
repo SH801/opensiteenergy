@@ -97,7 +97,7 @@ class OpenSiteQueue:
 
     def start_web_server(self, host="127.0.0.1", port=8000):
         """Starts FastAPI in a background thread."""
-        config = uvicorn.Config(self.app, host=host, port=port, log_level="info")
+        config = uvicorn.Config(self.app, host=host, port=port, log_level="error")
         server = uvicorn.Server(config)
 
         def run_server():

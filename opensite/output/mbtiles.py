@@ -26,7 +26,7 @@ class OpenSiteOutputMbtiles(OutputBase):
         tmp_output_path = Path(self.base_path) / tmp_output
         final_output_path = Path(self.base_path) / self.node.output
         grid_table = OpenSiteConstants.OPENSITE_GRIDOUTPUT
-        scratch_table_1 = f"tmp-1-{self.node.input}-{self.node.urn}"
+        scratch_table_1 = f"tmp_1_{self.node.input}_{self.node.urn}"
 
         dbparams = {
             "crs": sql.Literal(self.get_crs_default()),

@@ -72,6 +72,14 @@
             flex-direction: column;
         }
 
+        #timer-val {
+            font-size: 1.8rem; 
+            font-weight: 700;
+            font-family: 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+            letter-spacing: 0px;
+            color: #2c3e50;
+        }
+
         .tool-btn-circle {
             font-size: 0.9em;
             cursor: pointer;
@@ -152,7 +160,7 @@
             <h2 style="margin:0; font-size: 1.1rem;">Processing Monitor</h2>
             
             <div style="display: flex; gap: 10px;">
-                <button class="tool-btn-circle" onclick="network.fit()" title="Center View">
+                <button class="tool-btn-circle" onclick="centerView()" title="Center View">
                     <i class="fas fa-expand-arrows-alt"></i>
                 </button>
                 <button class="tool-btn-circle" onclick="toggleConsole()" title="Toggle Console">
@@ -163,7 +171,7 @@
 
         <div id="timer-container">
             <div style="font-size: 0.65rem; text-transform: uppercase; opacity: 0.7; letter-spacing: 1px;margin-bottom:3px;">Elapsed Time</div>
-            <div id="timer-val" style="font-size: 1.6rem; font-weight: bold; font-family: 'Courier New', monospace;">00:00</div>
+            <div id="timer-val" style="font-size: 1.6rem; font-weight: bold;">00:00</div>
             <div id="total-time" style="font-size: 0.75rem; color: #0b7a39; margin-top: 4px; display: none; font-weight: bold;">Final: <span></span></div>
         </div>
         
@@ -199,10 +207,11 @@
         <div id="log-content"></div>
     </div>
 
+    <div id="button-commandline-copy">
+
+    </div>
+
     <script type="text/javascript">
-        const nodes = new vis.DataSet([]);
-        const edges = new vis.DataSet([]);
-        const container = document.getElementById('network-container');
 
         const statusColors = {
             "processed": "#0b7a39",
@@ -211,10 +220,108 @@
             "failed": "#ec0a0a"
         };
 
+        const options = {
+            nodes: 
+            { 
+                color: 
+                {
+                    highlight: 
+                    {
+                        background: "inherit", 
+                        border: "inherit"
+                    },
+                    hover: 
+                    {
+                        background: "#FFFFFF"
+                    }
+                },
+                shape: 'dot', 
+                size: 300, 
+                font: 
+                { 
+                    multi: true
+                },
+                widthConstraint: 
+                {
+                    maximum: 1000
+                } 
+            },
+            edges: 
+            { 
+                smooth: false, 
+                width: 2, 
+                color: 
+                { 
+                    color: '#D3D3D3', 
+                    highlight: '#848484', 
+                    hover: '#848484' 
+                },
+                 arrows: 
+                 { 
+                    to: 
+                    { 
+                        enabled: true, 
+                        scaleFactor: 20 
+                    } 
+                } 
+            },
+            layout: 
+            { 
+                hierarchical: 
+                { 
+                    enabled: true, 
+                    direction: "UD", 
+                    sortMethod: "directed", 
+                    levelSeparation: 3000, 
+                    nodeSpacing: 900, 
+                    treeSpacing: 800 
+                } 
+            },
+            physics: 
+            { 
+                enabled: false 
+            },
+            interaction: 
+            { 
+                dragNodes: true, 
+                hover: true,
+                tooltipDelay: 100
+            }
+        };
+
+        let isGraphInitialized = false;
+        let isTerminalInitialized = false;
+        let lastScrollTop = null;
         let colorStep = 0;
         let serverStartTime = null;
         let finalDuration = null;
         let lastLogIndex = 0;
+        let isPipelineActive = true;
+
+        // Set up basic vis network ready to be populated via JSON through refreshPipeline
+        const nodes         = new vis.DataSet([]);
+        const edges         = new vis.DataSet([]);
+        const container     = document.getElementById('network-container');
+        const network       = new vis.Network(container, { nodes, edges }, options);
+        network.once("afterDrawing", () => setTimeout(() => network.setOptions({ layout: { hierarchical: false } }), 1000));
+        network.on("click", (params) => {
+            if (params.nodes.length > 0) {
+                const node = nodes.get(params.nodes[0]);
+                const metadata = { ...node.raw }; delete metadata.children;
+                document.getElementById('property-panel').style.display = 'block';
+                document.getElementById('prop-title').innerText = node.label;
+                document.getElementById('prop-content').innerText = JSON.stringify(metadata, null, 2);
+            }
+        });
+
+        setTimeout(refreshPipeline, 100);
+        setInterval(refreshPipeline, 5000);
+        setInterval(pulseProcessingNodes, 500);
+        setInterval(updateGlobalTimer, 1000);
+
+        function centerView() {
+            if (network) network.fit()
+        }
 
         function toggleConsole() {
             const panel = document.getElementById('console-panel');
@@ -223,11 +330,6 @@
             if (isHidden) {
                 setTimeout(() => { panel.scrollTop = panel.scrollHeight; }, 10);
             }
-        }
-
-        function centerGraphWithBuffer() {
-            // 1. Fit the whole graph to the screen first
-            network.fit();
         }
 
         function lerpColor(color1, color2, factor) {
@@ -246,29 +348,38 @@
             if (updates.length > 0) nodes.update(updates);
         }
 
+        function formatSeconds(s) {
+            const hrs = Math.floor(s / 3600), mins = Math.floor((s % 3600) / 60), secs = s % 60;
+            return (hrs > 0 ? hrs + ":" : "") + mins.toString().padStart(2, '0') + ":" + secs.toString().padStart(2, '0');
+        }
+
         function updateGlobalTimer() {
             if (!serverStartTime) return;
-            const allNodes = nodes.get();
-            const isStillWorking = allNodes.some(n => n.raw.status === 'processing' || n.raw.status === 'unprocessed');
-            let displaySeconds = finalDuration ? finalDuration : Math.max(0, Math.floor((Date.now() - serverStartTime) / 1000));
-            const hrs = Math.floor(displaySeconds / 3600), mins = Math.floor((displaySeconds % 3600) / 60), secs = displaySeconds % 60;
-            const formatted = (hrs > 0 ? hrs + ":" : "") + mins.toString().padStart(2, '0') + ":" + secs.toString().padStart(2, '0');
-            const timerElement = document.getElementById('timer-val');
-            timerElement.innerText = formatted;
-            if (!isStillWorking && allNodes.length > 0 && !finalDuration) {
-                finalDuration = displaySeconds;
-                document.getElementById('total-time').style.display = 'block';
-                document.getElementById('total-time').querySelector('span').innerText = formatted;
+
+            if (!isPipelineActive && !finalDuration) {
+                finalDuration = Math.max(0, Math.floor((Date.now() - serverStartTime) / 1000));
+                
+                const formatted = formatSeconds(finalDuration);
+                const timerElement = document.getElementById('timer-val');
+                
+                timerElement.innerText = formatted;
                 timerElement.style.color = "#0b7a39";
                 timerElement.style.fontWeight = '800';
+                
+                document.getElementById('total-time').style.display = 'block';
+                document.getElementById('total-time').querySelector('span').innerText = formatted;
+                return; 
             }
+
+            let displaySeconds = finalDuration || Math.max(0, Math.floor((Date.now() - serverStartTime) / 1000));
+            document.getElementById('timer-val').innerText = formatSeconds(displaySeconds);
         }
 
         function stripAnsi(text) {
             return text.replace(/\u001b\[[0-9;]*[mK]/g, '');
         }
 
-        function parsePipelineData(node, nodesArray, edgesArray) {
+        function createNodePopup(node) {
             const color = statusColors[node.status] || "#efefef";
             
             // Create an HTML title with a colored border
@@ -282,7 +393,7 @@
                 const durationEntry = node.log.find(entry => "duration" in entry);
                 if (durationEntry) {
                     const cleanDuration = durationEntry.duration.split('.')[0];
-                    durationText = `<div style="margin-top: 8px; border-top: 1px solid #444; pt-5px;">
+                    durationText = `<div style="padding-top: 8px;margin-top: 8px; border-top: 1px solid #444; pt-5px;">
                                         <span style="color: #18bc9c; font-weight: bold;">Duration:</span> ${cleanDuration}
                                     </div>`;
                 }
@@ -297,15 +408,21 @@
                 </div>
             `;
 
+            return titleElement;
+        }
+
+        function parsePipelineData(node, nodesArray, edgesArray) {
+            const color = statusColors[node.status] || "#efefef";
+
             nodesArray.push({
                 id: node.urn,
                 label: node.title.replaceAll(' - ', '\n'),
-                title: titleElement,
+                title: createNodePopup(node),
                 color: { background: color, border: "#BBB" },
                 font: { size: 80, face: 'Arial Narrow' },
                 raw: node 
             });
-
+            
             if (node.children) {
                 node.children.forEach(child => {
                     edgesArray.push({ from: node.urn, to: child.urn, arrows: 'to', color: { color: '#AAA' }, scaleFactor: 20});
@@ -321,7 +438,7 @@
             nodes
                 .filter(node => node.raw.status === 'processing')
                 .forEach(node => {
-                    const urn = node.raw.global_urn || node.raw.urn; // Use global_urn as key
+                    const urn = node.raw.global_urn || node.raw.urn;
                     
                     if (!uniqueNodes.has(urn)) {
                         const startEntry = [...node.raw.log].reverse().find(entry => entry.hasOwnProperty('started'));
@@ -423,119 +540,148 @@
                 '92': '#b2f2bb'  // Bright Green
             };
 
-            // Find the first color code in the string, e.g., [32m
             const match = text.match(/\u001b\[(\d+)(?:;\d+)*m/);
             if (match && colorMap[match[1]]) {
                 return colorMap[match[1]];
             }
-            return null; // No ANSI color found
+            return null;
         }
 
-        async function updateGraph() {
-            try {
-                const response = await fetch(`/nodes?last_index=${lastLogIndex}`);
-                const rawData = await response.json();
+        function flattenPipelineData(rawData) {
+            // Flattens nested hierarchy of nodes
+            const flatMap = {};
+
+            function recurse(node) {
+                if (!node) return;
                 
-                if (rawData.process_started) serverStartTime = new Date(rawData.process_started).getTime();
-
-                if (rawData.logs && rawData.logs.length > 0) {
-                    const logContent = document.getElementById('log-content');
-                    const panel = document.getElementById('console-panel');
-                    rawData.logs.forEach(log => {
-                        const line = document.createElement('div');
-                        line.className = 'log-line';
-                        const detectAnsiColor = getAnsiColor(log.msg);
-                        const cleanMsg = stripAnsi(log.msg);
-                        let msgColor = "#d4d4d4";
-                        if (detectAnsiColor) msgColor = detectAnsiColor;
-                        if (log.msg.includes("OpenSiteDownloader")) msgColor = "#d88bf0";
-                        if (log.msg.includes("OpenSiteSpatial")) msgColor = "#ce9178";
-                        if (log.msg.includes("[amalgamate]")) msgColor = "#569cd6";
-                        if (log.msg.includes("[postprocess]")) msgColor = "#2d9c33";
-                        if (log.msg.includes("OpenSiteOutput")) msgColor = "#6078e0";
-                        if (log.msg.includes("OpenSitePostGIS")) msgColor = "#f5b547";
-                        if (log.msg.includes("OpenSiteRunner")) msgColor = "#5e5adb";
-                        if (log.msg.includes("ERROR")) msgColor = "#de0d0d";
-
-                        line.innerHTML = `<span class="log-ts">${log.time}</span><span style="color:${msgColor}">${cleanMsg}</span>`;
-                        logContent.appendChild(line);
-                    });
-                    lastLogIndex = rawData.next_index;
-                    if (window.getComputedStyle(panel).display !== 'none') panel.scrollTop = panel.scrollHeight;
+                if (node.urn) {
+                    flatMap[node.urn] = node;
                 }
 
-                const tempNodes = [], tempEdges = [];
-                if (rawData.children && rawData.children.length > 0) {
-                    rawData.children.forEach(branch => parsePipelineData(branch, tempNodes, tempEdges));
-                } else if (rawData.name) {
-                    parsePipelineData(rawData, tempNodes, tempEdges);
+                if (node.children && node.children.length > 0) {
+                    node.children.forEach(child => recurse(child));
                 }
+            }
 
-                nodes.update(tempNodes);
-                edges.update(tempEdges);
+            if (rawData.children && rawData.children.length > 0) {
+                rawData.children.forEach(branch => recurse(branch));
+            } else if (rawData.name) {
+                recurse(rawData);
+            }
 
-                const allNodes = nodes.get();
-
-                const counts = { processed: 0, processing: 0, unprocessed: 0, failed: 0 };
-                allNodes.forEach(n => { if(counts.hasOwnProperty(n.raw.status)) counts[n.raw.status]++; });
-                updateMonitorUI(allNodes);
-                
-                document.getElementById('count-processed').innerText = `${counts.processed}`;
-                document.getElementById('count-processing').innerText = `${counts.processing}`;
-                document.getElementById('count-unprocessed').innerText = `${counts.unprocessed}`;
-                document.getElementById('count-failed').innerText = `${counts.failed}`;
-
-                document.getElementById('last-sync').innerText = "Last Sync: " + new Date().toLocaleTimeString();
-            } catch (error) { console.error("API Error:", error); }
+            return flatMap;
         }
 
-        const options = {
-            nodes: { 
-                color: {
-                    highlight: {
-                        background: "inherit", 
-                        border: "inherit"
-                    },
-                    hover: {
-                        background: "#FFFFFF"
+        function initGraph(rawData) {
+            const tempNodes = [];
+            const tempEdges = [];
+
+            if (rawData.children && rawData.children.length > 0) {
+                rawData.children.forEach(branch => parsePipelineData(branch, tempNodes, tempEdges));
+            } else if (rawData.name) {
+                parsePipelineData(rawData, tempNodes, tempEdges);
+            }
+
+            nodes.add(tempNodes);
+            edges.add(tempEdges);
+
+            isGraphInitialized = true;
+
+        }
+        
+        function updateGraph(rawData) {
+            const newDataMap = flattenPipelineData(rawData);
+            const updates = [];
+
+            nodes.get().forEach(existingNode => {
+                const newNodeData = newDataMap[existingNode.id];
+
+                if (newNodeData && existingNode.raw.status !== newNodeData.status) {
+                    
+                    const newColor = statusColors[newNodeData.status] || "#efefef";
+                    const newPopup = createNodePopup(newNodeData);
+
+                    updates.push({
+                        id: existingNode.id,
+                        color: { background: newColor, border: "#BBB" },
+                        title: newPopup,
+                        raw: newNodeData 
+                    });                    
+                }
+            });
+
+            if (updates.length > 0) {
+                nodes.update(updates);
+            }
+
+            const allNodes = nodes.get();
+            const counts = { processed: 0, processing: 0, unprocessed: 0, failed: 0 };
+            allNodes.forEach(n => { if(counts.hasOwnProperty(n.raw.status)) counts[n.raw.status]++; });
+            isPipelineActive = (counts.processing > 0 || counts.unprocessed > 0);
+            updateMonitorUI(allNodes);
+            
+            document.getElementById('count-processed').innerText = `${counts.processed}`;
+            document.getElementById('count-processing').innerText = `${counts.processing}`;
+            document.getElementById('count-unprocessed').innerText = `${counts.unprocessed}`;
+            document.getElementById('count-failed').innerText = `${counts.failed}`;
+
+            document.getElementById('last-sync').innerText = "Last Sync: " + new Date().toLocaleTimeString();
+
+
+            if (rawData.logs && rawData.logs.length > 0) {
+                const logContent = document.getElementById('log-content');
+                const panel = document.getElementById('console-panel');
+                const isAtBottom = (panel.scrollHeight - panel.scrollTop - panel.clientHeight) < 20;
+
+                rawData.logs.forEach(log => {
+                    const line = document.createElement('div');
+                    line.className = 'log-line';
+                    const detectAnsiColor = getAnsiColor(log.msg);
+                    const cleanMsg = stripAnsi(log.msg);
+                    let msgColor = "#d4d4d4";
+                    if (detectAnsiColor) msgColor = detectAnsiColor;
+                    if (log.msg.includes("OpenSiteDownloader")) msgColor = "#d88bf0";
+                    if (log.msg.includes("OpenSiteSpatial")) msgColor = "#ce9178";
+                    if (log.msg.includes("[amalgamate]")) msgColor = "#569cd6";
+                    if (log.msg.includes("[postprocess]")) msgColor = "#2d9c33";
+                    if (log.msg.includes("OpenSiteOutput")) msgColor = "#6078e0";
+                    if (log.msg.includes("OpenSitePostGIS")) msgColor = "#f5b547";
+                    if (log.msg.includes("OpenSiteRunner")) msgColor = "#5e5adb";
+                    if (log.msg.includes("ERROR")) msgColor = "#de0d0d";
+
+                    line.innerHTML = `<span class="log-ts">${log.time}</span><span style="color:${msgColor}">${cleanMsg}</span>`;
+                    logContent.appendChild(line);
+                });
+                lastLogIndex = rawData.next_index;
+
+                if (!isTerminalInitialized || isAtBottom) {
+                    if (window.getComputedStyle(panel).display !== 'none') {
+                        panel.scrollTop = panel.scrollHeight;
                     }
-                },
-                shape: 'dot', 
-                size: 300, 
-                font: { 
-                    multi: true
-                },
-                widthConstraint: {
-                    maximum: 1000
-                } 
-            },
-            edges: { smooth: false, width: 2, color: { color: '#D3D3D3', highlight: '#848484', hover: '#848484' }, arrows: { to: { enabled: true, scaleFactor: 20 } } },
-            layout: { hierarchical: { enabled: true, direction: "UD", sortMethod: "directed", levelSeparation: 3000, nodeSpacing: 900, treeSpacing: 800 } },
-            physics: { enabled: false },
-            interaction: { 
-                dragNodes: true, 
-                hover: true,
-                tooltipDelay: 100 // Makes it feel snappier
+                }
+
+                isTerminalInitialized = true;
+
             }
-        };
 
-        const network = new vis.Network(container, { nodes, edges }, options);
-        network.once("afterDrawing", () => setTimeout(() => network.setOptions({ layout: { hierarchical: false } }), 1000));
 
-        network.on("click", (params) => {
-            if (params.nodes.length > 0) {
-                const node = nodes.get(params.nodes[0]);
-                const metadata = { ...node.raw }; delete metadata.children;
-                document.getElementById('property-panel').style.display = 'block';
-                document.getElementById('prop-title').innerText = node.label;
-                document.getElementById('prop-content').innerText = JSON.stringify(metadata, null, 2);
+        }
+
+        async function refreshPipeline() {
+
+            const response = await fetch(`/nodes?last_index=${lastLogIndex}`);
+            const rawData = await response.json();
+            
+            if (rawData.process_started) serverStartTime = new Date(rawData.process_started).getTime();
+
+            if (!isGraphInitialized) {
+                initGraph(rawData);
+                setTimeout(() => network.fit(), 500);
+            } else {
+                updateGraph(rawData);
             }
-        });
-
-        updateGraph().then(() => setTimeout(() => network.fit(), 500));
-        setInterval(updateGraph, 5000);
-        setInterval(pulseProcessingNodes, 500);
-        setInterval(updateGlobalTimer, 1000);
+        }
+ 
     </script>
 </body>
 </html>

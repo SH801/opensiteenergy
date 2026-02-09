@@ -395,8 +395,8 @@ class OpenSiteSpatial(ProcessBase):
         grid_table = OpenSiteConstants.OPENSITE_GRIDPROCESSING
         clip_table = OpenSiteConstants.OPENSITE_CLIPPINGMASTER
         gridsquare_ids = self.get_processing_grid_square_ids()
-        scratch_table_1 = f"tmp-1-{self.node.output}-{self.node.urn}"
-        scratch_table_2 = f"tmp-2-{self.node.output}-{self.node.urn}"
+        scratch_table_1 = f"tmp_1_{self.node.output}_{self.node.urn}"
+        scratch_table_2 = f"tmp_2_{self.node.output}_{self.node.urn}"
 
         dbparams = {
             "crs": sql.Literal(int(self.get_crs_default())),
@@ -536,7 +536,7 @@ class OpenSiteSpatial(ProcessBase):
         inputs = self.node.input
         grid_table = OpenSiteConstants.OPENSITE_GRIDPROCESSING
         gridsquare_ids = self.get_processing_grid_square_ids()
-        scratch_table_1 = f"tmp-1-{self.node.output}-{self.node.urn}"
+        scratch_table_1 = f"tmp_1_{self.node.output}_{self.node.urn}"
 
         dbparams = {
             "crs": sql.Literal(self.get_crs_default()),
@@ -651,7 +651,7 @@ class OpenSiteSpatial(ProcessBase):
         output_temp = f"{self.node.output}_temp"
 
         # Generate scratch table names
-        def scratch(idx): return f"_s_{idx}_{self.node.output}"
+        def scratch(idx): return f"tmp_{idx}_{self.node.output}_{self.node.urn}"
         
         table_input = scratch(0) # We'll copy input here to add row_id
         table_seams = scratch(1) # Just the polygons touching edges
@@ -727,23 +727,72 @@ class OpenSiteSpatial(ProcessBase):
             # --- STEP 4: Weld seams ---
             self.log.info(f"[postprocess] [{self.node.name}] Step 4: Unioning/Welding seam geometries...")
             start = datetime.datetime.now()
-            # Note: We use ST_Dump to ensure we don't end up with a single MultiPolygon
-            self.postgis.execute_query(sql.SQL("""
-            CREATE TABLE {table_welded} AS
-                SELECT (ST_Dump(
-                    ST_Union(ST_MakeValid(geom))
-                )).geom
-            FROM {table_seams};
-            """).format(**dbparams))
-            self.log.info(f"[postprocess] [{self.node.name}] Step 4: COMPLETED in {datetime.datetime.now() - start}")
+            id_query = sql.SQL("SELECT row_id FROM {table_seams}").format(**dbparams)
+            ids = [r['row_id'] for r in self.postgis.fetch_all(id_query)]
+            total = len(ids)
+            if total == 0:
+                self.log.info(f"[postprocess] [{self.node.name}] No seams found. Creating empty table {dbparams['table_welded']}.")
+                self.postgis.execute_query(sql.SQL("CREATE TABLE {table_welded} (geom geometry(Geometry, {crs}))").format(**dbparams))
+            else:
 
-# CREATE TABLE {table_welded} AS
-#     SELECT (ST_Dump(
-#         ST_MemUnion(
-#             ST_SnapToGrid(ST_MakeValid(geom), 1.0)
-#         )
-#     )).geom
-#     FROM {table_seams};
+                strategy = "CONVENTIONAL"
+
+                # # PRE-FLIGHT: Calculate complexity to choose strategy
+                # stats_query = sql.SQL("SELECT SUM(ST_NPoints(geom)) as total_v, MAX(ST_NPoints(geom)) as max_v FROM {table_seams} WHERE row_id IN %s").format(**dbparams)
+                
+                # stats_rows = self.postgis.fetch_all(stats_query, (tuple(ids),))
+                # stats = stats_rows[0]
+                # total_v = stats['total_v'] or 0
+                # max_v = stats['max_v'] or 0
+
+                # TOO_MANY_FEATURES = 150000  # Increased from 500
+                # TOO_MANY_VERTICES = 15000000 # Increased from 1M
+                # INDIVIDUAL_TOO_COMPLEX = 500000
+
+                # # Decision logic
+                # if (total > TOO_MANY_FEATURES or 
+                #     total_v > TOO_MANY_VERTICES or 
+                #     max_v > INDIVIDUAL_TOO_COMPLEX):
+                #     strategy = "ITERATIVE"
+    
+                # self.log.info(f"[postprocess] [{self.node.name}] Strategy: {strategy} ({total} features, {total_v} vertices)")
+
+                # EXECUTION: Conventional Path (Fast)
+                if strategy == "CONVENTIONAL":
+                    try:
+                        self.postgis.execute_query(sql.SQL("""
+                            CREATE TABLE {table_welded} AS 
+                            SELECT (ST_Dump(ST_Union(ST_MakeValid(geom)))).geom::geometry(Polygon, {crs}) as geom
+                            FROM {table_seams} WHERE row_id IN %s
+                        """).format(**dbparams), (tuple(ids),))
+                    except Exception as e:
+                        self.log.warn(f"[postprocess] [{self.node.name}] Conventional weld failed: {e}. Falling back to Iterative.")
+                        strategy = "ITERATIVE"
+                        self.postgis.execute_query(sql.SQL("DROP TABLE IF EXISTS {table_welded}").format(**dbparams))
+
+                # EXECUTION: Iterative Path (Safe/Slow)
+                if strategy == "ITERATIVE":
+                    self.log.info(f"[postprocess] [{self.node.name}] Starting iterative weld loop...")
+                    
+                    # Seed the table with the first row
+                    self.postgis.execute_query(sql.SQL("""
+                        CREATE TABLE {table_welded} AS 
+                        SELECT ST_MakeValid(geom) as geom FROM {table_seams} WHERE row_id = %s
+                    """).format(**dbparams), (ids[0],))
+
+                    # Loop through the rest of the IDs
+                    for i, poly_id in enumerate(ids[1:], 1):
+                        self.postgis.execute_query(sql.SQL("""
+                            UPDATE {table_welded} 
+                            SET geom = ST_Union({table_welded}.geom, ST_MakeValid(s.geom))
+                            FROM {table_seams} s WHERE s.row_id = %s
+                        """).format(**dbparams), (poly_id,))
+
+                        # Periodic logging for your new lag-free UI
+                        if i % 100 == 0 or i == total - 1:
+                            self.log.info(f"[postprocess] [{self.node.name}] Step 4: Progress: {i+1}/{total} seams welded (Iterative)")
+
+            self.log.info(f"[postprocess] [{self.node.name}] Step 4: COMPLETED in {datetime.datetime.now() - start}")
 
             # --- STEP 5: Final assembly ---
             self.log.info(f"[postprocess] [{self.node.name}] Step 5: Finalizing output...")
@@ -769,7 +818,7 @@ class OpenSiteSpatial(ProcessBase):
                 return False
 
         except Exception as e:
-            self.log.error(f"[postprocess] [{self.node.name}] Error during Loop Union: {e}")
+            self.log.error(f"[postprocess] [{self.node.name}] Error during postprocess: {e}")
             return False
 
     def clip(self):
@@ -788,7 +837,7 @@ class OpenSiteSpatial(ProcessBase):
         if self.postgis.table_exists(self.node.output):
             self.postgis.drop_table(self.node.output)
 
-        cliptemp = f"tmp-1-{self.node.output}-{self.node.urn}"
+        cliptemp = f"tmp_1_{self.node.output}_{self.node.urn}"
 
         areas, initial_areas = [], self.node.custom_properties['clip']
 
