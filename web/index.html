@@ -22,15 +22,15 @@
             border-radius: 8px; box-shadow: 0 4px 15px rgba(188, 188, 188, 1); width: 260px;
         }
 
-        #processing-monitor {
+        #active-node-list {
             max-width: 260px;
             width: auto;
             max-height: 200px;
             overflow-y: auto;
             font-size: 0.85rem;
+
         }
 
-    
         #network-container {
             position: absolute; top: 0px;
             height: 100%;
@@ -86,7 +86,7 @@
             margin: 0px;
         }
 
-        .log-line { font-size: 0.8rem; margin-bottom: 2px; border-bottom: 1px solid #1e1e1e; white-space: pre-wrap; }
+        .log-line { font-size: 0.7rem; margin-bottom: 0px; border-bottom: 1px solid #1e1e1e; white-space: pre-wrap; }
         .log-ts { color: #858585; margin-right: 10px; }
         .btn-console { background: #34495e !important; color: white !important; border: none !important; }
 
@@ -341,7 +341,7 @@
 
                         uniqueNodes.set(urn, {
                             id: node.raw.urn,
-                            name: node.raw.name,
+                            title: node.raw.title,
                             elapsed: elapsedStr,
                             rawSeconds: seconds
                         });
@@ -367,11 +367,11 @@
 
             container.innerHTML = activeNodes.map(node => `
             <a href="#" style="text-decoration:none;" onclick="zoomToNode('${node.id}'); return false;">
-                <div style="max-width: 210px;display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid #DDD; padding: 4px 0;font-size: 0.9em;">
+                <div style="max-width: 150px;display: flex; justify-content: space-between; align-items: top; border-bottom: 0.5px solid #DDD; padding: 4px 0;font-size: 0.9em;">
                     <div>
-                        <div style="margin-right:20px;width:150px;max-width:150px!important;overflow:hidden;">${node.name}</div>
+                        <div style="margin-right:20px;width:130px;max-width:150px!important;overflow:hidden;">${node.title}</div>
                     </div>
-                    <div style="font-family: monospace;">${node.elapsed}</div>
+                    <div style="font-family: monospace;"><b>${node.elapsed}</b></div>
                 </div>
             </a>
             `).join('');

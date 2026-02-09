@@ -1,1 +1,1 @@
-./build.sh test/solar.yml --preview
+./build.sh test/solar.yml --preview --purgeall
