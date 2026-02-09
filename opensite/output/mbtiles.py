@@ -26,7 +26,7 @@ class OpenSiteOutputMbtiles(OutputBase):
         tmp_output_path = Path(self.base_path) / tmp_output
         final_output_path = Path(self.base_path) / self.node.output
         grid_table = OpenSiteConstants.OPENSITE_GRIDOUTPUT
-        scratch_table_1 = '_s1_' + str(self.node.urn)
+        scratch_table_1 = f"tmp-1-{self.node.input}-{self.node.urn}"
 
         dbparams = {
             "crs": sql.Literal(self.get_crs_default()),
@@ -41,18 +41,17 @@ class OpenSiteOutputMbtiles(OutputBase):
 
         if tmp_output_path.exists(): tmp_output_path.unlink()
 
-        query_s1_gridify = sql.SQL("""
-        CREATE TABLE {scratch1} AS 
-            SELECT (ST_Dump(ST_Intersection(layer.geom, grid.geom))).geom geom FROM {input} layer, {grid} grid
+        query_scratch_table_1_gridify = sql.SQL("""
+        CREATE TABLE {scratch1} AS SELECT (ST_Dump(ST_Intersection(layer.geom, grid.geom))).geom geom FROM {input} layer, {grid} grid
         """).format(**dbparams)
-        query_s1_index      = sql.SQL("CREATE INDEX {scratch1_index} ON {scratch1} USING GIST (geom)").format(**dbparams)
+        query_scratch_table_1_index = sql.SQL("CREATE INDEX {scratch1_index} ON {scratch1} USING GIST (geom)").format(**dbparams)
         
         try:
             self.log.info(f"[OpenSiteOutputMbtiles] [{self.node.name}] Cutting up output into grid squares")
 
             dataset_name = self.node.output.replace('.mbtiles', '')
-            self.postgis.execute_query(query_s1_gridify)
-            self.postgis.execute_query(query_s1_index)
+            self.postgis.execute_query(query_scratch_table_1_gridify)
+            self.postgis.execute_query(query_scratch_table_1_index)
             self.postgis.export_spatial_data(scratch_table_1, dataset_name, str(tmp_output_path))
             self.postgis.drop_table(scratch_table_1)
 

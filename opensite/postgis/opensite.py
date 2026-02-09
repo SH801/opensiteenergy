@@ -405,16 +405,17 @@ class OpenSitePostGIS(PostGISBase):
         Returns True if an entry exists that matches BOTH table_id and file_path.
         Used to skip redundant exports.
         """
-        query = f"""
-            SELECT EXISTS (
-                SELECT 1 FROM {self.OPENSITE_OUTPUTS}
-                WHERE input = %s AND output = %s
-            );
-        """
+
+        dbparams = {
+            'table': sql.Identifier(self.OPENSITE_OUTPUTS),
+            'input': sql.Literal(input),
+            'output': sql.Literal(output)
+        }
+        query = sql.SQL("SELECT COUNT(*) AS rec_count FROM {table} WHERE input = {input} AND output = {output}").format(**dbparams)
+
         try:
-            results = self.fetch_all(query, (input, output))
-            # fetch_all returns a list of dicts: [{'exists': True}]
-            return results[0]['exists'] if results else False
+            results = self.fetch_all(query)
+            return (results[0]['rec_count'] != 0)
         except Exception as e:
             self.log.error(f"Error checking export existence: {e}")
             return False
@@ -426,32 +427,21 @@ class OpenSitePostGIS(PostGISBase):
         those links are deleted to force a re-run of downstream dependencies.
         """
         try:
-            # 1. Clear any record where:
-            # - This specific input was already mapped to something else (stale output)
-            # - This specific output path was used as an input elsewhere (invalidates downstream)
-            # - This specific output path was already claimed by another table (orphans old source)
-            delete_query = sql.SQL("""
-                DELETE FROM {table} 
-                WHERE ((input = %s) AND (output=%s)) 
-                   OR input = %s 
-            """).format(table=sql.Identifier(self.OPENSITE_OUTPUTS))
-            
-            upsert_query = sql.SQL("""INSERT INTO {table} (input, output, exported_at) VALUES (%s, %s, CURRENT_TIMESTAMP)
-            """).format(table=sql.Identifier(self.OPENSITE_OUTPUTS))
 
-            conn = self.pool.getconn()
-            try:
-                with conn.cursor() as cur:
-                    # Parameter 1: input_id (the table/file we are reading from)
-                    # Parameter 2: output_path (the file we are writing)
-                    # Parameter 3: output_path (check if the NEW file was used as an OLD input)
-                    cur.execute(delete_query, (input, output, output))
-                    cur.execute(upsert_query, (input, output))
-                conn.commit()
-                self.log.info(f"Lineage synchronized: {input} -> {output}")
-            finally:
-                self.pool.putconn(conn)
+            dbparams = {
+                'table': sql.Identifier(self.OPENSITE_OUTPUTS),
+                'input': sql.Literal(input),
+                'output': sql.Literal(output)
+            }
+
+            delete_query = sql.SQL("DELETE FROM {table} WHERE ((input={input}) AND (output={output})) OR input={output}").format(**dbparams)
+            insert_query = sql.SQL("INSERT INTO {table} (input, output, exported_at) VALUES ({input}, {output}, CURRENT_TIMESTAMP)").format(**dbparams)
+
+            self.execute_query(delete_query)
+            self.execute_query(insert_query)
+            self.log.info(f"Lineage synchronized: {input} -> {output}")
             return True
+
         except Exception as e:
             self.log.error(f"Failed to synchronize lineage for {input}: {e}")
             return False

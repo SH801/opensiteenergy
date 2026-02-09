@@ -17,26 +17,28 @@ class OpenSiteOutput(OutputBase):
     def __init__(self, node, log_level=logging.INFO, overwrite=False, shared_lock=None, shared_metadata=None):
         super().__init__(node, log_level=log_level, overwrite=overwrite, shared_lock=shared_lock, shared_metadata=shared_metadata)
         self.log = OpenSiteLogger("OpenSiteOutput", log_level, shared_lock)
-        self.base_path = OpenSiteConstants.OUTPUT_FOLDER
+        self.base_path = OpenSiteConstants.OUTPUT_LAYERS_FOLDER
     
     def run(self):
         """
         Runs output for every specific output type
         """
 
+        # For some formats, we ignore registry and always export
+        ignore_output_registry_formats = ['json', 'qgis', 'web']
+
         outputObject = None
-        full_path = Path(self.base_path / self.node.output).resolve()
 
-        # We always export some formats, regardless of whether existing output file is correct
-        if self.node.format not in ['json', 'qgis', 'web']:
+        if self.node.format not in ignore_output_registry_formats:
 
-            postgis = OpenSitePostGIS(self.log_level)
             input = self.node.input
+            full_path = Path(self.base_path / self.node.output).resolve()
 
             # For file conversions, input will be file not database
             if not input.startswith(OpenSiteConstants.DATABASE_GENERAL_PREFIX):
                 input = str(Path(self.base_path / self.node.input).resolve())
 
+            postgis = OpenSitePostGIS(self.log_level)
             # If not overwriting, file exists and there is 'last exported' entry for input table and output path, then do nothing 
             if postgis.check_export_exists(input, str(full_path)):
                 if not self.overwrite:
@@ -69,9 +71,10 @@ class OpenSiteOutput(OutputBase):
 
             run_status = outputObject.run()
 
-            # If export was successful, add to export log table
-            if run_status:
-                postgis.update_export_log(str(input), str(full_path))
+            if self.node.format not in ignore_output_registry_formats:
+                # If export was successful, add to export log table
+                if run_status:
+                    postgis.update_export_log(str(input), str(full_path))
 
             return run_status
 

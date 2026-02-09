@@ -395,8 +395,8 @@ class OpenSiteSpatial(ProcessBase):
         grid_table = OpenSiteConstants.OPENSITE_GRIDPROCESSING
         clip_table = OpenSiteConstants.OPENSITE_CLIPPINGMASTER
         gridsquare_ids = self.get_processing_grid_square_ids()
-        scratch_table_1 = '_s1_' + self.node.output
-        scratch_table_2 = '_s2_' + self.node.output
+        scratch_table_1 = f"tmp-1-{self.node.output}-{self.node.urn}"
+        scratch_table_2 = f"tmp-2-{self.node.output}-{self.node.urn}"
 
         dbparams = {
             "crs": sql.Literal(int(self.get_crs_default())),
@@ -420,19 +420,19 @@ class OpenSiteSpatial(ProcessBase):
         # Ideally all dumped tables should contain polygons only (either source or buffered source is (Multi)Polygon)
         # so filter on ST_Polygon
 
-        query_s1_dump_makevalid = sql.SQL("""
+        query_scratch_table_1_dump_makevalid = sql.SQL("""
         CREATE TABLE {scratch1} AS 
             SELECT  ST_MakeValid(dumped.geom) geom 
             FROM    (SELECT (ST_Dump(geom)).geom geom FROM {input}) dumped 
             WHERE   ST_geometrytype(dumped.geom) = 'ST_Polygon'
         """).format(**dbparams)
-        query_s2_table_create = sql.SQL("""
+        query_scratch_table_2_table_create = sql.SQL("""
         CREATE TABLE {scratch2} (
             gid SERIAL PRIMARY KEY,
             id INTEGER,
             geom GEOMETRY(Polygon, {crs}))
         """).format(**dbparams)
-        query_s2_table_insert = """
+        query_scratch_table_2_table_insert = """
         INSERT INTO {scratch2} (id, geom)
             SELECT 
                 grid.id, (ST_Dump(ST_Intersection(grid.geom, ST_UnaryUnion(ST_Collect(data.geom))))).geom::geometry(Polygon, {crs})
@@ -456,19 +456,19 @@ class OpenSiteSpatial(ProcessBase):
         JOIN {clip} clipper ON ST_Intersects(data.geom, clipper.geom) 
         AND NOT ST_Contains(clipper.geom, data.geom);
         """).format(**dbparams)
-        query_s1_index      = sql.SQL("CREATE INDEX {scratch1_index} ON {scratch1} USING GIST (geom)").format(**dbparams)
-        query_s2_index      = sql.SQL("CREATE INDEX {scratch2_index} ON {scratch2} USING GIST (geom)").format(**dbparams)
-        query_output_index  = sql.SQL("CREATE INDEX {output_index} ON {output} USING GIST (geom)").format(**dbparams)
+        query_scratch_table_1_index = sql.SQL("CREATE INDEX {scratch1_index} ON {scratch1} USING GIST (geom)").format(**dbparams)
+        query_scratch_table_2_index = sql.SQL("CREATE INDEX {scratch2_index} ON {scratch2} USING GIST (geom)").format(**dbparams)
+        query_output_index          = sql.SQL("CREATE INDEX {output_index} ON {output} USING GIST (geom)").format(**dbparams)
 
         try:
             self.log.info(f"[preprocess] [{self.node.name}] Select only polygons, dump and make valid")
 
-            self.postgis.execute_query(query_s1_dump_makevalid)
-            self.postgis.execute_query(query_s1_index)
+            self.postgis.execute_query(query_scratch_table_1_dump_makevalid)
+            self.postgis.execute_query(query_scratch_table_1_index)
 
             self.log.info(f"[preprocess] [{self.node.name}] Cutting data into grid squares and running ST_Union on each square")
 
-            self.postgis.execute_query(query_s2_table_create)
+            self.postgis.execute_query(query_scratch_table_2_table_create)
 
             gridsquares_index, gridsquares_count = 0, len(gridsquare_ids)
             last_log_time = time.time()
@@ -486,9 +486,9 @@ class OpenSiteSpatial(ProcessBase):
 
                 dbparams['gridsquare_id'] = sql.Literal(gridsquare_id)
                 
-                self.postgis.execute_query(sql.SQL(query_s2_table_insert).format(**dbparams))
+                self.postgis.execute_query(sql.SQL(query_scratch_table_2_table_insert).format(**dbparams))
 
-            self.postgis.execute_query(query_s2_index)
+            self.postgis.execute_query(query_scratch_table_2_index)
 
             self.log.info(f"[preprocess] [{self.node.name}] Creating final output")
 
@@ -536,8 +536,8 @@ class OpenSiteSpatial(ProcessBase):
         inputs = self.node.input
         grid_table = OpenSiteConstants.OPENSITE_GRIDPROCESSING
         gridsquare_ids = self.get_processing_grid_square_ids()
-        scratch_table_1 = '_s1_' + self.node.output
-        
+        scratch_table_1 = f"tmp-1-{self.node.output}-{self.node.urn}"
+
         dbparams = {
             "crs": sql.Literal(self.get_crs_default()),
             "grid": sql.Identifier(grid_table),
@@ -788,7 +788,7 @@ class OpenSiteSpatial(ProcessBase):
         if self.postgis.table_exists(self.node.output):
             self.postgis.drop_table(self.node.output)
 
-        cliptemp = '_s1_' + self.node.output
+        cliptemp = f"tmp-1-{self.node.output}-{self.node.urn}"
 
         areas, initial_areas = [], self.node.custom_properties['clip']
 
