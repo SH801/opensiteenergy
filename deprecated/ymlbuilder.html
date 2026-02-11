@@ -31,7 +31,9 @@
         
         .btn { padding: 10px 18px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; transition: 0.2s; }
         .btn-primary { background: var(--primary); color: white; }
-        .btn-danger { background: none; color: #ff4d4d; padding: 5px 10px; font-size: 1.1rem; border:none}
+        .btn-danger { background: #ff4d4d; color: #ffffff; border:none}
+        .btn-action { background: #3eb410; color: #ffffff; border:none}
+        .icon-danger { background: none; color: #ff4d4d; padding: 5px 10px; font-size: 1.1rem; border:none}
         .btn-bare { background: none; border: none;}
         .btn-lg {font-size:1.5em;}
         .config-textarea {
@@ -265,19 +267,27 @@
 
     <div class="template-header">
         <div>
-            <h3 style="margin:0; font-size: 1.1rem;">Choose template</h3>
+            <h3 style="margin:0; font-size: 1.1rem;">Template</h3>
         </div>
-        
+
         <div class="flex">
             <select v-model="selectedTemplatePkg" class="template-select">
                 <option selected value="new">New configuration</option>
                 <option v-for="conf in customConfigs" :key="conf.name" :value="conf">
                     Open Site Energy - {{ conf.title }}
                 </option>
+                <option v-for="conf in localConfigs" :key="conf.name" :value="conf">
+                    Local configuration - {{ conf.title }}
+                </option>
             </select>
             <button class="btn btn-primary" @click="loadTemplate" :disabled="!selectedTemplatePkg || isLoadingTemplate">
                 {{ isLoadingTemplate ? 'Loading...' : 'LOAD' }}
             </button>
+
+        </div>
+        <div class="flex">
+            <button v-if="isSaveable" class="btn btn-action" @click="saveTemplate" :disabled="isSaveable">SAVE</button>
+            <button v-if="isDeletable" class="btn btn-danger" @click="deleteTemplate" :disabled="!isDeletable">DELETE</button>
         </div>
     </div>
 
@@ -353,7 +363,7 @@
                             </div>
                         </strong>
                         
-                        <button class="btn-danger" @click.stop="workspace.splice(gIdx, 1)"><i class="fa fa-times-circle" aria-hidden="true"></i></button>
+                        <button class="icon-danger" @click.stop="workspace.splice(gIdx, 1)"><i class="fa fa-times-circle" aria-hidden="true"></i></button>
                     </div>
 
                     <div v-show="isExpanded(group.id)" style="padding: 15px; border-top: 1px solid #eee;">
@@ -409,7 +419,7 @@
                                     </div>
                                 </div>
                                 
-                                <button class="btn-danger" @click="group.selectedDatasets.splice(dIdx, 1)"><i class="fa fa-times-circle" aria-hidden="true"></i></button>
+                                <button class="icon-danger" @click="group.selectedDatasets.splice(dIdx, 1)"><i class="fa fa-times-circle" aria-hidden="true"></i></button>
                             </div>
                         </div>
 
@@ -508,17 +518,23 @@ const hexToName = (hex) => HEX_TO_NAME[hex?.toLowerCase()] || hex;
 createApp({
     setup() {
         const ckanUrl = ref("https://ckan.openwind.energy");
-        const proxyUrl = "http://127.0.0.1:5000/ckan";
+        const backendBase = 'http://127.0.0.1:5000/';
+        const proxyUrl = backendBase + "ckan";
         const OPEN_SITE_ENERGY_YML = 'Open Site Energy YML';
         const defaultOSM = "https://download.geofabrik.de/europe/united-kingdom-latest.osm.pbf";
         const defaultAreas = "england,wales,scotland,northern-ireland,uk";
         const lastSyncedUrl = ref(""); // Tracks the last successful fetch
         const library = ref({});
         const customConfigs = ref([]);
+        const localConfigs = ref([]);
+        const backend_urn = ref(undefined);
         const workspace = ref([]);
         const selectedGroupKey = ref("");
         const selectedTemplatePkg = ref("new");
+        const isSaveable = ref(false);
+        const isDeletable = ref(false);
         const isInitialLoading = ref(false);
+        const isFullyLoaded = ref(false);
         const isLoadingTemplate = ref(false);
         const sortableContainer = ref(null);
         const activeModal = ref(null);
@@ -526,6 +542,51 @@ createApp({
         const isYamlCollapsed = ref(true);
         const expandedGroups = ref([]);
         const yamlTextarea = ref(null);
+
+        // Fetch custom list from backend
+        const refreshCustomConfigs = async () => {
+            const response = await fetch(backendBase + 'list');
+            const data = await response.json();
+            console.log(data);
+            localConfigs.value = data; 
+        };
+
+        // Save Logic
+        const saveConfig = async () => {
+            const ymlContent = getEditorContent(); // Your method to get current YML
+            const formData = new FormData();
+            formData.append('yml', ymlContent);
+            
+            // If we have an existing URN, send it so we overwrite instead of create new
+            if (backend_urn.value) {
+                formData.append('urn', backend_urn.value);
+            }
+
+            const response = await fetch(backendBase + 'save', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+
+            localConfigs.value = result.configs;
+            backend_urn.value = result.urn;
+        };
+
+        // Delete Logic
+        const deleteConfig = async () => {
+            if (!backend_urn.value) return;
+
+            if (confirm("Are you sure you want to delete?")) {
+                const response = await fetch(`${backendBase}delete?urn=${backend_urn.value}`);
+                const data = await response.json();
+                
+                localConfigs.value = data;
+                backend_urn.value = undefined;
+                selectedTemplatePkg.value = 'new';
+                resetEditor(); 
+            }
+        };
 
         const handleManualInput = (val) => {
             syncYamlToUI(val);
@@ -673,6 +734,9 @@ createApp({
 
         const loadTemplate = async () => {
             if (!selectedTemplatePkg.value) return;
+
+            // Reset groups expanded state
+            resetToClosed();
 
             if (selectedTemplatePkg.value === "new") {
                 startNewConfig();
@@ -933,9 +997,9 @@ createApp({
 
             if (config.value.heightToTip !== undefined) finalOutput['height-to-tip'] = config.value.heightToTip;
             if (config.value.bladeRadius !== undefined) finalOutput['blade-radius'] = config.value.bladeRadius;
+            if (Object.keys(structure).length > 0) finalOutput.structure = structure;
             if (Object.keys(buffers).length > 0) finalOutput.buffers = buffers;
             if (Object.keys(distances).length > 0) finalOutput.distances = distances;
-            if (Object.keys(structure).length > 0) finalOutput.structure = structure;
             if (Object.keys(style).length > 0) finalOutput.style = style;
 
             const yamlString = jsyaml.dump(finalOutput, { lineWidth: -1, quotingType: '"', noCompatMode: true });
@@ -944,6 +1008,12 @@ createApp({
 
         // WATCHER: When UI changes, update the YAML text
         watch([workspace, config], () => {
+            if (isFullyLoaded.value) {
+                isSaveable.value = true;
+            }
+            if (!isFullyLoaded.value) {
+                isFullyLoaded.value = true;
+            }
             const newYaml = generateYamlFromUI();
             // Only update if it's actually different to avoid cursor jumping in textarea
             if (yamlCode.value !== newYaml) {
@@ -990,6 +1060,7 @@ createApp({
 
         onMounted(() => {
             fetchLibrary();
+            refreshCustomConfigs();
             Sortable.create(sortableContainer.value, {
                 handle: '.handle', animation: 180,
                 onEnd: (evt) => {
@@ -1009,11 +1080,14 @@ createApp({
             showSyncButton, 
             library, 
             customConfigs, 
+            localConfigs,
             workspace, 
             selectedGroupKey, 
             selectedTemplatePkg, 
             isInitialLoading, 
             isLoadingTemplate, 
+            isSaveable,
+            isDeletable,
             config, 
             fetchLibrary, 
             loadTemplate, 

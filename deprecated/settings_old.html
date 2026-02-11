@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}
+Settings
+{% endblock title %}
+
+{% block headline %}
+Settings
+{% endblock headline %}
+
+{% block content %}
+
+<form action="/processingstart" method="POST" enctype="application/x-www-form-urlencoded" class="d-sm-inline-block form-inline mr-auto my-2 my-md-0 mw-100">
+
+    <div class="row">
+
+        <div class="col-lg-6">
+
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 text-white bg-primary">
+                    <h6 class="m-0 font-weight-bold">Turbine parameters</h6>
+                </div>
+                <div class="card-body">
+                    <p class="m-0 mb-2 text-secondary">Enter specific turbine parameters below or leave blank to use default values.</p>
+                    <p><i>Note: if you specify <b>Blade radius</b>, ensure you enter <b>Height to tip</b> value.</i></p>
+
+                    <div class="mb-1">Height to tip</div>
+                    <div>
+                        <div class="input-group">
+                            <input name="height-to-tip" type="number" step="0.1" class="form-control bg-light border-0 small"
+                                aria-label="Search" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <button class="btn btn-secondary" type="button">
+                                    metres
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-1 mb-2 text-xs text-gray-500">Leave blank to use default value. Enter no more than 1 decimal place.</div>
+
+                    <div class="mt-4 mb-1">Blade radius</div>
+                    <div>
+                        <div class="input-group">
+                            <input name="blade-radius" type="number" step="0.1" class="form-control bg-light border-0 small"
+                                aria-label="Search" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <button class="btn btn-secondary" type="button">
+                                    metres
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-1 mb-2 text-xs text-gray-500">Leave blank to use default value. Enter no more than 1 decimal place.</div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-lg-6">
+            
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 text-white bg-primary">
+                    <h6 class="m-0 font-weight-bold">Clipping area</h6>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="input-group">
+                            <select name="clip" id="select-clip">
+                                <option value="">United Kingdom</option>
+                                <option value="England">England</option>
+                                <option value="Cymru / Wales">Wales</option>
+                                <option value="Alba / Scotland">Scotland</option>
+                                <option value="Northern Ireland / Tuaisceart Éireann">Northern Ireland</option>
+                                {%- for item in clippingareas %}
+                                <option value="{{ item -}}">{{ item -}}</option>
+                                {% endfor %}
+                            </select>
+                            <script>
+                                new SlimSelect({
+                                select: '#select-clip'
+                                })
+                            </script>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 text-white bg-primary">
+                    <h6 class="m-0 font-weight-bold">Custom configuration file</h6>
+                </div>
+                <div class="card-body">
+                    <p class="m-0 mb-2 text-secondary">Enter full URL of <a target="_new" href="https://github.com/open-wind/opensiteenergy/?tab=readme-ov-file#custom-configuration-and-custom-clipping"><b>YML custom configuration file</b></a>. Leave blank if no custom configuration required.</p>
+
+                    <div>
+                        <div class="input-group">
+                            <input size="60" name="custom-configuration" type="text" class="form-control bg-light border-0 small"
+                                aria-label="Search" placeholder="https://your.domain/custom.yml" spellcheck="false" autocorrect="off" autocomplete="off" aria-describedby="basic-addon2">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-danger text-white">
+                    <h6 class="m-0 font-weight-bold">Purge existing data</h6>
+                </div>
+                <div class="card-body">
+                    <p class="m-0 mb-2 text-secondary">Click checkbox below to delete existing dataset downloads and database tables and rebuild layers from scratch.</p>
+                    <p> <i>Note: this may considerably increase time to generate final layers.</i></p>
+
+                    <div>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                            <div class="input-group-text fs-4">
+                                <input id="purge-all" name="purge-all" type="checkbox" aria-label="Purge existing data">
+                            </div>
+                            </div>
+                            <label class="form-check-label form-control" for="purge-all">
+                                <b>Purge existing downloads and database tables</b>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-lg-6">
+            <button class="btn btn-success btn-lg btn-icon-split" type="submit">
+                <span class="icon text-white-50">
+                    <i class="fa fa-play-circle"></i>
+                </span>
+                <span class="text">Start generating constraint layers</span>
+            </button>
+        </div>
+    </div>
+
+</form>
+
+{% endblock content %}
+

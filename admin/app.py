@@ -43,8 +43,10 @@ import subprocess
 import json
 import time
 import os
+import yaml
 import psycopg2
 import zipfile
+from pathlib import Path
 from bs4 import BeautifulSoup
 from requests import get
 from datetime import datetime
@@ -60,9 +62,11 @@ from os.path import isfile, isdir, basename, join
 
 load_dotenv("../.env")
 
-WORKING_FOLDER                      = str(Path(__file__).absolute().parent) + '/'
-BUILD_FOLDER                        = join(WORKING_FOLDER, "..", 'build')
-if os.environ.get("BUILD_FOLDER") is not None: BUILD_FOLDER = os.environ.get('BUILD_FOLDER')
+WORKING_FOLDER                      = Path(__file__).absolute().parent
+BUILD_FOLDER                        = Path(WORKING_FOLDER).parent / 'build'
+if os.environ.get("BUILD_FOLDER") is not None: 
+    BUILD_FOLDER = Path(os.environ.get('BUILD_FOLDER'))
+BUILD_CONFIGS_FOLDER                = BUILD_FOLDER / 'configs'
 
 POSTGRES_HOST                       = os.environ.get("POSTGRES_HOST")
 POSTGRES_DB                         = os.environ.get("POSTGRES_DB")
@@ -283,7 +287,7 @@ def postgisGetClippingAreas():
         SELECT DISTINCT council_name name FROM _opensite_osm_boundaries WHERE council_name <> '' AND admin_level <> '4' 
     ) all_names ORDER BY all_names.name;""")
     clippingareas = [clippingarea[0] for clippingarea in clippingareas]
-    print(clippingareas)
+
     return clippingareas
 
 # ***********************************************************
@@ -297,11 +301,6 @@ def home():
     """
 
     return render_template("index.html")
-
-# @app.route('/logs', defaults={'path': ''})
-# @app.route('/logs/<path:path>')
-# def proxy(path):
-#   return get(f'{SITE_NAME}{path}').content
 
 @app.route('/ckan')
 def proxy():
@@ -331,7 +330,99 @@ def proxy():
     except Exception as e:
         print(f"INTERNAL SERVER ERROR: {e}")
         return f"Internal Error: {str(e)}", 500
-    
+
+@app.route('/list')
+def config_getall():
+    """
+    Gets all available local config YMLs
+    """
+
+    if not isLoggedIn(): return []
+
+    global BUILD_CONFIGS_FOLDER
+
+    BUILD_CONFIGS_FOLDER.mkdir(parents=True, exist_ok=True)
+
+    configs = []
+
+    for config_path in BUILD_CONFIGS_FOLDER.iterdir():
+        if config_path.is_file():
+            if not config_path.name.startswith('local-opensiteenergy-') or not config_path.name.endswith('.yml'):
+                continue
+
+            with open(str(config_path), 'r', encoding='utf-8') as f:
+                try:
+                    yaml_data = yaml.safe_load(f)
+                    if yaml_data:
+                        if 'title' in yaml_data:
+                            configs.append({'id': config_path.name, 'title': yaml_data['title']})
+                            
+                except yaml.YAMLError as e:
+                    print(f"Error parsing {config_path.name}: {e}")
+
+    return configs
+
+@app.route('/save', methods=['POST'])
+def save():
+    """
+    Save new or existing config YML
+    """
+
+    if not isLoggedIn(): return {}
+
+    global BUILD_CONFIGS_FOLDER
+
+    BUILD_CONFIGS_FOLDER.mkdir(parents=True, exist_ok=True)
+
+    config_urn = request.form.get('urn', None)
+    config_content = request.form.get('content', 'title: "Untitled configuration file"')
+
+    if not config_urn: config_urn = f"local-opensiteenergy-{uuid.uuid4()}.yml"
+
+    if config_urn.startswith('local-opensiteenergy-') and config_urn.endswith('.yml'):
+        config_path = BUILD_CONFIGS_FOLDER / config_urn
+        with open(config_path, 'w', encoding='utf-8') as file: file.write(config_content)
+
+    configs_all = config_getall()
+
+    return {'urn': config_urn, 'configs': configs_all}
+
+@app.route('/get')
+def get():
+    """
+    Get existing config YML
+    """
+
+    if not isLoggedIn(): return ''
+
+    global BUILD_CONFIGS_FOLDER
+
+    config_urn = request.args.get('urn')
+    config_content = ''
+    if config_urn.startswith('local-opensiteenergy-') and config_urn.endswith('.yml'):
+        config_path = BUILD_CONFIGS_FOLDER / config_urn
+        with open(str(config_path), 'r', encoding='utf-8') as file: config_content = file.read()
+
+    return config_content
+
+@app.route('/delete')
+def delete():
+    """
+    Delete existing config YML
+    """
+
+    if not isLoggedIn(): return redirect(url_for('login'))
+
+    global BUILD_CONFIGS_FOLDER
+
+    config_urn = request.args.get('urn')
+
+    if config_urn: 
+        config_path = BUILD_CONFIGS_FOLDER / config_urn
+        if config_path.is_file(): os.remove(config_path)
+
+    return config_getall()
+
 @app.route("/admin")
 def admin():
     """
@@ -340,7 +431,7 @@ def admin():
 
     if not isLoggedIn(): return redirect(url_for('login'))
 
-    if isProcessing(): return redirect(url_for('serverlogs'))
+    if isProcessing(): return redirect(url_for('settings'))
 
     return redirect(url_for('settings'))
 
@@ -408,24 +499,12 @@ def settings():
     """
 
     if not isLoggedIn(): return redirect(url_for('login'))
-    if isProcessing(): return redirect(url_for('serverlogs'))
 
-    clippingareas = postgisGetClippingAreas()
+    # clippingareas = postgisGetClippingAreas()
 
-    return render_template("settings.html", clippingareas=clippingareas) 
+    # return render_template("settings.html", clippingareas=clippingareas) 
 
-@app.route("/editor") 
-def editor():
-    """
-    Edit processing settings
-    """
-
-    if not isLoggedIn(): return redirect(url_for('login'))
-    # if isProcessing(): return redirect(url_for('serverlogs'))
-
-    clippingareas = postgisGetClippingAreas()
-
-    return render_template("editor.html", clippingareas=clippingareas) 
+    return render_template("settings.html") 
 
 @app.route("/files") 
 def files():
@@ -437,15 +516,15 @@ def files():
 
     if not isLoggedIn(): return redirect(url_for('login'))
 
-    output_files_folder = join(BUILD_FOLDER, 'output', 'layers')
-    if not isdir(output_files_folder): 
-        files=[]
-    else:
-        output_files = getFilesInFolder(output_files_folder)
+    output_files_folder = BUILD_FOLDER / 'output' / 'layers'
+    if output_files_folder.is_dir():
+        output_files = getFilesInFolder(str(output_files_folder))
         files = [{'name': basename(file), 'url': '/outputfiles/' + file} for file in output_files]
+    else:
+        files=[]
 
-    qgis_file = join(output_files_folder, "..", "windconstraints--latest.qgs")
-    qgis = isfile(qgis_file)
+    qgis_file = output_files_folder.parent / 'windconstraints--latest.qgs'
+    qgis = isfile(str(qgis_file))
 
     return render_template("files.html", files=files, qgis=qgis) 
 
@@ -454,8 +533,8 @@ def download(zip_suffix, filter):
     Generic download function
     """
 
-    output_files_folder = BUILD_FOLDER + '/output'
-    output_files = getFilesInFolder(output_files_folder)
+    output_files_folder = BUILD_FOLDER / 'output' / 'layers'
+    output_files = getFilesInFolder(str(output_files_folder))
 
     memory_file = BytesIO()
     with zipfile.ZipFile(memory_file, 'w') as zf:
@@ -463,8 +542,8 @@ def download(zip_suffix, filter):
             if filter is not None:
                 file_extension = output_file.split('.')[1]
                 if file_extension not in filter: continue
-            output_file = join(output_files_folder, output_file) 
-            zf.write(output_file, arcname=basename(output_file))
+            output_file = output_files_folder / output_file 
+            zf.write(str(output_file), arcname=output_file.name)
     memory_file.seek(0)
     return send_file(memory_file, download_name=('opensiteenergy-' + zip_suffix + '.zip'), as_attachment=True)
 
@@ -473,8 +552,6 @@ def downloadall():
     """
     Zips all files and returns to user
     """
-
-    global BUILD_FOLDER
 
     if not isLoggedIn(): return redirect(url_for('login'))
 
@@ -486,8 +563,6 @@ def downloadgpkg():
     Zips all GPKG files and returns to user
     """
 
-    global BUILD_FOLDER
-
     if not isLoggedIn(): return redirect(url_for('login'))
 
     return download('files-gpkg', ['gpkg'])
@@ -497,8 +572,6 @@ def downloadgeojson():
     """
     Zips all GeoJSON files and returns to user
     """
-
-    global BUILD_FOLDER
 
     if not isLoggedIn(): return redirect(url_for('login'))
 
@@ -510,8 +583,6 @@ def downloadshp():
     Zips all shp files and returns to user
     """
 
-    global BUILD_FOLDER
-
     if not isLoggedIn(): return redirect(url_for('login'))
 
     return download('files-shp', ['shp', 'prj', 'shx', 'dbf'])
@@ -522,12 +593,13 @@ def downloadqgis():
     Zips QGIS file and all latest GPKG files and returns to user
     """
 
+    # *** NEEDS FIXING ***
     global BUILD_FOLDER
 
     if not isLoggedIn(): return redirect(url_for('login'))
 
-    output_files_folder = BUILD_FOLDER + '/output'
-    output_files = getFilesInFolder(output_files_folder)
+    output_files_folder = BUILD_FOLDER / 'output' / 'layers'
+    output_files = getFilesInFolder(str(output_files_folder))
 
     memory_file = BytesIO()
     with zipfile.ZipFile(memory_file, 'w') as zf:

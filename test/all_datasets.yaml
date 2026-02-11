@@ -1,0 +1,163 @@
+title: Untitled configuration
+
+type: ""
+
+code: ""
+
+osm: https://download.geofabrik.de/europe/united-kingdom-latest.osm.pbf
+
+areas:
+  - england
+  - wales
+  - scotland
+  - northern-ireland
+  - uk
+
+structure:
+  aviation-and-exclusion-areas:
+    - civilian-airports--uk
+    - airspace--uk
+    - danger-areas--uk
+    - mod-training-areas--uk
+  agricultural-land-grade-1-2:
+    - agricultural-land-classification-1-2--england
+    - agricultural-land-classification-1-2--wales
+    - agricultural-land-classification-1-2--northern-ireland
+    - agricultural-land-classification-1-2--scotland
+  administrative-boundaries:
+    - counties-and-unitary-authorities-boundaries--uk
+    - local-authority-districts--uk
+  heritage-impacts:
+    - conservation-areas--wales
+    - conservation-areas--england
+    - conservation-areas--scotland
+    - listed-buildings--northern-ireland
+    - listed-buildings--england
+    - listed-buildings--wales
+    - listed-buildings--scotland
+    - registered-parks-and-gardens--england
+    - registered-parks-and-gardens--northern-ireland
+    - registered-parks-and-gardens--scotland
+    - registered-parks-and-gardens--wales
+    - registered-historic-battlefields--scotland
+    - registered-historic-battlefields--england
+    - world-heritage-sites--england
+    - world-heritage-sites--wales
+    - world-heritage-sites--scotland
+    - world-heritage-sites--northern-ireland
+    - scheduled-ancient-monuments--northern-ireland
+    - scheduled-ancient-monuments--wales
+    - scheduled-ancient-monuments--scotland
+    - scheduled-ancient-monuments--england
+  ecology-and-wildlife:
+    - carbon-and-peatland--scotland
+    - local-nature-reserves--england
+    - local-nature-reserves--scotland
+    - local-nature-reserves--wales
+    - hedgerows--uk
+    - national-nature-reserves--northern-ireland
+    - national-nature-reserves--scotland
+    - national-nature-reserves--wales
+    - national-nature-reserves--england
+    - osm-nature-reserves--uk
+    - ancient-woodlands--northern-ireland
+    - ancient-woodlands--scotland
+    - ancient-woodlands--england
+    - ancient-woodlands--wales
+    - ramsar-sites--northern-ireland
+    - ramsar-sites--england
+    - ramsar-sites--scotland
+    - ramsar-sites--wales
+    - sites-of-special-scientific-interest--england
+    - sites-of-special-scientific-interest--scotland
+    - sites-of-special-scientific-interest--northern-ireland
+    - sites-of-special-scientific-interest--wales
+    - special-areas-of-conservation--england
+    - special-areas-of-conservation--scotland
+    - special-areas-of-conservation--northern-ireland
+    - special-areas-of-conservation--wales
+    - special-protection-areas--england
+    - special-protection-areas--scotland
+    - special-protection-areas--northern-ireland
+    - special-protection-areas--wales
+    - wild-land-areas--scotland
+  electricity-grid:
+    - nearby-substations--uk
+    - network-development-plan-northern-powergrid
+  environmental-data:
+    - inadequate-wind-speeds--uk
+    - insufficient-solar-irradiation--uk
+    - wind-speed-data---uk
+    - wind-speed-data-heatmap
+  general-data:
+    - 2011-census-data
+    - failed-and-successful-wind-turbine-positions
+    - chatgpt-list-of-wind-farms-with-community-asset-funds
+    - ons-postcode-directory
+  land-properties:
+    - solar-land-parcels-too-small--england-wales
+    - solar-land-parcels-too-small--scotland
+    - solar-slope-too-steep--uk
+  landscape-and-visual-impacts:
+    - green-belt--scotland
+    - green-belt--england
+    - heritage-coasts--scotland
+    - heritage-coasts--england
+    - heritage-coasts--wales
+    - national-parks--england
+    - national-parks--scotland
+    - national-parks--wales
+    - areas-of-outstanding-natural-beauty--scotland
+    - areas-of-outstanding-natural-beauty--northern-ireland
+    - areas-of-outstanding-natural-beauty--wales
+    - areas-of-outstanding-natural-beauty--england
+  other-technical-constraints:
+    - bridleways--uk
+    - civilian-airports---uk
+    - coastline--uk
+    - inland-waters--uk
+    - other-energy-plants--uk
+    - pipelines--uk
+    - power-lines--uk
+    - public-footpaths--uk
+    - public-roads-a-and-b-roads-and-motorways--uk
+    - railway-lines--uk
+    - solar-farms--uk
+    - wind-turbines--uk
+    - woodland--uk
+  separation-distance-from-residential-properties:
+    - residential-buildings-os--gb
+    - residential-buildings-osm--uk
+  spatial-frameworks:
+    - wind-turbine-constraint
+    - uk-wind-turbine-planning-applications
+    - wind-turbine-spatial-framework-scotland
+    - wind-turbine-spatial-framework
+
+style:
+  aviation-and-exclusion-areas:
+    color: "#f10909"
+  agricultural-land-grade-1-2:
+    color: "#bf0873"
+  administrative-boundaries:
+    color: "#3b38d6"
+  heritage-impacts:
+    color: "#ad28d2"
+  ecology-and-wildlife:
+    color: "#45ba9d"
+  electricity-grid:
+    color: "#2ac634"
+  environmental-data:
+    color: "#2e9112"
+  general-data:
+    color: "#7ce250"
+  land-properties:
+    color: "#84f13b"
+  landscape-and-visual-impacts:
+    color: "#cbd62e"
+  other-technical-constraints:
+    color: "#d29e2d"
+  separation-distance-from-residential-properties:
+    color: "#d85f0e"
+  spatial-frameworks:
+    color: "#e40707"

@@ -102,16 +102,31 @@ class PostGISBase:
             self.log.error(f"Failed to copy table via PostGIS: {e}")
             raise
 
-    def execute_query(self, query, params=None):
-        """Standard wrapper to execute a command and commit it."""
+    def execute_query(self, query, params=None, autocommit=False):
+        """
+        Standard wrapper to execute a command.
+        If autocommit is True, it runs outside a transaction block (required for VACUUM).
+        """
         conn = self.pool.getconn()
         try:
+            # Switch mode based on the request
+            conn.autocommit = autocommit
+            
             with conn.cursor() as cursor:
                 cursor.execute(query, params)
-                conn.commit()
+                
+                # We only manually commit if we are NOT in autocommit mode
+                if not autocommit:
+                    conn.commit()
+        except Exception as e:
+            if not autocommit:
+                conn.rollback()
+            raise e
         finally:
+            # Reset to default and return to pool
+            conn.autocommit = False
             self.pool.putconn(conn)
-
+            
     def fetch_all(self, query, params=None):
         """Standard wrapper to fetch results as a list of dictionaries."""
         conn = self.pool.getconn()
