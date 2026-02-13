@@ -34,7 +34,7 @@ class OpenSiteOutputWeb(OutputBase):
 
         # Get clipping bounds for clipping master
         clipping_bounds_dict = self.postgis.get_table_bounds(OpenSiteConstants.OPENSITE_CLIPPINGMASTER, OpenSiteConstants.CRS_DEFAULT, OpenSiteConstants.CRS_OUTPUT)
-        clipping_bounds = [clipping_bounds_dict['left'], clipping_bounds_dict['bottom'], clipping_bounds_dict['right'], clipping_bounds_dict['top']]
+        clipping_bounds = [clipping_bounds_dict['left'], clipping_bounds_dict['bottom'], clipping_bounds_dict['right'], clipping_bounds_dict['top'] + 0.1]
 
         # Add default styles separate from individual dataset styles
         styles["opensiteenergy"] = \

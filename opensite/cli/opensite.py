@@ -13,6 +13,8 @@ class OpenSiteCLI(BaseCLI):
         self.defaults = {}
         self.overrides = {}
         self.sites = []
+        self.server = None
+        self.preview = False
         self.outputformats = []
         self.clip = None
         self.purgedb = False
@@ -30,6 +32,7 @@ class OpenSiteCLI(BaseCLI):
         # Override base function
         super().add_standard_args()
         self.parser.add_argument("sites", nargs="*", help="Site(s) to generate")
+        self.parser.add_argument('--server', type=int, nargs='?', const=8000, help="Runs headless app. Default port 8000, or specify with --server=[port]")
         self.parser.add_argument('--preview', action='store_true', help='Loads interactive processing graph view')
         self.parser.add_argument('--purgedb', action='store_true', help="Drop all opensite tables and exit")
         self.parser.add_argument('--purgeall', action='store_true', help="Delete all download files, drop all opensite tables and exit")
@@ -103,6 +106,10 @@ class OpenSiteCLI(BaseCLI):
         self.log.error(f"'{value}' does not exist in defaults or overrides")
         return None
 
+    def get_server(self):
+        """Gets server port number - None if not running as headless server"""
+        return self.server
+
     def get_defaults(self):
         """Gets current defaults"""
         return self.defaults
@@ -144,6 +151,10 @@ class OpenSiteCLI(BaseCLI):
         self.add_standard_args()
         self.inject_dynamic_args()
         self.parse()
+
+        # Port number value for server
+        if self.args.server:
+            self.server = self.args.server
 
         # Boolean for purgeall
         self.purgeall = self.args.purgeall

@@ -16,26 +16,50 @@ if not Path('.env').exists():
 load_dotenv()
 
 class PostGISBase:
-    def __init__(self, log_level=logging.INFO):
+    def __init__(self, log_level=logging.INFO, use_pool=True):
         self.log = LoggingBase("PostGISBase", log_level)
-
         self.host = os.getenv("POSTGRES_HOST", "localhost")
         self.database = os.getenv("POSTGRES_DB", "opensite")
         self.user = os.getenv("POSTGRES_USER", "opensite")
         self.password = os.getenv("POSTGRES_PASSWORD", "")
         
-        # Initialize a connection pool for efficiency
+        self.conn = None
+        self.pool = None
+
         try:
-            self.pool = psycopg2.pool.SimpleConnectionPool(
-                1, 10,
-                host=self.host,
-                database=self.database,
-                user=self.user,
-                password=self.password
-            )
+            if use_pool:
+                self.pool = psycopg2.pool.SimpleConnectionPool(
+                    1, 10,
+                    host=self.host, database=self.database,
+                    user=self.user, password=self.password
+                )
+            else:
+                # Direct connection for heavy-duty stability
+                self.conn = psycopg2.connect(
+                    host=self.host, database=self.database,
+                    user=self.user, password=self.password
+                )
             self.log.debug(f"Connected to database: {self.database}")
         except Exception as e:
             self.log.error(f"Error connecting to Postgres: {e}")
+
+    def get_connection(self):
+        """Gets connection"""
+        if self.conn: return self.conn
+        else: return self.pool.getconn()
+
+    def return_connection(self, conn):
+        """Returns connection to pool"""
+        if self.pool: self.pool.putconn(conn)
+
+    def close_connection(self):
+        """Closes postgis connection and clears any associated memory"""
+        if self.pool:
+            self.log.debug("Closing all connections in the pool to release memory")
+            self.pool.closeall()
+        if self.conn:
+            self.log.debug("Closing main database connection (no pool)")
+            self.conn.close()
 
     def drop_table(self, table_name, schema='public', cascade=True):
         """
@@ -58,7 +82,7 @@ class PostGISBase:
             table=sql.Identifier(table_name)
         )
 
-        conn = self.pool.getconn()
+        conn = self.get_connection()
         try:
             # Reset transaction state in case of previous errors in the pool
             conn.rollback() 
@@ -74,7 +98,7 @@ class PostGISBase:
                 self.log.error(f"Failed to drop table {table_name}: {e}")
             return False
         finally:
-            self.pool.putconn(conn)
+            self.return_connection(conn)
 
     def copy_table(self, source_table, dest_table):
         """
@@ -107,7 +131,7 @@ class PostGISBase:
         Standard wrapper to execute a command.
         If autocommit is True, it runs outside a transaction block (required for VACUUM).
         """
-        conn = self.pool.getconn()
+        conn = self.get_connection()
         try:
             # Switch mode based on the request
             conn.autocommit = autocommit
@@ -125,18 +149,19 @@ class PostGISBase:
         finally:
             # Reset to default and return to pool
             conn.autocommit = False
-            self.pool.putconn(conn)
+            self.return_connection(conn)
             
     def fetch_all(self, query, params=None):
         """Standard wrapper to fetch results as a list of dictionaries."""
-        conn = self.pool.getconn()
+
+        conn = self.get_connection()
         try:
             # Specifying RealDictCursor makes fetchall() return [ {'col': val}, ... ]
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute(query, params)
                 return cursor.fetchall()
         finally:
-            self.pool.putconn(conn)
+            self.return_connection(conn)
 
     def get_table_names(self, schema='public'):
         """
@@ -173,7 +198,7 @@ class PostGISBase:
         );
         """).format(schema_lit = sql.Literal(schema), table_lit  = sql.Literal(table_name))
 
-        conn = self.pool.getconn()
+        conn = self.get_connection()
         try:
             with conn.cursor() as cursor:
                 cursor.execute(query)
@@ -187,7 +212,7 @@ class PostGISBase:
             self.log.error(f"Database error checking table existence for {table_name}: {e}")
             return False
         finally:
-            self.pool.putconn(conn)
+            self.return_connection(conn)
 
     def get_ogr_connection_string(self):
         """
@@ -202,7 +227,7 @@ class PostGISBase:
         """
         # quote_ident handles the table name: _opensite_table -> "_opensite_table"
         # The %s in the query handles the comment string properly.
-        conn = self.pool.getconn()
+        conn = self.get_connection()
         try:
             safe_table = quote_ident(table_id, conn)
             sql = f"COMMENT ON TABLE {safe_table} IS %s"
@@ -214,7 +239,7 @@ class PostGISBase:
             self.log.error(f"Failed to add comment to {table_id}: {e}")
             return False
         finally:
-            self.pool.putconn(conn)
+            self.return_connection(conn)
 
     def extract_crs_as_number(self, crs):
         """

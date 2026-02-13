@@ -33,6 +33,11 @@ Settings
             </div>
 
             <div style="overflow-y: auto; flex-grow: 1; padding-right: 8px;">
+                <div v-if="config.type === 'wind'" style="font-size: 0.9em;">
+                    In addition to numerical values, you can also enter formula using <span style="font-family: monospace; font-weight:800; font-size: 1em;">height-to-tip</span> and 
+                    <span style="font-family: monospace; font-weight:800; font-size: 1em;">blade-radius</span> values. For example:
+                    <div style="font-family: monospace; font-size: 1em;padding-top:5px; padding-bottom:20px;">1.1 * height-to-tip</div>
+                </div>
                 <div v-for="cid in activeModal.ds.children" :key="cid" style="margin-bottom: 16px;">
                     <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #4a5568; margin-bottom: 4px; word-break: break-all;">
                         {{ getChildTitle(activeModal.groupKey, cid) }}
@@ -40,7 +45,7 @@ Settings
                     <input 
                         v-model="activeModal.ds.childSettings[cid][activeModal.type]" 
                         type="text"
-                        placeholder=""
+                        placeholder="Value in metres"
                         style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.9rem;"
                     >
                 </div>
@@ -120,13 +125,11 @@ Settings
                     <div class="form-group"><label>Code</label><input v-model="config.code"></div>
                     <div class="form-group"><label>Areas - comma-separated</label><input v-model="config.areasRaw"></div>
                     <div class="form-group" style="grid-column: span 2;"><label>Open Street Map PBF datafile</label><input v-model="config.osm"></div>
+                    <div v-if="config.type === 'wind'" class="form-group"><label>Turbine Height to Tip (m)</label><input v-model="config.heightToTip" type="number" step="0.1"></div>
+                    <div v-if="config.type === 'wind'" class="form-group"><label>Turbine Blade Radius (m)</label><input v-model="config.bladeRadius" type="number" step="0.1"></div>
+
                 </div>
                 
-                <div v-if="config.type === 'wind'" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                    <div class="form-group"><label>Turbine Height to Tip (m)</label><input v-model="config.heightToTip" type="number" step="0.1"></div>
-                    <div class="form-group"><label>Turbine Blade Radius (m)</label><input v-model="config.bladeRadius" type="number" step="0.1"></div>
-                </div>
-
                 <!-- <div class="flex" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
                     <input v-model="ckanUrl" placeholder="CKAN Base URL" style="flex-grow: 1;">
                     <button v-if="showSyncButton" @click="fetchLibrary" class="btn btn-primary" :disabled="isInitialLoading">
@@ -560,10 +563,18 @@ createApp({
 
                 if (settings) {
                     if (settings.buffer !== undefined && settings.buffer !== "") {
-                        extras.push(`${settings.buffer}m buffer`);
+                        if (isNaN(settings.buffer)) {
+                            extras.push(`buffer: ${settings.buffer}`);
+                        } else {
+                            extras.push(`${settings.buffer}m buffer`);
+                        }
                     }
                     if (settings.distance !== undefined && settings.distance !== "") {
-                        extras.push(`${settings.distance}m distance exclusion`);
+                        if (isNaN(settings.distance)) {
+                            extras.push(`distance exclusion: ${settings.distance}`);
+                        } else {
+                            extras.push(`${settings.distance}m distance exclusion`);
+                        }
                     }
                 }
 

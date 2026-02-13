@@ -19,8 +19,8 @@ class OpenSitePostGIS(PostGISBase):
     OPENSITE_GRIDOUTPUT     = OpenSiteConstants.OPENSITE_GRIDOUTPUT
     OPENSITE_OSMBOUNDARIES  = OpenSiteConstants.OPENSITE_OSMBOUNDARIES
     
-    def __init__(self, log_level=logging.INFO):
-        super().__init__(log_level)
+    def __init__(self, log_level=logging.INFO, use_pool=True):
+        super().__init__(log_level, use_pool)
         self.log = OpenSiteLogger("OpenSitePostGIS", log_level)
         self.init_core_tables()
 
@@ -228,7 +228,7 @@ class OpenSitePostGIS(PostGISBase):
                 updated_at = CURRENT_TIMESTAMP
             WHERE table_id = %s;
         """
-        conn = self.pool.getconn()
+        conn = self.get_connection()
         try:
             with conn.cursor() as cursor:
                 cursor.execute(sql, (table_id, ))
@@ -244,7 +244,7 @@ class OpenSitePostGIS(PostGISBase):
             return False
 
         finally:
-            self.pool.putconn(conn)
+            self.return_connection(conn)
 
     def import_spatial_data(self, spatial_data_file, spatial_data_table):
         """

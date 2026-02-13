@@ -24,6 +24,7 @@ class OpenSiteOutputMbtiles(OutputBase):
 
         tmp_output = f"tmp-{self.node.output.replace('.mbtiles', '.geojson')}" 
         tmp_output_path = Path(self.base_path) / tmp_output
+        final_temp_path = Path(self.base_path) / f"tmp-{self.node.output}"
         final_output_path = Path(self.base_path) / self.node.output
         grid_table = OpenSiteConstants.OPENSITE_GRIDOUTPUT
         scratch_table_1 = f"tmp_1_{self.node.input}_{self.node.urn}"
@@ -42,7 +43,12 @@ class OpenSiteOutputMbtiles(OutputBase):
         if tmp_output_path.exists(): tmp_output_path.unlink()
 
         query_scratch_table_1_gridify = sql.SQL("""
-        CREATE TABLE {scratch1} AS SELECT (ST_Dump(ST_Intersection(layer.geom, grid.geom))).geom geom FROM {input} layer, {grid} grid
+        CREATE TABLE {scratch1} AS 
+        SELECT 
+            (ST_Dump(ST_Union(ST_Intersection(layer.geom, grid.geom)))).geom AS geom 
+        FROM {input} layer
+        JOIN {grid} grid ON ST_Intersects(layer.geom, grid.geom)
+        GROUP BY grid.id;
         """).format(**dbparams)
         query_scratch_table_1_index = sql.SQL("CREATE INDEX {scratch1_index} ON {scratch1} USING GIST (geom)").format(**dbparams)
         
@@ -53,7 +59,7 @@ class OpenSiteOutputMbtiles(OutputBase):
             self.postgis.execute_query(query_scratch_table_1_gridify)
             self.postgis.execute_query(query_scratch_table_1_index)
             self.postgis.export_spatial_data(scratch_table_1, dataset_name, str(tmp_output_path))
-            self.postgis.drop_table(scratch_table_1)
+            # self.postgis.drop_table(scratch_table_1)
 
             # Check for no features as GeoJSON with no features causes problem for tippecanoe
             # If no features, add dummy point so Tippecanoe creates mbtiles
@@ -80,21 +86,25 @@ class OpenSiteOutputMbtiles(OutputBase):
             cmd = [
                 "tippecanoe", 
                 "-Z4", "-z15", 
+                "-B8",
                 "-X", 
                 "--generate-ids", 
                 "--force", 
                 "-n", dataset_name, 
                 "-l", dataset_name, 
                 tmp_output_path_str, 
-                "-o", str(final_output_path) 
+                "-o", str(final_temp_path) 
             ]
 
-            self.log.info(f"[OpenSiteOutputMbtiles] [{self.node.name}] Running tippecanoe on {tmp_output_path_str} to create {final_output_path.name}")
+            self.log.info(f"[OpenSiteOutputMbtiles] [{self.node.name}] Running tippecanoe on {tmp_output_path_str} to create {final_temp_path.name}")
 
             subprocess.run(cmd, capture_output=True, text=True, check=True)
 
             if tmp_output_path.exists(): os.remove(str(tmp_output_path))
 
+            self.log.info(f"Created temp file {final_temp_path.name} successfully, copying to {final_output_path.name}")
+            os.replace(str(final_temp_path), str(final_output_path))
+            
             self.log.info(f"[OpenSiteOutputMbtiles] [{self.node.name}] COMPLETED")
 
             return True

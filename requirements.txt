@@ -20,4 +20,6 @@ fastapi
 pyogrio
 flask
 flask_cors
+httpx
+python-multipart
 #pip install --no-deps git+https://github.com/hotosm/osm-export-tool-python.git

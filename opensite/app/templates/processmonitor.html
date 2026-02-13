@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}
+Process monitor
+{% endblock title %}
+
+{% block headline %}
+Process monitor
+{% endblock headline %}
+
+{% block footer %}
+{% endblock footer %}
+{% block content %}
+
+    {{ styles | safe }}
+
+<div class="row" style="height:100%;">
+
+    {{ body_content | safe }}
+
+    <div class="col-lg-12" style="position:fixed; bottom:10px">
+        <a href="/processingstop" data-toggle="modal" data-target="#stopProcessingModal" class="btn btn-lg btn-danger btn-icon-split">
+            <span class="icon text-white-50">
+                <i class="fa fa-stop-circle"></i>
+            </span>
+            <span class="text">Stop processing</span>
+        </a>
+    </div>
+
+    {% if hide_stop == False %}
+
+        <div class="col-lg-12" >
+            <a href="/processingstop" data-toggle="modal" data-target="#stopProcessingModal" class="btn btn-lg btn-danger btn-icon-split">
+                <span class="icon text-white-50">
+                    <i class="fa fa-stop-circle"></i>
+                </span>
+                <span class="text">Stop processing</span>
+            </a>
+        </div>
+
+    {% endif %}
+
+</div>
+
+<!-- <div class="row mt-3">
+    <div class="col-lg-12">
+        <div class="mt-1 mb-1">Command line currently being processed:</div>
+        <div class="input-group mb-2 btn-icon-split">
+            <textarea class="form-control" 
+                autocorrect="off" 
+                autocapitalize="off" 
+                spellcheck="false"
+                wrap="off"
+                rows="1"
+                style="font-family:monospace;white-space:nowrap;resize:none;font-size:80%;" id="textarea-commandline">{{ command_line }}</textarea>
+            <a href="#" id="button-commandline-copy">
+                <span class="icon text-gray-900">
+                    <i class="far fa-copy"></i>
+                </span>    
+            </a>
+        </div>
+    </div>
+
+
+</div> -->
+
+{% endblock content %}

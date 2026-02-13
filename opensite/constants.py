@@ -51,6 +51,12 @@ class OpenSiteConstants:
     # 'User-Agent' to use when downloading datasets via WFS
     WFS_USER_AGENT              = "openwindenergy/*"
 
+    # Location of Certbot log file
+    CERTBOT_LOG                 = 'log-certbot.txt'
+
+    # Location of Domain name file
+    DOMAIN_FILE                 = 'DOMAIN'
+
     # CKAN formats we can accept
     CKAN_FORMATS                = \
                                 [
@@ -120,6 +126,8 @@ class OpenSiteConstants:
     # Sub-directories
     OSM_SUBFOLDER               = "osm"
     OPENLIBRARY_SUBFOLDER       = "openlibrary"
+    CONFIGS_FOLDER              = BUILD_ROOT / 'configs'
+    BUILD_CONFIG                = CONFIGS_FOLDER / f"{OPENSITEENERGY_SHORTNAME}.json"
     DOWNLOAD_FOLDER             = BUILD_ROOT / "downloads"
     OSM_DOWNLOAD_FOLDER         = DOWNLOAD_FOLDER / OSM_SUBFOLDER
     OPENLIBRARY_DOWNLOAD_FOLDER = DOWNLOAD_FOLDER / OPENLIBRARY_SUBFOLDER
@@ -207,7 +215,7 @@ class OpenSiteConstants:
 
     # Output grid is used to cut up final output into grid squares 
     # in order to improve quality and performance of rendering 
-    GRID_OUTPUT_SPACING         = 100 * 1000 # Size of grid squares in metres, ie. 100km
+    GRID_OUTPUT_SPACING         = 10 * 1000 # Size of grid squares in metres, ie. 10km
 
     # Basename of OSM boundaries files
     # If [basename].gpkg file doesn't exist, processing nodes will be added to create it

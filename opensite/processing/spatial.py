@@ -204,7 +204,19 @@ class OpenSiteSpatial(ProcessBase):
 
         query_grid_create = sql.SQL("""
         CREATE TABLE {grid} AS 
-            SELECT ST_Transform((ST_SquareGrid({grid_spacing}, ST_Transform(geom, 3857))).geom, {crs}) geom FROM {clipping_master}                                    
+        SELECT 
+            row_number() OVER () AS id, 
+            sub.geom
+        FROM (
+            SELECT 
+                ST_Transform(
+                    (ST_SquareGrid({grid_spacing}, ST_Transform(geom, 3857))).geom, 
+                    {crs}
+                ) AS geom 
+            FROM {clipping_master}
+        ) sub;
+        ALTER TABLE {grid} ADD PRIMARY KEY (id);
+        CREATE INDEX ON {grid} USING GIST (geom);
         """).format(**dbparams)
         query_grid_create_index = sql.SQL("CREATE INDEX {grid_index} ON {grid} USING GIST (geom)").format(**dbparams)
 
@@ -653,40 +665,31 @@ class OpenSiteSpatial(ProcessBase):
 
         name_elements = self.parse_output_node_name(self.node.name)
         self.node.name = name_elements['name']
-        output_temp = f"{self.node.output}_temp"
 
         # Generate scratch table names
         def scratch(idx): return f"tmp_{idx}_{self.node.output}_{self.node.urn}"
         
-        table_input = scratch(0) # We'll copy input here to add row_id
-        table_seams = scratch(1) # Just the polygons touching edges
-        table_islands = scratch(2) # Polygons safely away from edges
-        table_welded = scratch(3) # The result of the union
+        table_seams = scratch(0) # Just the polygons touching edges
+        table_islands = scratch(1) # Polygons safely away from edges
+        table_welded = scratch(2) # The result of the union
         
         dbparams = {
             "crs": sql.Literal(self.get_crs_default()),
             "input": sql.Identifier(self.node.input),
             "output": sql.Identifier(self.node.output),
             "buffered_edges": sql.Identifier(OpenSiteConstants.OPENSITE_GRIDBUFFEDGES),
-            "table_input": sql.Identifier(table_input),
             "table_seams": sql.Identifier(table_seams),
             "table_islands": sql.Identifier(table_islands),
             "table_welded": sql.Identifier(table_welded),
         }
-
-        if self.postgis.table_exists(output_temp): self.postgis.drop_table(output_temp)
-
-        # # ***** DELETE TABLE DURING TESTING *****
-        # if self.postgis.table_exists(self.node.output):
-        #     self.postgis.drop_table(self.node.output)
 
         if self.postgis.table_exists(self.node.output):
             self.log.info(f"[postprocess] [{self.node.output}] already exists, skipping postprocess")
             return True
 
         try:
-                        
-            all_scratch_tables = [table_input, table_seams, table_islands, table_welded]
+
+            all_scratch_tables = [table_seams, table_islands, table_welded]
 
             def cleanup():
                 for t in all_scratch_tables:
@@ -695,110 +698,62 @@ class OpenSiteSpatial(ProcessBase):
             cleanup()
             self.postgis.drop_table(self.node.output)
 
-            # --- STEP 1: Materialize Input with Unique IDs ---
-            self.log.info(f"[postprocess] [{self.node.name}] Step 1: Materializing indexed input...")
-            start = datetime.datetime.now()
-            self.postgis.execute_query(sql.SQL("""
-                CREATE TABLE {table_input} AS 
-                SELECT row_number() OVER () as row_id, * FROM {input};
-                CREATE INDEX ON {table_input} (row_id);
-                CREATE INDEX ON {table_input} USING GIST (geom);
-            """).format(**dbparams))
-            self.log.info(f"[postprocess] [{self.node.name}] Step 1: COMPLETED in {datetime.datetime.now() - start}")
-
-            # --- STEP 2: Isolate Seam Candidates ---
-            self.log.info(f"[postprocess] [{self.node.name}] Step 2: Extracting seam candidates...")
+            # --- STEP 1: Isolate Seam Candidates ---
+            self.log.info(f"[postprocess] [{self.node.name}] Step 1: Extracting seam candidates...")
             start = datetime.datetime.now()
             self.postgis.execute_query(sql.SQL("""
             CREATE TABLE {table_seams} AS
-                SELECT a.row_id, a.geom 
-                FROM {table_input} a
-                JOIN {buffered_edges} b ON ST_Intersects(a.geom, b.geom);
-            CREATE INDEX ON {table_seams} (row_id);
-            """).format(**dbparams))
+            SELECT a.geom AS geom FROM {input} a WHERE EXISTS (SELECT 1 FROM {buffered_edges} b WHERE ST_Intersects(a.geom, b.geom))""").format(**dbparams))
+            self.log.info(f"[postprocess] [{self.node.name}] Step 1: COMPLETED in {datetime.datetime.now() - start}")
+
+            # --- STEP 2: Isolate Islands ---
+            self.log.info(f"[postprocess] [{self.node.name}] Step 2: Isolating islands...")
+            start = datetime.datetime.now()
+            self.postgis.execute_query(sql.SQL("""
+            CREATE TABLE {table_islands} AS
+            SELECT a.geom AS geom FROM {input} a WHERE NOT EXISTS (SELECT 1 FROM {buffered_edges} b WHERE ST_Intersects(a.geom, b.geom))""").format(**dbparams))
             self.log.info(f"[postprocess] [{self.node.name}] Step 2: COMPLETED in {datetime.datetime.now() - start}")
 
-            # --- STEP 3: Isolate Islands ---
-            self.log.info(f"[postprocess] [{self.node.name}] Step 3: Isolating islands...")
+            # --- STEP 3: Weld seams ---
+            self.log.info(f"[postprocess] [{self.node.name}] Step 3: Unioning / welding seam geometries...")
             start = datetime.datetime.now()
-            self.postgis.execute_query(sql.SQL("""
-                CREATE TABLE {table_islands} AS
-                SELECT a.* FROM {table_input} a
-                LEFT JOIN {table_seams} b ON a.row_id = b.row_id
-                WHERE b.row_id IS NULL;
-            """).format(**dbparams))
+            strategy = "CONVENTIONAL"
+
+            # EXECUTION: Conventional Path (Fast)
+            if strategy == "CONVENTIONAL":
+                self.log.info(f"[postprocess] [{self.node.name}] Strategy: {strategy}")
+                try:
+                    self.postgis.execute_query(sql.SQL("CREATE TABLE {table_welded} AS SELECT ST_Union(geom) AS geom FROM {table_seams}").format(**dbparams))
+                except Exception as e:
+                    self.log.warning(f"[postprocess] [{self.node.name}] Conventional weld failed - geometry too complex for PostGIS so copying over gridded data to target table")
+                    strategy = "KEEPGRIDDED"
+                    self.postgis.execute_query(sql.SQL("DROP TABLE IF EXISTS {table_welded}").format(**dbparams))
+
+            # EXECUTION: Copy table_seams to table_welded unchanged
+            # We tried but PostGIS unable to handle ST_Union on a dataset (possibly too many vertices)
+            if strategy == "KEEPGRIDDED":
+                self.log.info(f"[postprocess] [{self.node.name}] Strategy: {strategy}")
+                try:
+                    self.postgis.execute_query(sql.SQL("CREATE TABLE {table_welded} AS SELECT geom FROM {table_seams}").format(**dbparams))
+                except Exception as e:
+                    self.log.warning(f"[postprocess] [{self.node.name}] Unable to copy over gridded data to target table")
+                    cleanup()
+                    return False
+
             self.log.info(f"[postprocess] [{self.node.name}] Step 3: COMPLETED in {datetime.datetime.now() - start}")
 
-            # --- STEP 4: Weld seams ---
-            self.log.info(f"[postprocess] [{self.node.name}] Step 4: Unioning / welding seam geometries...")
-            start = datetime.datetime.now()
-            id_query = sql.SQL("SELECT row_id FROM {table_seams}").format(**dbparams)
-            ids = [r['row_id'] for r in self.postgis.fetch_all(id_query)]
-            total = len(ids)
-            if total == 0:
-                self.log.info(f"[postprocess] [{self.node.name}] No seams found. Creating empty table {dbparams['table_welded']}.")
-                self.postgis.execute_query(sql.SQL("CREATE TABLE {table_welded} (geom geometry(Geometry, {crs}))").format(**dbparams))
-            else:
-
-                strategy = "CONVENTIONAL"
-
-                # CREATE TABLE {table_welded} AS 
-                # SELECT (ST_Dump(ST_Union(ST_MakeValid(geom)))).geom::geometry(Polygon, {crs}) as geom
-                # FROM {table_seams} WHERE row_id IN %s
-
-                self.log.info(f"[postprocess] [{self.node.name}] Strategy: {strategy} - {total} features")
-
-                # EXECUTION: Conventional Path (Fast)
-                if strategy == "CONVENTIONAL":
-                    try:
-                        self.postgis.execute_query(sql.SQL("""
-                        CREATE TABLE {table_welded} AS 
-                        SELECT (ST_Dump(ST_UnaryUnion(ST_Collect(ST_MakeValid(geom))))).geom::geometry(Polygon, {crs}) as geom
-                        FROM {table_seams} 
-                        WHERE row_id IN %s
-                        """).format(**dbparams), (tuple(ids),))
-                    except Exception as e:
-                        self.log.warning(f"[postprocess] [{self.node.name}] Conventional weld failed: {e}")
-                        self.log.warning(f"[postprocess] [{self.node.name}] Falling back to ITERATIVE strategy - slower but less memory intensive")
-                        strategy = "ITERATIVE"
-                        self.postgis.execute_query(sql.SQL("DROP TABLE IF EXISTS {table_welded}").format(**dbparams))
-
-                # EXECUTION: Iterative Path (Safe/Slow)
-                if strategy == "ITERATIVE":
-                    self.log.info(f"[postprocess] [{self.node.name}] Starting iterative weld loop on {total} geometries...")
-                    
-                    # Seed the table with the first row
-                    self.postgis.execute_query(sql.SQL("""
-                        CREATE TABLE {table_welded} AS 
-                        SELECT ST_MakeValid(geom) as geom FROM {table_seams} WHERE row_id = %s
-                    """).format(**dbparams), (ids[0],))
-
-                    # Loop through the rest of the IDs
-                    for i, poly_id in enumerate(ids[1:], 1):
-                        self.postgis.execute_query(sql.SQL("""
-                            UPDATE {table_welded} 
-                            SET geom = ST_Union({table_welded}.geom, ST_MakeValid(s.geom))
-                            FROM {table_seams} s WHERE s.row_id = %s
-                        """).format(**dbparams), (poly_id,))
-
-                        # Periodic logging to avoid inundating terminal
-                        if i % 100 == 0 or i == total - 1:
-                            self.log.info(f"[postprocess] [{self.node.name}] Step 4: Progress: {i+1}/{total} seams welded (Iterative)")
-
-            self.log.info(f"[postprocess] [{self.node.name}] Step 4: COMPLETED in {datetime.datetime.now() - start}")
-
-            # --- STEP 5: Final assembly ---
-            self.log.info(f"[postprocess] [{self.node.name}] Step 5: Finalizing output...")
+            # --- STEP 4: Final assembly ---
+            self.log.info(f"[postprocess] [{self.node.name}] Step 4: Finalizing output...")
             self.postgis.execute_query(sql.SQL("""
-                CREATE TABLE {output} AS
-                SELECT geom FROM {table_welded}
-                UNION ALL
-                SELECT geom FROM {table_islands};
-                CREATE INDEX ON {output} USING GIST (geom);
+            CREATE TABLE {output} AS
+            SELECT geom FROM {table_welded}
+            UNION ALL
+            SELECT geom FROM {table_islands};
+            CREATE INDEX ON {output} USING GIST (geom);
             """).format(**dbparams))
 
             cleanup()
-            self.log.info(f"[postprocess] [{self.node.name}] Success.")
+            self.log.info(f"[postprocess] [{self.node.name}] Success")
 
             self.postgis.add_table_comment(self.node.output, self.node.name)
             self.postgis.register_node(self.node, None, name_elements['branch'])
