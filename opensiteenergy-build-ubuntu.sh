@@ -152,7 +152,7 @@ echo '<!doctype html><html><head><meta http-equiv="refresh" content="2"></head><
 
 sudo apt update -y | tee -a /usr/src/opensiteenergy/opensiteenergy.log
 sudo apt install curl -y | tee -a /usr/src/openwindenergy/log.txt
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install netcat-traditional nodejs -y | tee -a /usr/src/openwindenergy/log.txt
 # sudo apt install npm -y | tee -a /usr/src/openwindenergy/log.txt
 sudo npm i frontail -g 2>&1 | tee -a /usr/src/opensiteenergy/opensiteenergy.log
@@ -244,15 +244,6 @@ wget https://github.com/unicode-org/icu/releases/download/release-70-rc/icu4c-70
 tar -xvf icu4c-70rc-src.tgz
 sudo rm icu4c-70rc-src.tgz
 cd icu/source
-./configure --prefix=/opt | tee -a /usr/src/opensiteenergy/opensiteenergy.log
-make -j | tee -a /usr/src/opensiteenergy/opensiteenergy.log
-sudo make install | tee -a /usr/src/opensiteenergy/opensiteenergy.log
-
-# Install libpng-1.6.37
-wget http://prdownloads.sourceforge.net/libpng/libpng-1.6.37.tar.gz | tee -a /usr/src/opensiteenergy/opensiteenergy.log
-tar -xvf libpng-1.6.37.tar.gz
-sudo rm libpng-1.6.37.tar.gz
-cd libpng-1.6.37
 ./configure --prefix=/opt | tee -a /usr/src/opensiteenergy/opensiteenergy.log
 make -j | tee -a /usr/src/opensiteenergy/opensiteenergy.log
 sudo make install | tee -a /usr/src/opensiteenergy/opensiteenergy.log
