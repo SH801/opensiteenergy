@@ -20,9 +20,9 @@ class OpenSiteOutputWeb(OutputBase):
 
         return [item for i in items for item in [i] + self.flatten(i.get('children', []))]
 
-    def output_mbtiles_styles(self, basemap_mbtiles=None):
+    def output_tileserver_files(self, basemap_mbtiles=None):
         """
-        Outputs mtbiles styles files
+        Outputs mtbiles styles files and copies mbtiles to tileserver data folder
         """
 
         # ===============================================
@@ -184,6 +184,11 @@ class OpenSiteOutputWeb(OutputBase):
 
             json.dump(config_json, open(str(OpenSiteConstants.TILESERVER_CONFIG_FILE), 'w', encoding='utf-8'), indent=4)
 
+            self.log.info("Triggering tileserver-gl to restart so it loads new config and mbtiles")
+            Path("RESTARTSERVICES").write_text("RESTART")
+
+            return True
+
         except (Exception) as e:
             self.log.error(f"General error when generating openmaptiles.json: {e}")
             return False
@@ -227,8 +232,8 @@ class OpenSiteOutputWeb(OutputBase):
             self.log.info("Deleting style files from tileserver styles folder")
             self.clear_folder(str(OpenSiteConstants.TILESERVER_STYLES_FOLDER))
 
-            self.log.info("Generating mbtiles style files")
-            self.output_mbtiles_styles(osm_basemap_mbtiles_file)
+            self.log.info("Generating tileserver files")
+            self.output_tileserver_files(osm_basemap_mbtiles_file)
 
             return True
         

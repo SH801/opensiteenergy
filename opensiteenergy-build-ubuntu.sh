@@ -111,6 +111,9 @@ echo '<!doctype html><html><head><meta http-equiv="refresh" content="2"></head><
 sudo rm -R /usr/src/opensiteenergy
 cd /usr/src
 git clone https://github.com/SH801/opensiteenergy.git opensiteenergy
+
+echo '<!doctype html><html><head><meta http-equiv="refresh" content="2"></head><body><pre>Installing Python-related software and libraries</pre></body></html>' | sudo tee /var/www/html/index.nginx-debian.html
+
 sudo apt install virtualenv pip libgdal-dev -y | tee -a /usr/src/opensiteenergy/opensiteenergy.log
 virtualenv -p /usr/bin/python3 /usr/src/opensiteenergy/venv | tee -a /usr/src/opensiteenergy/opensiteenergy.log
 source /usr/src/opensiteenergy/venv/bin/activate
@@ -122,7 +125,7 @@ pip install -r requirements.txt | tee -a /usr/src/opensiteenergy/opensiteenergy.
 cd ..
 cp /usr/src/opensiteenergy/.env-template /usr/src/opensiteenergy/.env
 sudo chown -R www-data:www-data /usr/src/opensiteenergy
-sudo sed -i "s/.*TILESERVER_URL.*/    TILESERVER_URL\=\/tiles/" /usr/src/opensiteenergy/.env
+sudo sed -i "s/.*TILESERVER_URL.*/TILESERVER_URL\=\/tiles/" /usr/src/opensiteenergy/.env
 
 echo "[Unit]
 Description=opensiteenergy-servicesmanager.service
@@ -344,6 +347,7 @@ CPUWeight=1000
 Type=simple
 User=www-data
 WorkingDirectory=/usr/src/opensiteenergy
+Environment="PATH=/usr/src/opensiteenergy/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 ExecStart=/usr/src/opensiteenergy/venv/bin/uvicorn opensiteenergy:app --host 0.0.0.0 --port 8000 --log-level info
 Restart=always
 

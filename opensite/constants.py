@@ -1,6 +1,9 @@
 import os
 import logging
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class OpenSiteConstants:
     """Arbitrary application constants that don't change per environment."""

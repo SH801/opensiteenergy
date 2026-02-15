@@ -52,6 +52,15 @@ async def home(request: Request):
         {"request": request}
     )
 
+@OpenSiteRouter.get(f"/{OpenSiteConstants.OPENSITEENERGY_SHORTNAME}-data.json")              
+async def get_site_data():
+    file_path = Path(OpenSiteConstants.OUTPUT_FOLDER) / f"{OpenSiteConstants.OPENSITEENERGY_SHORTNAME}-data.json"                    
+    
+    if file_path.exists():
+        return FileResponse(path=file_path)
+    
+    return {"error": f"File not found at {file_path}"}
+
 @OpenSiteRouter.get("/admin", response_class=HTMLResponse)
 def admin(request: Request):
     """
