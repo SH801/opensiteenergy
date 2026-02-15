@@ -369,8 +369,10 @@ if [ -f "/tmp/.env" ]; then
     rm /tmp/.env
 fi
 
+while ! port_listening 8000 ; do true; done
+
 sudo ln -s /etc/nginx/sites-available/001-opensiteenergy-live.conf /etc/nginx/sites-enabled/
-# sudo rm -f /etc/nginx/sites-enabled/002-opensiteenergy-install.conf
+sudo rm -f /etc/nginx/sites-enabled/002-opensiteenergy-install.conf
 sudo /usr/sbin/nginx -s reload
 
 echo 'FINISHED' >> /usr/src/opensiteenergy/INSTALLCOMPLETE
