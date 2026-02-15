@@ -40,12 +40,12 @@ if [ -f "/tmp/.env" ]; then
     . /tmp/.env
 fi
 
-if [ -z "${SERVER_USERNAME}" ] || [ -z "${SERVER_PASSWORD}" ]; then
+if [ -z "${ADMIN_USERNAME}" ] || [ -z "${ADMIN_PASSWORD}" ]; then
    echo "Enter username for logging into server:"
-   read SERVER_USERNAME
+   read ADMIN_USERNAME
    echo "Enter password for logging into server:"
    stty -echo
-   read SERVER_PASSWORD
+   read ADMIN_PASSWORD
    stty echo
 fi
 
@@ -163,7 +163,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/usr/src/opensiteenergy
-ExecStart=frontail /usr/src/opensiteenergy/opensiteenergy.log --lines 32000 --ui-hide-topbar --url-path /
+ExecStart=frontail /usr/src/opensiteenergy/opensiteenergy.log --lines 32000 --ui-hide-topbar --url-path /logs
 Restart=on-failure
 
 [Install]
@@ -176,8 +176,8 @@ sudo systemctl enable frontail.service
 sudo systemctl restart frontail.service
 
 sudo echo "
-SERVER_USERNAME=${SERVER_USERNAME}
-SERVER_PASSWORD=${SERVER_PASSWORD}
+ADMIN_USERNAME=${ADMIN_USERNAME}
+ADMIN_PASSWORD=${ADMIN_PASSWORD}
 " >> /usr/src/opensiteenergy/.env
 
 sudo cp /usr/src/opensiteenergy/nginx/001-opensiteenergy-live.conf /etc/nginx/sites-available/.
@@ -191,7 +191,17 @@ while ! port_listening 9001 ; do true; done
 
 echo '********* frontail service listening on port 9001 **********' >> /usr/src/opensiteenergy/opensiteenergy.log
 
-echo '<!doctype html><html><head><meta http-equiv="refresh" content="2; url=/" /></head><body><p>Redirecting to Open Site Energy admin system...</p></body></html>' | sudo tee /var/www/html/index.nginx-debian.html
+echo '<!doctype html>
+<html>
+<head>
+    <title>Installing Open Site Energy...</title>
+    <meta http-equiv="refresh" content="15; url=/">
+</head>
+<body>
+    <iframe src="/logs" style="width:100%; height:90vh; border:none;"></iframe>
+    <p>Installation in progress... the page will reload automatically when finished</p>
+</body>
+</html>' | sudo tee /var/www/html/index.html
 
 sudo ln -s /etc/nginx/sites-available/002-opensiteenergy-install.conf /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
@@ -351,12 +361,19 @@ WantedBy=multi-user.target
 " | sudo tee /etc/systemd/system/opensiteenergy.service >/dev/null
 
 sudo systemctl enable opensiteenergy.service
+sudo systemctl stop frontail.service
+sudo systemctl disable frontail.service
+sudo systemctl start opensiteenergy.service
 
 if [ -f "/tmp/.env" ]; then
     rm /tmp/.env
 fi
 
-echo 'FINISHED' >> /usr/src/opensiteenergy/INSTALLCOMPLETE
+sudo ln -s /etc/nginx/sites-available/001-opensiteenergy-live.conf /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/002-opensiteenergy-install.conf
+sudo /usr/sbin/nginx -s reload
+
+echo 'FINISHED' >> /usr/src/openwindenergy/INSTALLCOMPLETE
 
 echo '********* STAGE 12: Finished installing Open Site Energy **********' >> /usr/src/opensiteenergy/opensiteenergy.log
 
@@ -366,11 +383,5 @@ echo '========= STARTUP INSTALLATION COMPLETE ===========' >> /usr/src/opensitee
 echo '===================================================' >> /usr/src/opensiteenergy/opensiteenergy.log
 echo '' >> /usr/src/opensiteenergy/opensiteenergy.log
 
-echo '===================================================' >> /usr/src/opensiteenergy/opensiteenergy.log
-echo '================= STARTING BUILD ==================' >> /usr/src/opensiteenergy/opensiteenergy.log
-echo '===================================================' >> /usr/src/opensiteenergy/opensiteenergy.log
-echo '' >> /usr/src/opensiteenergy/opensiteenergy.log
-
-echo '' >> /usr/src/opensiteenergy/OPENSITEENERGY-START
 
 
