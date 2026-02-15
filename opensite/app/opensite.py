@@ -11,6 +11,7 @@ import signal
 import sys
 import time
 import threading
+import yaml
 from fastapi import FastAPI
 from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
@@ -56,6 +57,7 @@ class OpenSiteApplication:
     def __init__(self, log_level=OpenSiteConstants.LOGGING_LEVEL):
         self.log = OpenSiteLogger("OpenSiteApplication")
         self.log_level = os.getenv("OPENSITE_LOG_LEVEL", log_level)
+        self.default_config = "defaults.yml"
         self.ensure_secret_key()
         self.app = FastAPI()
         self.app.add_middleware(SessionMiddleware, secret_key=os.getenv("OPENSITE_SECRET_KEY"))
@@ -130,14 +132,15 @@ class OpenSiteApplication:
                 self.purgeall()
                 self.init_environment()
 
-            # Initialise CLI to get CKAN url and set up processing graph using CKAN
-            cli = OpenSiteCLI(log_level=self.log_level) 
-            ckan = OpenSiteCKAN(cli.get_current_value('ckan'))
+            with open(self.default_config, 'r') as f:
+                default_config_values = yaml.safe_load(f) or {}
+
+            ckan = OpenSiteCKAN(default_config_values['ckan'])
             ckan.load()
-            self.graph = OpenSiteGraph( cli.get_overrides(), \
-                                        cli.get_outputformats(), \
+            self.graph = OpenSiteGraph( None, \
+                                        default_config_values['outputformats'], \
                                         config_json['clip'], \
-                                        cli.get_snapgrid(), \
+                                        default_config_values['snapgrid'], \
                                         log_level=self.log_level)
             self.graph.add_yamls(config_json['sites'])
             self.graph.update_metadata(ckan)

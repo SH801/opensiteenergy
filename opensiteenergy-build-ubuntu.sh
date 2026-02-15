@@ -198,8 +198,8 @@ echo '<!doctype html>
     <meta http-equiv="refresh" content="15; url=/">
 </head>
 <body>
+    <p>Installation in progress...</p>
     <iframe src="/logs" style="width:100%; height:90vh; border:none;"></iframe>
-    <p>Installation in progress... the page will reload automatically when finished</p>
 </body>
 </html>' | sudo tee /var/www/html/index.html
 
