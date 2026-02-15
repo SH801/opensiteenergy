@@ -163,7 +163,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/usr/src/opensiteenergy
-ExecStart=frontail /usr/src/opensiteenergy/opensiteenergy.log --lines 32000 --ui-hide-topbar --url-path /logs
+ExecStart=frontail /usr/src/opensiteenergy/opensiteenergy.log --lines 32000 --ui-hide-topbar --url-path /
 Restart=on-failure
 
 [Install]
@@ -180,8 +180,8 @@ SERVER_USERNAME=${SERVER_USERNAME}
 SERVER_PASSWORD=${SERVER_PASSWORD}
 " >> /usr/src/opensiteenergy/.env
 
-sudo cp /usr/src/opensiteenergy/apache/001-opensiteenergy-live.conf /etc/nginx/sites-available/.
-sudo cp /usr/src/opensiteenergy/apache/002-opensiteenergy-install.conf /etc/nginx/sites-available/.
+sudo cp /usr/src/opensiteenergy/nginx/001-opensiteenergy-live.conf /etc/nginx/sites-available/.
+sudo cp /usr/src/opensiteenergy/nginx/002-opensiteenergy-install.conf /etc/nginx/sites-available/.
 
 while is_in_activation frontail ; do true; done
 
@@ -189,9 +189,9 @@ echo '********* frontail service running **********' >> /usr/src/opensiteenergy/
 
 while ! port_listening 9001 ; do true; done
 
-echo '********* frontail service listening on port 9001 **********' >> /usr/src/opensiteenergy/opensiteenergy.log                                            
+echo '********* frontail service listening on port 9001 **********' >> /usr/src/opensiteenergy/opensiteenergy.log
 
-echo '<!doctype html><html><head><meta http-equiv="refresh" content="2; url=/admin" /></head><body><p>Redirecting to admin system...</p></body></html>' | sudo tee /var/www/html/index.nginx-debian.html
+echo '<!doctype html><html><head><meta http-equiv="refresh" content="2; url=/" /></head><body><p>Redirecting to Open Site Energy admin system...</p></body></html>' | sudo tee /var/www/html/index.nginx-debian.html
 
 sudo ln -s /etc/nginx/sites-available/002-opensiteenergy-install.conf /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
