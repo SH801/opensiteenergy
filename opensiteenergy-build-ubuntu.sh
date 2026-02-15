@@ -148,11 +148,9 @@ echo '********* STAGE 5: Installing nodejs and frontail **********' >> /usr/src/
 echo '<!doctype html><html><head><meta http-equiv="refresh" content="2"></head><body><pre>Installing frontail to show install logs dynamically...</pre></body></html>' | sudo tee /var/www/html/index.nginx-debian.html
 
 sudo apt update -y | tee -a /usr/src/opensiteenergy/opensiteenergy.log
-sudo apt install curl -y | tee -a /usr/src/opensiteenergy/opensiteenergy.log
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+# sudo apt install curl -y | tee -a /usr/src/opensiteenergy/opensiteenergy.log
+# curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install netcat-traditional nodejs -y | tee -a /usr/src/opensiteenergy/opensiteenergy.log
-# sudo apt install netcat nodejs -y | tee -a /usr/src/opensiteenergy/opensiteenergy.log
-sudo apt install nodejs -y | tee -a /usr/src/opensiteenergy/opensiteenergy.log
 sudo npm i frontail -g 2>&1 | tee -a /usr/src/opensiteenergy/opensiteenergy.log
 
 echo "[Unit]
@@ -198,7 +196,7 @@ echo '<!doctype html>
     <meta http-equiv="refresh" content="15; url=/">
 </head>
 <body>
-    <p>Installation in progress...</p>
+    <pre>Installation in progress...</pre>
     <iframe src="/logs" style="width:100%; height:90vh; border:none;"></iframe>
 </body>
 </html>' | sudo tee /var/www/html/index.html
