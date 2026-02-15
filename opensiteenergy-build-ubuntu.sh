@@ -150,7 +150,8 @@ echo '<!doctype html><html><head><meta http-equiv="refresh" content="2"></head><
 sudo apt update -y | tee -a /usr/src/opensiteenergy/opensiteenergy.log
 sudo apt install curl -y | tee -a /usr/src/openwindenergy/log.txt
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install netcat-traditional nodejs npm -y | tee -a /usr/src/openwindenergy/log.txt
+sudo apt install netcat-traditional nodejs -y | tee -a /usr/src/openwindenergy/log.txt
+# sudo apt install npm -y | tee -a /usr/src/openwindenergy/log.txt
 sudo npm i frontail -g 2>&1 | tee -a /usr/src/opensiteenergy/opensiteenergy.log
 
 echo "[Unit]
