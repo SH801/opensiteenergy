@@ -78,6 +78,7 @@ echo '********* STAGE 1: Finished running initial apt update **********' >> /usr
 
 
 # Quickly install nginx so user has something to see that updates them with progress
+# During install, secure all access with simple HTTP authentication
 
 echo '' >> /usr/src/opensiteenergy/opensiteenergy.log
 echo '********* STAGE 2: Installing nginx **********' >> /usr/src/opensiteenergy/opensiteenergy.log
@@ -86,7 +87,29 @@ mkdir /var/www
 mkdir /var/www/html
 echo '<!doctype html><html><head><meta http-equiv="refresh" content="2"></head><body><pre>Beginning installation of Open Site Energy...</pre></body></html>' | sudo tee /var/www/html/index.nginx-debian.html
 sudo apt install nginx certbot python3-certbot-nginx -y
-sudo systemctl restart nginx
+echo "${ADMIN_USERNAME}:$(openssl passwd -6 "${ADMIN_PASSWORD}")" | sudo tee /etc/nginx/.htpasswd > /dev/null
+sudo chown www-data:www-data /etc/nginx/.htpasswd
+sudo chmod 600 /etc/nginx/.htpasswd
+sudo tee /etc/nginx/sites-available/default <<EOF
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    root /var/www/html;
+    index index.html index.htm index.nginx-debian.html;
+
+    server_name _;
+
+    auth_basic "Restricted Area";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+}
+EOF
+
+sudo nginx -t && sudo systemctl reload nginx
 
 echo '********* STAGE 2: Finished installing nginx **********' >> /usr/src/opensiteenergy/opensiteenergy.log
 
@@ -348,6 +371,8 @@ User=www-data
 WorkingDirectory=/usr/src/opensiteenergy
 Environment="PATH=/usr/src/opensiteenergy/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 ExecStart=/usr/src/opensiteenergy/venv/bin/uvicorn opensiteenergy:app --host 0.0.0.0 --port 8000 --log-level info
+KillMode=mixed
+TimeoutStopSec=30s
 Restart=always
 
 [Install]

@@ -139,11 +139,13 @@ class DownloadBase:
         destination.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = destination.with_suffix(destination.suffix + '.tmp')
 
+        if tmp_path.exists(): tmp_path.unlink()
+
         try:
             self.log.info(f"Downloading: {url}")
             
             # Get total size from headers if available (fallback to our cached _remote_size)
-            with requests.get(url, stream=True, timeout=60) as r:
+            with requests.get(url, stream=True, timeout=120) as r:
                 r.raise_for_status()
                 total_size = int(r.headers.get('content-length', 0))
                 
@@ -151,7 +153,7 @@ class DownloadBase:
                 last_log_time = time.time()
                 
                 with open(tmp_path, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=1024 * 64):
+                    for chunk in r.iter_content(chunk_size=1024 * 1024):
                         if self.shutdown_requested(): 
                             self.log.warning("Shutdown requested, quitting early")
                             return None
