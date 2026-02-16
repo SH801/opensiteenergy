@@ -57,9 +57,9 @@ COPY opensite opensite
 COPY tileserver tileserver
 COPY web web
 COPY build-cli.sh .
-COPY build-server.sh .
+COPY server-cli.sh .
 RUN chmod +x build-cli.sh
-RUN chmod +x build-server.sh
+RUN chmod +x server-cli.sh
 COPY opensiteenergy.py .
 COPY build-qgis.py .
 COPY clipping-master-EPSG-25830.gpkg .

@@ -167,11 +167,6 @@ WantedBy=multi-user.target
 sudo systemctl enable frontail.service
 sudo systemctl restart frontail.service
 
-sudo echo "
-ADMIN_USERNAME=${ADMIN_USERNAME}
-ADMIN_PASSWORD=${ADMIN_PASSWORD}
-" >> /usr/src/opensiteenergy/.env
-
 sudo cp /usr/src/opensiteenergy/nginx/001-opensiteenergy-live.conf /etc/nginx/sites-available/.
 sudo cp /usr/src/opensiteenergy/nginx/002-opensiteenergy-install.conf /etc/nginx/sites-available/.
 
@@ -217,6 +212,10 @@ pip install gdal==`gdal-config --version` | tee -a /usr/src/opensiteenergy/opens
 pip install -r requirements.txt | tee -a /usr/src/opensiteenergy/opensiteenergy.log
 cd ..
 cp /usr/src/opensiteenergy/.env-template /usr/src/opensiteenergy/.env
+sudo echo "
+ADMIN_USERNAME=${ADMIN_USERNAME}
+ADMIN_PASSWORD=${ADMIN_PASSWORD}
+" >> /usr/src/opensiteenergy/.env
 sudo chown -R www-data:www-data /usr/src/opensiteenergy
 sudo sed -i "s/.*TILESERVER_URL.*/TILESERVER_URL\=\/tiles/" /usr/src/opensiteenergy/.env
 
