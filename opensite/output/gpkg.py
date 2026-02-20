@@ -19,27 +19,26 @@ class OpenSiteOutputGPKG(OutputBase):
         """
 
         source_table = self.node.input
+        fallback_table = self.node.custom_properties.get('fallback')
         temp_output = 'tmp-' + self.node.output
         temp_output_path = Path(self.base_path) / temp_output
         final_output = self.node.output
         final_output_path = Path(self.base_path) / final_output
 
-        if temp_output_path.exists():
-            temp_output_path.unlink()
-
         self.log.info(f"Exporting final layer {self.node.name} to {final_output}")
 
         postgis = OpenSitePostGIS(self.log_level)
 
-        if postgis.export_spatial_data(source_table, self.get_layer_from_file_path(final_output), temp_output_path):
-            downloadbase = DownloadBase(self.log_level, self.shared_lock)
-            if downloadbase.check_gpkg_valid(temp_output_path):
-                self.log.info(f"Exported temp file {temp_output} successfully, copying to {final_output}")
-                os.replace(temp_output_path, final_output_path)
-                return True
-            else:
-                return False
-        else:
-            self.log.error(f"Failed to export temp file {temp_output}")
-            return False
+        for table in [source_table, fallback_table]:
+            if temp_output_path.exists(): temp_output_path.unlink()
+            self.log.info(f"Exporting table {table}")
+            if postgis.export_spatial_data(table, self.get_layer_from_file_path(final_output), temp_output_path):
+                downloadbase = DownloadBase(self.log_level, self.shared_lock)
+                if downloadbase.check_gpkg_valid(temp_output_path):
+                    self.log.info(f"Exported temp file {temp_output} successfully, copying to {final_output}")
+                    os.replace(temp_output_path, final_output_path)
+                    return True
+
+        self.log.error(f"Failed to export temp file {temp_output}")
+        return False
 

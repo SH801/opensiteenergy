@@ -8,7 +8,7 @@ fi
 
 ./local-tileserver.sh
 
-uvicorn opensiteenergy:app --host 0.0.0.0 --port 8000 --log-level info
+uvicorn opensiteenergy:app --host 0.0.0.0 --port 8001 --log-level info
 
 COMMAND_NAME="tileserver-gl"
 

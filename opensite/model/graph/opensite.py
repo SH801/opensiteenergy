@@ -386,7 +386,7 @@ class OpenSiteGraph(Graph):
         struct_root = self.find_child(branch, "structure")
         style_root = self.find_child(branch, "style")
         buffer_root = self.find_child(branch, "buffers")
-        distance_root = self.find_child(branch, "distance")
+        distance_root = self.find_child(branch, "distances")
 
         if not struct_root:
             # Cleanup if no structure (deletes osm, tip-height nodes etc.)
@@ -1026,9 +1026,9 @@ class OpenSiteGraph(Graph):
             import_node = self.find_node_by_urn(d['urn'])
             if not import_node: continue
 
-            # Identify target to "wrap" - check immediate parent to see if buffer has already 'claimed' import
+            # Identify target to "wrap" - check immediate parent to see if buffer/distance has already 'claimed' import
             parent = self.find_parent(import_node.urn)
-            if parent and getattr(parent, 'action', None) == 'buffer': target_node = parent
+            if parent and ((getattr(parent, 'action', None) == 'buffer') or (getattr(parent, 'action', None) == 'distance')): target_node = parent
             else: target_node = import_node
 
             target_branch = target_node.custom_properties['branch']
@@ -1139,6 +1139,9 @@ class OpenSiteGraph(Graph):
                 current_logic_name = postprocess_name
                 current_chain_head = postprocess_node
                 outputs_input = postprocess_output
+                output_custom_properties = branch_node_custom_properties.copy()
+                # Set fallback grid-sliced table in case output from postprocess fails
+                output_custom_properties['fallback'] = am_node.output
 
                 # Clip
                 if 'clip' in branch_node.custom_properties['yml']:
@@ -1174,7 +1177,7 @@ class OpenSiteGraph(Graph):
                         format=fmt,
                         action='output',
                         input=outputs_input,
-                        custom_properties=branch_node_custom_properties
+                        custom_properties=output_custom_properties
                     )
                     fmt_node.children.append(current_chain_head)
                     current_chain_head.parent = fmt_node
@@ -1258,7 +1261,7 @@ class OpenSiteGraph(Graph):
                 clip = branch.custom_properties['yml']['clip']
                 title += f" clipped to '{';'.join(clip)}'"
                 suffix = self.get_suffix_clip(branch.custom_properties['yml']['clip'])
-                
+
             main_child = branch.children[0]
 
             maplibre_bounds = \

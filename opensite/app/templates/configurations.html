@@ -505,83 +505,83 @@ createApp({
             return ckanUrl.value !== lastSyncedUrl.value;
         });
 
-const fetchLibrary = async () => {
-    isInitialLoading.value = true;
-    const currentAttemptUrl = ckanUrl.value;
-    const baseUrl = currentAttemptUrl.replace(/\/+$/, "");
-    const api = `${baseUrl}/api/3/action/package_search?rows=1000`;
-    
-    try {
-        const res = await fetch(`${proxyUrl}?url=${encodeURIComponent(api)}`);
-        if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
-        const data = await res.json();
-        
-        if (data.success && data.result && data.result.results) {
-            const results = {};
-            const configs = [];
-
-            // 1. Initial Categorization
-            data.result.results.forEach(pkg => {
-                const group = (pkg.groups && pkg.groups.length > 0) ? pkg.groups[0] : { name: 'default', title: 'Default' };
+        const fetchLibrary = async () => {
+            isInitialLoading.value = true;
+            const currentAttemptUrl = ckanUrl.value;
+            const baseUrl = currentAttemptUrl.replace(/\/+$/, "");
+            const api = `${baseUrl}/api/3/action/package_search?rows=1000`;
+            
+            try {
+                const res = await fetch(`${proxyUrl}?url=${encodeURIComponent(api)}`);
+                if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
+                const data = await res.json();
                 
-                if (group.name.includes('custom') || group.title === 'Custom configurations') {
-                    if (pkg.resources && pkg.resources.some(r => r.format === OPEN_SITE_ENERGY_YML)) {
-                        configs.push(pkg);
-                    }
-                } else {
-                    if (!results[group.name]) {
-                        results[group.name] = { group_title: group.title, prefixes: {} };
-                    }
-                    
-                    const prefix = pkg.name.split('--')[0];
-                    if (!results[group.name].prefixes[prefix]) {
-                        results[group.name].prefixes[prefix] = {
-                            prefix: prefix,
-                            children: [],
-                            childTitles: []
-                        };
-                    }
-                    results[group.name].prefixes[prefix].children.push(pkg.name);
-                    results[group.name].prefixes[prefix].childTitles.push(pkg.title || pkg.name);
+                if (data.success && data.result && data.result.results) {
+                    const results = {};
+                    const configs = [];
+
+                    // 1. Initial Categorization
+                    data.result.results.forEach(pkg => {
+                        const group = (pkg.groups && pkg.groups.length > 0) ? pkg.groups[0] : { name: 'default', title: 'Default' };
+                        
+                        if (group.name.includes('custom') || group.title === 'Custom configurations') {
+                            if (pkg.resources && pkg.resources.some(r => r.format === OPEN_SITE_ENERGY_YML)) {
+                                configs.push(pkg);
+                            }
+                        } else {
+                            if (!results[group.name]) {
+                                results[group.name] = { group_title: group.title, prefixes: {} };
+                            }
+                            
+                            const prefix = pkg.name.split('--')[0];
+                            if (!results[group.name].prefixes[prefix]) {
+                                results[group.name].prefixes[prefix] = {
+                                    prefix: prefix,
+                                    children: [],
+                                    childTitles: []
+                                };
+                            }
+                            results[group.name].prefixes[prefix].children.push(pkg.name);
+                            results[group.name].prefixes[prefix].childTitles.push(pkg.title || pkg.name);
+                        }
+                    });
+
+                    // 2. Alphabetical Synchronization & Title Generation
+                    // We iterate through our collected object to sort children BEFORE setting library.value
+                    Object.values(results).forEach(group => {
+                        Object.values(group.prefixes).forEach(prefixData => {
+                            // Pair them up so they don't get separated during sort
+                            const paired = prefixData.children.map((name, index) => ({
+                                name: name,
+                                title: prefixData.childTitles[index]
+                            }));
+
+                            // Sort by Title
+                            paired.sort((a, b) => a.title.localeCompare(b.title));
+
+                            // Re-assign sorted arrays
+                            prefixData.children = paired.map(p => p.name);
+                            prefixData.childTitles = paired.map(p => p.title);
+
+                            // Generate the Clean Title from the new "Alpha Leader" (the first child)
+                            const firstTitle = prefixData.childTitles[0];
+                            const parts = firstTitle.split(' - ');
+                            prefixData.cleanTitle = parts.length > 1 ? parts.slice(0, -1).join(' - ') : parts[0];
+                        });
+                    });
+
+                    // 3. Update Reactive State
+                    library.value = results;
+                    customConfigs.value = configs.sort((a,b) => (a.title || a.name).localeCompare(b.title || b.name));
+                    lastSyncedUrl.value = currentAttemptUrl; 
                 }
-            });
-
-            // 2. Alphabetical Synchronization & Title Generation
-            // We iterate through our collected object to sort children BEFORE setting library.value
-            Object.values(results).forEach(group => {
-                Object.values(group.prefixes).forEach(prefixData => {
-                    // Pair them up so they don't get separated during sort
-                    const paired = prefixData.children.map((name, index) => ({
-                        name: name,
-                        title: prefixData.childTitles[index]
-                    }));
-
-                    // Sort by Title
-                    paired.sort((a, b) => a.title.localeCompare(b.title));
-
-                    // Re-assign sorted arrays
-                    prefixData.children = paired.map(p => p.name);
-                    prefixData.childTitles = paired.map(p => p.title);
-
-                    // Generate the Clean Title from the new "Alpha Leader" (the first child)
-                    const firstTitle = prefixData.childTitles[0];
-                    const parts = firstTitle.split(' - ');
-                    prefixData.cleanTitle = parts.length > 1 ? parts.slice(0, -1).join(' - ') : parts[0];
-                });
-            });
-
-            // 3. Update Reactive State
-            library.value = results;
-            customConfigs.value = configs.sort((a,b) => (a.title || a.name).localeCompare(b.title || b.name));
-            lastSyncedUrl.value = currentAttemptUrl; 
-        }
-    } catch (e) {
-        console.error("Connection error:", e);
-        alert("Failed to sync library: " + e.message);
-    } finally {
-        isInitialLoading.value = false;
-    }
-};
+            } catch (e) {
+                console.error("Connection error:", e);
+                alert("Failed to sync library: " + e.message);
+            } finally {
+                isInitialLoading.value = false;
+            }
+        };
 
         const getFormattedChildList = (ds) => {
             return ds.children.map((cid, index) => {

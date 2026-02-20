@@ -315,7 +315,7 @@ class OpenSitePostGIS(PostGISBase):
             return True
         
         except subprocess.CalledProcessError as e:
-            self.log.error(f"PostGIS Export Error: {spatial_data_table} {e.stderr}")
+            self.log.error(f"PostGIS Export Error: {spatial_data_table} {e.stderr} {cmd}")
             return False
         
     def get_areas_bounds(self, areas, crs_input=OpenSiteConstants.CRS_DEFAULT, crs_output=OpenSiteConstants.CRS_OUTPUT):

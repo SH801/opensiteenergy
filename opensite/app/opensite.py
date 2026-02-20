@@ -1,17 +1,13 @@
 import os
 import secrets
-import json
 import shutil
-import logging
-import time
-import os
-import time
-import uvicorn
 import signal
 import subprocess
 import sys
-import time
 import threading
+import time
+import traceback
+import uvicorn
 import yaml
 from fastapi import FastAPI, Response
 from datetime import datetime, timedelta
@@ -78,9 +74,10 @@ class ForceDownloadMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    orchestrator = app.state.orchestrator
+    orchestrator.setup()
     yield
     try:
-        orchestrator = app.state.orchestrator
         orchestrator.log.info("Uvicorn signaling shutdown...")
         orchestrator.stop()
     except Exception as e:
@@ -90,12 +87,15 @@ async def lifespan(app: FastAPI):
 
 class OpenSiteApplication:
     def __init__(self, log_level=OpenSiteConstants.LOGGING_LEVEL):
-        self.log = OpenSiteLogger("OpenSiteApplication")
         self.log_level = os.getenv("OPENSITE_LOG_LEVEL", log_level)
-        self.default_config = "defaults.yml"
-        self.ensure_secret_key()
         self.app = FastAPI()
+        self.app.state.orchestrator = self
+        self.ensure_secret_key()
         self.app.add_middleware(SessionMiddleware, secret_key=os.getenv("OPENSITE_SECRET_KEY"))
+        self.app.add_middleware(GlobalNoCacheMiddleware)
+        self.app.add_middleware(IgnoreDevToolsMiddleware)
+        self.app.add_middleware(ForceDownloadMiddleware)
+        self.default_config = "defaults.yml"
         self.server = None
         self.serverport = None
         self.should_exit = False
@@ -104,9 +104,12 @@ class OpenSiteApplication:
         self.queue = None
         self.graph = None
         self.processing_thread = None
-        self.stop_event = threading.Event()
         self.build_running = False
-        self.app.state.orchestrator = self
+
+    def setup(self):
+        self.log = OpenSiteLogger("OpenSiteApplication", self.log_level)
+        self.app.state.log = self.log
+        self.stop_event = threading.Event()
         folder_app = Path('opensite') / 'app'
         folder_static = str(folder_app / 'static')
         folder_templates = str(folder_app / 'templates')
@@ -117,13 +120,8 @@ class OpenSiteApplication:
 
         self.app.mount("/static", StaticFiles(directory=folder_static), name="static")
         self.app.mount("/outputfiles", StaticFiles(directory=folder_layers), name="outputfiles")
-        self.app.add_middleware(GlobalNoCacheMiddleware)
-        self.app.add_middleware(IgnoreDevToolsMiddleware)
-        self.app.add_middleware(ForceDownloadMiddleware)
         self.app.state.templates = Jinja2Templates(directory=folder_templates)
-        self.app.state.log = self.log
         self.app.state.processing_start = self.processing_start
-        self.app.state.orchestrator = self
         self.app.include_router(OpenSiteRouter)
 
         self.log.info(f"{Fore.GREEN}{'='*60}{Style.RESET_ALL}")
@@ -200,6 +198,12 @@ class OpenSiteApplication:
 
         except Exception as e:
             self.log.error(f"Pipeline failed: {e}")
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            line_number = exc_tb.tb_lineno
+            full_stack = traceback.format_exc()
+            self.log.error(f"Error on line {line_number}: {e}")
+            self.log.debug(full_stack)
+
 
     def build_nodes(self, last_index=0):
         """Gets latest state of processing nodes"""

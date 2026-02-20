@@ -293,10 +293,23 @@ class OpenSiteSpatial(ProcessBase):
             query_buffer_create = sql.SQL("""
             CREATE TABLE {output} AS 
             (
-                (SELECT ST_Buffer(geom, {buffer}) geom FROM {input} WHERE ST_geometrytype(geom) = 'ST_LineString') UNION 
-                (SELECT ST_Buffer(ST_Boundary(geom), {buffer}) geom FROM {input} WHERE ST_geometrytype(geom) IN ('ST_Polygon', 'ST_MultiPolygon'))
+                (SELECT ST_Buffer(geom, {buffer}) geom 
+                FROM {input} 
+                WHERE ST_Dimension(geom) = 1)
+                UNION ALL
+                (SELECT ST_Buffer(ST_Boundary(geom), {buffer}) geom 
+                FROM {input} 
+                WHERE ST_Dimension(geom) = 2)
             )
             """).format(**dbparams)
+
+            # query_buffer_create = sql.SQL("""
+            # CREATE TABLE {output} AS 
+            # (
+            #     (SELECT ST_Buffer(geom, {buffer}) geom FROM {input} WHERE ST_geometrytype(geom) = 'ST_LineString') UNION 
+            #     (SELECT ST_Buffer(ST_Boundary(geom), {buffer}) geom FROM {input} WHERE ST_geometrytype(geom) IN ('ST_Polygon', 'ST_MultiPolygon'))
+            # )
+            # """).format(**dbparams)
 
         try:
             self.postgis.execute_query(query_buffer_create)

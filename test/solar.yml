@@ -121,6 +121,8 @@ structure:
 buffers: 
   civilian-airports--uk:
     50
+  hedgerows--uk:
+    1
   listed-buildings--england: 
     500
   listed-buildings--northern-ireland: 
@@ -178,7 +180,7 @@ buffers:
   residential-buildings-osm--uk:
     20
 
-distance:
+distances:
   nearby-substations--uk:
     5000
     
